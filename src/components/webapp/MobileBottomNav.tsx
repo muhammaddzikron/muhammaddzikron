@@ -4,9 +4,8 @@ import {
   Music2,
   FileText,
   User,
-  ShieldCheck,
-  Lock,
-  Sparkles
+  Send,
+  ShieldCheck
 } from 'lucide-react';
 import { WebAppTab } from './Sidebar';
 
@@ -14,20 +13,20 @@ interface MobileBottomNavProps {
   activeTab: WebAppTab;
   onSelectTab: (tab: WebAppTab) => void;
   isAdminLoggedIn: boolean;
-  onOpenAdminLogin: () => void;
+  onOpenAdminLogin?: () => void;
 }
 
 export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   activeTab,
   onSelectTab,
-  isAdminLoggedIn,
-  onOpenAdminLogin
+  isAdminLoggedIn
 }) => {
   const navItems: { id: WebAppTab; label: string; icon: React.ReactNode }[] = [
     { id: 'home', label: 'Beranda', icon: <Home className="w-5 h-5" /> },
     { id: 'library', label: 'Lagu', icon: <Music2 className="w-5 h-5" /> },
     { id: 'lyrics', label: 'Lirik', icon: <FileText className="w-5 h-5" /> },
-    { id: 'about', label: 'Profil', icon: <User className="w-5 h-5" /> }
+    { id: 'about', label: 'Profil', icon: <User className="w-5 h-5" /> },
+    { id: 'contact', label: 'Kontak', icon: <Send className="w-5 h-5" /> }
   ];
 
   return (
@@ -38,7 +37,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
           <button
             key={item.id}
             onClick={() => onSelectTab(item.id)}
-            className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition cursor-pointer ${
+            className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition cursor-pointer ${
               isActive ? 'text-[#00ffc8]' : 'text-slate-400 hover:text-slate-200'
             }`}
           >
@@ -52,30 +51,22 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
         );
       })}
 
-      {/* Admin Tab on Mobile */}
-      <button
-        onClick={() => {
-          if (isAdminLoggedIn) {
-            onSelectTab('admin');
-          } else {
-            onOpenAdminLogin();
-          }
-        }}
-        className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition cursor-pointer ${
-          activeTab === 'admin' ? 'text-[#00ffc8]' : 'text-slate-400 hover:text-slate-200'
-        }`}
-      >
-        <div className={`p-1 rounded-lg transition ${activeTab === 'admin' ? 'bg-[#00ffc8]/15 scale-105' : ''}`}>
-          {isAdminLoggedIn ? (
+      {/* Admin Tab on Mobile - only shown when logged in */}
+      {isAdminLoggedIn && (
+        <button
+          onClick={() => onSelectTab('admin')}
+          className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition cursor-pointer ${
+            activeTab === 'admin' ? 'text-[#00ffc8]' : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <div className={`p-1 rounded-lg transition ${activeTab === 'admin' ? 'bg-[#00ffc8]/15 scale-105' : ''}`}>
             <ShieldCheck className="w-5 h-5 text-[#00ffc8]" />
-          ) : (
-            <Lock className="w-5 h-5" />
-          )}
-        </div>
-        <span className="text-[10px] font-semibold mt-0.5 tracking-tight">
-          Admin
-        </span>
-      </button>
+          </div>
+          <span className="text-[10px] font-semibold mt-0.5 tracking-tight">
+            Admin
+          </span>
+        </button>
+      )}
     </div>
   );
 };

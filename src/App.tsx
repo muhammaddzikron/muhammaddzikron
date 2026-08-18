@@ -314,22 +314,18 @@ export default function App() {
                 </nav>
               </div>
 
-              <div className="space-y-2">
-                <button
-                  onClick={() => {
-                    setMobileDrawerOpen(false);
-                    if (isAdminLoggedIn) {
+              {isAdminLoggedIn && (
+                <div className="space-y-2 pt-4 border-t border-slate-800">
+                  <button
+                    onClick={() => {
+                      setMobileDrawerOpen(false);
                       setActiveTab('admin');
-                    } else {
-                      setShowAdminLoginModal(true);
-                    }
-                  }}
-                  className="w-full py-3 rounded-xl bg-slate-900 border border-slate-800 text-[#00ffc8] text-xs font-bold"
-                >
-                  {isAdminLoggedIn ? 'Buka Admin Panel' : 'Login Admin CMS'}
-                </button>
+                    }}
+                    className="w-full py-3 rounded-xl bg-slate-900 border border-slate-800 text-[#00ffc8] text-xs font-bold"
+                  >
+                    Buka Studio Admin CMS
+                  </button>
 
-                {isAdminLoggedIn && (
                   <button
                     onClick={() => {
                       setMobileDrawerOpen(false);
@@ -339,8 +335,8 @@ export default function App() {
                   >
                     Keluar / Logout Admin
                   </button>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </div>
         )}

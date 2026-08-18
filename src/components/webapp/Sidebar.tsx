@@ -6,7 +6,6 @@ import {
   User,
   Send,
   ShieldCheck,
-  Lock,
   LogOut,
   Heart,
   Disc3,
@@ -22,7 +21,7 @@ interface SidebarProps {
   songsCount: number;
   favoritesCount: number;
   isAdminLoggedIn: boolean;
-  onOpenAdminLogin: () => void;
+  onOpenAdminLogin?: () => void;
   onAdminLogout?: () => void;
   currentSong: Song | null;
   isPlaying: boolean;
@@ -153,45 +152,32 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       </div>
 
-      {/* Sidebar Footer (Admin Section) */}
-      <div className="p-4 border-t border-slate-800/80 bg-slate-950/60 space-y-2">
-        <button
-          onClick={() => {
-            if (isAdminLoggedIn) {
-              onSelectTab('admin');
-            } else {
-              onOpenAdminLogin();
-            }
-          }}
-          className={`w-full py-2.5 px-3 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 border transition-all cursor-pointer ${
-            isAdminLoggedIn || activeTab === 'admin'
-              ? 'bg-gradient-to-r from-[#0099ff] to-[#00ffc8] text-slate-950 border-transparent shadow-[0_0_15px_rgba(0,255,200,0.3)] hover:opacity-90'
-              : 'bg-slate-900 text-slate-200 border-slate-800 hover:border-[#00ffc8]/50 hover:text-white'
-          }`}
-        >
-          {isAdminLoggedIn ? (
-            <>
-              <ShieldCheck className="w-4 h-4" />
-              <span>Studio Admin CMS</span>
-            </>
-          ) : (
-            <>
-              <Lock className="w-3.5 h-3.5 text-[#00ffc8]" />
-              <span>Login Admin CMS</span>
-            </>
-          )}
-        </button>
-
-        {isAdminLoggedIn && onAdminLogout && (
+      {/* Sidebar Footer (Admin Section - only visible when logged in) */}
+      {isAdminLoggedIn && (
+        <div className="p-4 border-t border-slate-800/80 bg-slate-950/60 space-y-2">
           <button
-            onClick={onAdminLogout}
-            className="w-full py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/20 transition cursor-pointer"
+            onClick={() => onSelectTab('admin')}
+            className={`w-full py-2.5 px-3 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 border transition-all cursor-pointer ${
+              activeTab === 'admin'
+                ? 'bg-gradient-to-r from-[#0099ff] to-[#00ffc8] text-slate-950 border-transparent shadow-[0_0_15px_rgba(0,255,200,0.3)] hover:opacity-90'
+                : 'bg-slate-900 text-[#00ffc8] border-slate-800 hover:border-[#00ffc8]/50 hover:text-white'
+            }`}
           >
-            <LogOut className="w-3.5 h-3.5" />
-            <span>Keluar / Logout Admin</span>
+            <ShieldCheck className="w-4 h-4" />
+            <span>Studio Admin CMS</span>
           </button>
-        )}
-      </div>
+
+          {onAdminLogout && (
+            <button
+              onClick={onAdminLogout}
+              className="w-full py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/20 transition cursor-pointer"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Keluar / Logout Admin</span>
+            </button>
+          )}
+        </div>
+      )}
 
     </aside>
   );

@@ -1,7 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Song } from './types/song';
-import { INITIAL_SONGS } from './data/initialData';
-import { fetchSongsFromGoogleSheet, setStoredAppsScriptUrl, getStoredAppsScriptUrl } from './services/appsScript';
+import { Song, ComposerProfile } from './types/song';
+import { INITIAL_SONGS, INITIAL_COMPOSER_PROFILE } from './data/initialData';
+import {
+  fetchSongsFromGoogleSheet,
+  setStoredAppsScriptUrl,
+  getStoredAppsScriptUrl,
+  fetchProfileFromGoogleSheet,
+  saveProfileToGoogleSheet,
+  getStoredProfile
+} from './services/appsScript';
 
 import { BackgroundAurora } from './components/BackgroundAurora';
 import { CustomCursor } from './components/CustomCursor';
@@ -10,6 +17,7 @@ import { AudioPlayer } from './components/AudioPlayer';
 import { SongDetailModal } from './components/SongDetailModal';
 import { GoogleSheetConfigModal } from './components/GoogleSheetConfigModal';
 import { AdminLoginModal } from './components/AdminLoginModal';
+import { EditProfileModal } from './components/EditProfileModal';
 
 // Web App UI Components
 import { Sidebar, WebAppTab } from './components/webapp/Sidebar';
@@ -38,6 +46,12 @@ export default function App() {
     }
     return INITIAL_SONGS.map((s) => ({ ...s, duration: formatSongDuration(s.duration) }));
   });
+
+  // Profile State
+  const [profile, setProfile] = useState<ComposerProfile>(() => {
+    return getStoredProfile();
+  });
+  const [showEditProfileModal, setShowEditProfileModal] = useState(false);
 
   const [currentSong, setCurrentSong] = useState<Song | null>(() => {
     if (typeof window !== 'undefined') {
@@ -112,9 +126,22 @@ export default function App() {
     return result.isLive;
   }, []);
 
+  // Load profile from Google Sheet on start
+  const loadProfile = useCallback(async () => {
+    const res = await fetchProfileFromGoogleSheet();
+    setProfile(res.profile);
+  }, []);
+
   useEffect(() => {
     loadSongs();
-  }, [loadSongs]);
+    loadProfile();
+  }, [loadSongs, loadProfile]);
+
+  const handleSaveProfile = async (newProfile: ComposerProfile) => {
+    setProfile(newProfile);
+    const result = await saveProfileToGoogleSheet(newProfile);
+    return result;
+  };
 
   // Admin song management
   const handleAdminUpdateSongs = (updatedSongs: Song[]) => {
@@ -405,7 +432,14 @@ export default function App() {
                 />
               )}
 
-              {activeTab === 'about' && <AboutView />}
+              {activeTab === 'about' && (
+                <AboutView
+                  profile={profile}
+                  isAdminLoggedIn={isAdminLoggedIn}
+                  onOpenEditProfile={() => setShowEditProfileModal(true)}
+                  onOpenLoginModal={() => setShowAdminLoginModal(true)}
+                />
+              )}
 
               {activeTab === 'contact' && (
                 <ContactView
@@ -422,6 +456,7 @@ export default function App() {
                   onResetToDefault={handleResetToDefaultSongs}
                   isAdminLoggedIn={isAdminLoggedIn}
                   onOpenLoginModal={() => setShowAdminLoginModal(true)}
+                  onOpenEditProfile={() => setShowEditProfileModal(true)}
                 />
               )}
 
@@ -493,6 +528,14 @@ export default function App() {
           setIsAdminLoggedIn(true);
           setActiveTab('admin');
         }}
+      />
+
+      {/* Edit Composer Profile Modal */}
+      <EditProfileModal
+        isOpen={showEditProfileModal}
+        onClose={() => setShowEditProfileModal(false)}
+        profile={profile}
+        onSaveProfile={handleSaveProfile}
       />
 
       {/* Keyboard Shortcuts Cheat Sheet */}

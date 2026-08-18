@@ -1,5 +1,5 @@
-import { Song, Order } from '../types/song';
-import { INITIAL_SONGS } from '../data/initialData';
+import { Song, Order, ComposerProfile } from '../types/song';
+import { INITIAL_SONGS, INITIAL_COMPOSER_PROFILE } from '../data/initialData';
 import { getGoogleDriveAudioUrl, getGoogleDriveImageUrl } from './googleDrive';
 import { formatSongDuration } from '../utils/duration';
 
@@ -9,6 +9,7 @@ export const DEFAULT_APPS_SCRIPT_URL =
 const LOCAL_STORAGE_APPS_SCRIPT_KEY = 'dzikron_apps_script_url';
 const LOCAL_STORAGE_CACHE_KEY = 'dzikron_cached_songs';
 const LOCAL_STORAGE_ORDERS_CACHE_KEY = 'dzikron_cached_orders';
+const LOCAL_STORAGE_PROFILE_KEY = 'dzikron_cached_profile';
 
 export const INITIAL_SAMPLE_ORDERS: Order[] = [
   {
@@ -47,6 +48,148 @@ export function setStoredAppsScriptUrl(url: string): void {
   if (typeof window === 'undefined') return;
   localStorage.setItem(LOCAL_STORAGE_APPS_SCRIPT_KEY, url.trim());
 }
+
+// ==========================================
+// 1. PROFIL KOMPOSER SINKRONISASI SPREADSHEET
+// ==========================================
+
+export function getStoredProfile(): ComposerProfile {
+  if (typeof window === 'undefined') return INITIAL_COMPOSER_PROFILE;
+  try {
+    const raw = localStorage.getItem(LOCAL_STORAGE_PROFILE_KEY);
+    return raw ? { ...INITIAL_COMPOSER_PROFILE, ...JSON.parse(raw) } : INITIAL_COMPOSER_PROFILE;
+  } catch {
+    return INITIAL_COMPOSER_PROFILE;
+  }
+}
+
+export function saveStoredProfile(profile: ComposerProfile): void {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(LOCAL_STORAGE_PROFILE_KEY, JSON.stringify(profile));
+  window.dispatchEvent(new Event('dzikron_profile_updated'));
+}
+
+export async function fetchProfileFromGoogleSheet(
+  customUrl?: string
+): Promise<{ profile: ComposerProfile; isLive: boolean; error?: string }> {
+  const endpoint = customUrl || getStoredAppsScriptUrl();
+  const cached = getStoredProfile();
+
+  if (!endpoint) {
+    return { profile: cached, isLive: false };
+  }
+
+  try {
+    const separator = endpoint.includes('?') ? '&' : '?';
+    const fetchUrl = `${endpoint}${separator}type=profile&_t=${Date.now()}`;
+    const res = await fetch(fetchUrl, { method: 'GET', mode: 'cors' });
+    if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+
+    const json = await res.json();
+    let profileData: Partial<ComposerProfile> = {};
+
+    if (json && json.data && typeof json.data.profile === 'object') {
+      profileData = json.data.profile;
+    } else if (json && typeof json.profile === 'object') {
+      profileData = json.profile;
+    } else if (Array.isArray(json)) {
+      // If returned as key-value pairs array [{ Field: 'Nama', Value: 'Muhammad Dzikron' }]
+      json.forEach((row: any) => {
+        const key = String(row.Field || row.field || row.Key || row.key || '').toLowerCase().trim();
+        const val = row.Value || row.value || row.Nilai || row.nilai;
+        if (key.includes('nama')) profileData.name = val;
+        else if (key.includes('tagline')) profileData.tagline = val;
+        else if (key.includes('headline')) profileData.headline = val;
+        else if (key.includes('foto') || key.includes('photo')) profileData.photoUrl = val;
+        else if (key.includes('bio')) profileData.bio = val;
+        else if (key.includes('pengalaman') || key.includes('experience')) profileData.experience = val;
+        else if (key.includes('lokasi') || key.includes('location')) profileData.location = val;
+        else if (key.includes('tahun') || key.includes('aktif') || key.includes('since')) profileData.activeSince = val;
+        else if (key.includes('kolaborasi') || key.includes('status')) profileData.collaborationStatus = val;
+        else if (key.includes('lagu') || key.includes('songs')) profileData.statSongs = val;
+        else if (key.includes('album')) profileData.statAlbums = val;
+        else if (key.includes('pendengar') || key.includes('listeners')) profileData.statListeners = val;
+        else if (key.includes('genre')) profileData.statGenres = val;
+      });
+    } else if (typeof json === 'object' && json !== null) {
+      profileData = json;
+    }
+
+    if (Object.keys(profileData).length > 0) {
+      const mergedProfile: ComposerProfile = {
+        ...INITIAL_COMPOSER_PROFILE,
+        ...cached,
+        ...profileData,
+        photoUrl: profileData.photoUrl ? getGoogleDriveImageUrl(profileData.photoUrl) : (cached.photoUrl || INITIAL_COMPOSER_PROFILE.photoUrl)
+      };
+      saveStoredProfile(mergedProfile);
+      return { profile: mergedProfile, isLive: true };
+    }
+
+    return { profile: cached, isLive: true };
+  } catch (err: any) {
+    console.warn('Gagal memuat profil dari Apps Script:', err.message);
+    return { profile: cached, isLive: false, error: err.message };
+  }
+}
+
+export async function saveProfileToGoogleSheet(
+  profile: ComposerProfile,
+  customUrl?: string
+): Promise<{ success: boolean; message: string }> {
+  const endpoint = customUrl || getStoredAppsScriptUrl();
+  saveStoredProfile(profile);
+
+  if (!endpoint) {
+    return {
+      success: true,
+      message: 'Profil tersimpan di memori browser (URL Google Apps Script belum diisi).'
+    };
+  }
+
+  try {
+    const payload = {
+      action: 'save_profile',
+      profile: {
+        name: profile.name,
+        tagline: profile.tagline,
+        headline: profile.headline,
+        photoUrl: profile.photoUrl,
+        bio: profile.bio,
+        experience: profile.experience,
+        location: profile.location,
+        activeSince: profile.activeSince,
+        collaborationStatus: profile.collaborationStatus,
+        statSongs: profile.statSongs,
+        statAlbums: profile.statAlbums,
+        statListeners: profile.statListeners,
+        statGenres: profile.statGenres
+      }
+    };
+
+    await fetch(endpoint, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    return {
+      success: true,
+      message: 'Profil Komposer berhasil disimpan ke Google Spreadsheet (Tab "Profil")!'
+    };
+  } catch (err: any) {
+    console.error('Error saving profile to Apps Script:', err);
+    return {
+      success: false,
+      message: `Tersimpan secara lokal, namun gagal sinkron ke Spreadsheet: ${err.message}`
+    };
+  }
+}
+
+// ==========================================
+// 2. PESANAN & KONTAK
+// ==========================================
 
 export async function fetchOrdersFromGoogleSheet(): Promise<{ orders: Order[]; isLive: boolean; error?: string }> {
   const endpoint = getStoredAppsScriptUrl();
@@ -118,6 +261,7 @@ export function getCachedOrders(): Order[] {
 export function saveCachedOrders(orders: Order[]): void {
   if (typeof window === 'undefined') return;
   localStorage.setItem(LOCAL_STORAGE_ORDERS_CACHE_KEY, JSON.stringify(orders));
+  window.dispatchEvent(new Event('dzikron_orders_updated'));
 }
 
 export async function deleteOrderFromLocalAndSheet(order: Order): Promise<{ success: boolean; message?: string }> {
@@ -136,6 +280,7 @@ export async function deleteOrderFromLocalAndSheet(order: Order): Promise<{ succ
         mode: 'no-cors',
         body: JSON.stringify({
           action: 'delete_order',
+          id: order.id,
           name: order.name,
           timestamp: order.timestamp
         })
@@ -145,12 +290,28 @@ export async function deleteOrderFromLocalAndSheet(order: Order): Promise<{ succ
     }
   }
 
-  return { success: true, message: 'Pesanan berhasil dihapus' };
+  return { success: true, message: 'Pesanan berhasil dihapus dari daftar dan Google Spreadsheet.' };
 }
 
 export async function clearAllOrdersFromLocal(): Promise<void> {
   if (typeof window !== 'undefined') {
     localStorage.removeItem(LOCAL_STORAGE_ORDERS_CACHE_KEY);
+    window.dispatchEvent(new Event('dzikron_orders_updated'));
+  }
+  const endpoint = getStoredAppsScriptUrl();
+  if (endpoint) {
+    try {
+      await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        mode: 'no-cors',
+        body: JSON.stringify({
+          action: 'clear_all_orders'
+        })
+      });
+    } catch (e) {
+      console.warn('Gagal membersihkan pesanan di Apps Script:', e);
+    }
   }
 }
 
@@ -449,7 +610,7 @@ export async function syncAllSongsToGoogleSheet(songs: Song[]): Promise<{ succes
 export const APPS_SCRIPT_CODE_SAMPLE = `/**
  * =========================================================================
  * GOOGLE APPS SCRIPT DATABASE - MUHAMMAD DZIKRON
- * Menampung: Katalog Lagu, Video YouTube, dan Pesanan Kolaborasi
+ * Menampung: Katalog Lagu, Profil Komposer, Video YouTube, dan Pesanan Kolaborasi
  * =========================================================================
  */
 
@@ -458,7 +619,25 @@ function doGet(e) {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var type = (e && e.parameter && e.parameter.type) ? e.parameter.type.toLowerCase() : 'all';
     
-    // Jika meminta data pesanan
+    // 1. Jika meminta data profil komposer
+    if (type === 'profile' || type === 'profil') {
+      var sheet = ss.getSheetByName('Profil');
+      if (!sheet) {
+        return ContentService.createTextOutput(JSON.stringify({ status: 'empty' }))
+          .setMimeType(ContentService.MimeType.JSON);
+      }
+      var data = sheet.getDataRange().getValues();
+      var profile = {};
+      for (var p = 0; p < data.length; p++) {
+        var key = String(data[p][0] || '').trim();
+        var val = data[p][1];
+        if (key) profile[key] = val;
+      }
+      return ContentService.createTextOutput(JSON.stringify({ status: 'success', profile: profile }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    // 2. Jika meminta data pesanan klien
     if (type === 'orders' || type === 'pesanan') {
       var sheet = ss.getSheetByName('Pesanan');
       if (!sheet) return ContentService.createTextOutput(JSON.stringify([])).setMimeType(ContentService.MimeType.JSON);
@@ -477,7 +656,7 @@ function doGet(e) {
       return ContentService.createTextOutput(JSON.stringify(orders)).setMimeType(ContentService.MimeType.JSON);
     }
     
-    // Default: Ambil Data Lagu
+    // 3. Default: Ambil Data Lagu
     var sheet = ss.getSheetByName('Lagu') || ss.getActiveSheet();
     var data = sheet.getDataRange().getValues();
     if (data.length <= 1) {
@@ -517,7 +696,39 @@ function doPost(e) {
     
     var action = body.action || 'order';
     
-    // 1. Simpan / Update Lagu
+    // 1. Simpan / Update Profil Komposer
+    if (action === 'save_profile' || action === 'update_profile' || action === 'simpan_profil') {
+      var prof = body.profile || body;
+      var sheet = getOrCreateSheet(ss, 'Profil', ['Field', 'Value']);
+      sheet.clearContents();
+      sheet.appendRow(['Field', 'Value']);
+      sheet.getRange(1, 1, 1, 2).setFontWeight('bold').setBackground('#f3f4f6');
+      
+      var profileEntries = [
+        ['Nama', prof.name || 'Muhammad Dzikron'],
+        ['Tagline', prof.tagline || 'Songwriter & Composer'],
+        ['Headline', prof.headline || 'Menenun Jiwa ke dalam Harmoni & Nada'],
+        ['Foto', prof.photoUrl || ''],
+        ['Biografi', prof.bio || ''],
+        ['Pengalaman', prof.experience || ''],
+        ['Lokasi', prof.location || 'Indonesia'],
+        ['Tahun Aktif', prof.activeSince || 'Aktif Sejak 2016'],
+        ['Status Kolaborasi', prof.collaborationStatus || 'Terbuka untuk Kolaborasi'],
+        ['Total Lagu', prof.statSongs || 85],
+        ['Album & EP', prof.statAlbums || 12],
+        ['Total Pendengar', prof.statListeners || 1500000],
+        ['Genre Musik', prof.statGenres || 8]
+      ];
+      
+      for (var k = 0; k < profileEntries.length; k++) {
+        sheet.appendRow(profileEntries[k]);
+      }
+      
+      return ContentService.createTextOutput(JSON.stringify({ status: 'success', message: 'Profil Komposer tersimpan di Spreadsheet' }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    // 2. Simpan / Update Lagu
     if (action === 'save_song' || action === 'add_song' || action === 'tambah_lagu') {
       var sheet = getOrCreateSheet(ss, 'Lagu', [
         'No', 'Judul Lagu', 'Penyanyi', 'Genre', 'Tahun',
@@ -560,7 +771,7 @@ function doPost(e) {
         .setMimeType(ContentService.MimeType.JSON);
     }
     
-    // 2. Sinkronkan Seluruh Katalog Lagu Sekaligus
+    // 3. Sinkronkan Seluruh Katalog Lagu Sekaligus
     if (action === 'sync_all' && Array.isArray(body.songs)) {
       var sheet = getOrCreateSheet(ss, 'Lagu', [
         'No', 'Judul Lagu', 'Penyanyi', 'Genre', 'Tahun',
@@ -591,7 +802,7 @@ function doPost(e) {
         .setMimeType(ContentService.MimeType.JSON);
     }
     
-    // 3. Hapus Lagu
+    // 4. Hapus Lagu
     if (action === 'delete_song') {
       var sheet = ss.getSheetByName('Lagu');
       if (sheet) {
@@ -607,7 +818,7 @@ function doPost(e) {
       return ContentService.createTextOutput(JSON.stringify({ status: 'success' })).setMimeType(ContentService.MimeType.JSON);
     }
     
-    // 4. Menerima Pesanan Masuk
+    // 5. Menerima Pesanan Masuk
     if (action === 'order' || action === 'pesanan') {
       var sheet = getOrCreateSheet(ss, 'Pesanan', [
         'Timestamp', 'Nama Klien', 'Nomor WhatsApp', 'Email',
@@ -628,7 +839,7 @@ function doPost(e) {
       return ContentService.createTextOutput(JSON.stringify({ status: 'success' })).setMimeType(ContentService.MimeType.JSON);
     }
 
-    // 5. Hapus Pesanan Masuk
+    // 6. Hapus Satu Pesanan
     if (action === 'delete_order' || action === 'hapus_pesanan') {
       var sheet = ss.getSheetByName('Pesanan');
       if (sheet) {
@@ -645,6 +856,20 @@ function doPost(e) {
         }
       }
       return ContentService.createTextOutput(JSON.stringify({ status: 'success', message: 'Pesanan terhapus' })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    // 7. Hapus Semua Pesanan
+    if (action === 'clear_all_orders' || action === 'hapus_semua_pesanan') {
+      var sheet = ss.getSheetByName('Pesanan');
+      if (sheet) {
+        sheet.clearContents();
+        sheet.appendRow([
+          'Timestamp', 'Nama Klien', 'Nomor WhatsApp', 'Email',
+          'Jenis Layanan', 'Genre Musik', 'Estimasi Budget', 'Deskripsi Proyek', 'Status Pesanan'
+        ]);
+        sheet.getRange(1, 1, 1, 9).setFontWeight('bold').setBackground('#f3f4f6');
+      }
+      return ContentService.createTextOutput(JSON.stringify({ status: 'success', message: 'Semua pesanan dibersihkan' })).setMimeType(ContentService.MimeType.JSON);
     }
     
     return ContentService.createTextOutput(JSON.stringify({ status: 'ok' })).setMimeType(ContentService.MimeType.JSON);

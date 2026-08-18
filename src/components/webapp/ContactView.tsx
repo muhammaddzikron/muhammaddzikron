@@ -21,9 +21,16 @@ import {
   Lock,
   ChevronRight,
   Eye,
-  FileText
+  FileText,
+  Trash2
 } from 'lucide-react';
-import { submitContactOrder, fetchOrdersFromGoogleSheet, INITIAL_SAMPLE_ORDERS } from '../../services/appsScript';
+import {
+  submitContactOrder,
+  fetchOrdersFromGoogleSheet,
+  deleteOrderFromLocalAndSheet,
+  clearAllOrdersFromLocal,
+  INITIAL_SAMPLE_ORDERS
+} from '../../services/appsScript';
 import { Order } from '../../types/song';
 
 interface ContactViewProps {
@@ -51,7 +58,8 @@ export const ContactView: React.FC<ContactViewProps> = ({
   const [isLoadingOrders, setIsLoadingOrders] = useState(false);
   const [ordersLive, setOrdersLive] = useState(false);
   const [viewPublicFormAsAdmin, setViewPublicFormAsAdmin] = useState(false);
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [deletingOrderId, setDeletingOrderId] = useState<string | null>(null);
+  const [actionNotice, setActionNotice] = useState<string | null>(null);
 
   // Load orders when admin is logged in
   useEffect(() => {
@@ -60,12 +68,52 @@ export const ContactView: React.FC<ContactViewProps> = ({
     }
   }, [isAdminLoggedIn]);
 
+  // Sync if orders updated elsewhere
+  useEffect(() => {
+    const handleOrdersUpdated = () => {
+      loadOrders();
+    };
+    window.addEventListener('dzikron_orders_updated', handleOrdersUpdated);
+    return () => window.removeEventListener('dzikron_orders_updated', handleOrdersUpdated);
+  }, []);
+
   const loadOrders = async () => {
     setIsLoadingOrders(true);
     const res = await fetchOrdersFromGoogleSheet();
     setOrders(res.orders);
     setOrdersLive(res.isLive);
     setIsLoadingOrders(false);
+  };
+
+  const handleDeleteOrder = async (order: Order) => {
+    const orderKey = order.id || `${order.name}-${order.timestamp}`;
+    if (!confirm(`Hapus data pesanan dari "${order.name}"?`)) {
+      return;
+    }
+
+    setDeletingOrderId(orderKey);
+    // Optimistic UI update
+    setOrders((prev) => prev.filter((o) => (o.id || `${o.name}-${o.timestamp}`) !== orderKey));
+
+    try {
+      const res = await deleteOrderFromLocalAndSheet(order);
+      setActionNotice(res.message || 'Pesanan berhasil dihapus');
+      setTimeout(() => setActionNotice(null), 3000);
+    } catch (err: any) {
+      console.warn('Gagal menghapus pesanan:', err);
+    } finally {
+      setDeletingOrderId(null);
+    }
+  };
+
+  const handleClearAllOrders = async () => {
+    if (!confirm('Apakah Anda yakin ingin menghapus SEMUA daftar pesanan klien?')) {
+      return;
+    }
+    setOrders([]);
+    await clearAllOrdersFromLocal();
+    setActionNotice('Semua riwayat pesanan telah dibersihkan');
+    setTimeout(() => setActionNotice(null), 3000);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -134,6 +182,17 @@ export const ContactView: React.FC<ContactViewProps> = ({
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
+            {orders.length > 0 && (
+              <button
+                onClick={handleClearAllOrders}
+                className="px-3.5 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/20 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+                title="Hapus semua riwayat pesanan"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Hapus Semua</span>
+              </button>
+            )}
+
             <button
               onClick={loadOrders}
               disabled={isLoadingOrders}
@@ -152,6 +211,14 @@ export const ContactView: React.FC<ContactViewProps> = ({
             </button>
           </div>
         </div>
+
+        {/* Action Notice */}
+        {actionNotice && (
+          <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2 animate-in fade-in">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+            <span>{actionNotice}</span>
+          </div>
+        )}
 
         {/* Stats Row */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -188,82 +255,101 @@ export const ContactView: React.FC<ContactViewProps> = ({
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {orders.map((order, idx) => (
-                <div
-                  key={order.id || idx}
-                  className="p-5 rounded-3xl bg-slate-900/80 border border-slate-800 hover:border-slate-700 transition space-y-4 shadow-lg flex flex-col justify-between"
-                >
-                  <div className="space-y-3">
-                    {/* Header: Service & Date */}
-                    <div className="flex items-start justify-between gap-2 border-b border-slate-800/80 pb-3">
-                      <div>
-                        <span className="px-2.5 py-1 rounded-lg bg-[#00ffc8]/10 text-[#00ffc8] text-[10px] font-bold uppercase tracking-wider border border-[#00ffc8]/20">
-                          {order.service}
-                        </span>
-                        <h3 className="text-base font-bold text-white mt-2 flex items-center gap-2">
-                          <User className="w-4 h-4 text-slate-400" />
-                          <span>{order.name}</span>
-                        </h3>
+              {orders.map((order, idx) => {
+                const orderKey = order.id || `${order.name}-${order.timestamp}`;
+                const isDeleting = deletingOrderId === orderKey;
+
+                return (
+                  <div
+                    key={orderKey || idx}
+                    className="p-5 rounded-3xl bg-slate-900/80 border border-slate-800 hover:border-slate-700 transition space-y-4 shadow-lg flex flex-col justify-between"
+                  >
+                    <div className="space-y-3">
+                      {/* Header: Service & Date */}
+                      <div className="flex items-start justify-between gap-2 border-b border-slate-800/80 pb-3">
+                        <div>
+                          <span className="px-2.5 py-1 rounded-lg bg-[#00ffc8]/10 text-[#00ffc8] text-[10px] font-bold uppercase tracking-wider border border-[#00ffc8]/20">
+                            {order.service}
+                          </span>
+                          <h3 className="text-base font-bold text-white mt-2 flex items-center gap-2">
+                            <User className="w-4 h-4 text-slate-400" />
+                            <span>{order.name}</span>
+                          </h3>
+                        </div>
+
+                        <div className="text-right shrink-0">
+                          <div className="text-[10px] text-slate-400 flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            <span>{order.timestamp}</span>
+                          </div>
+                          <span className="inline-block mt-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-semibold border border-emerald-500/20">
+                            {order.status || 'Baru Masuk'}
+                          </span>
+                        </div>
                       </div>
 
-                      <div className="text-right shrink-0">
-                        <div className="text-[10px] text-slate-400 flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          <span>{order.timestamp}</span>
+                      {/* Meta info */}
+                      <div className="grid grid-cols-2 gap-2 text-xs text-slate-300">
+                        <div className="flex items-center gap-1.5 text-slate-400">
+                          <Phone className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                          <span className="text-white font-mono">{order.phone}</span>
                         </div>
-                        <span className="inline-block mt-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-semibold border border-emerald-500/20">
-                          {order.status || 'Baru Masuk'}
-                        </span>
+                        {order.email && order.email !== '-' && (
+                          <div className="flex items-center gap-1.5 text-slate-400 truncate">
+                            <Mail className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+                            <span className="truncate">{order.email}</span>
+                          </div>
+                        )}
+                        {order.genre && order.genre !== '-' && (
+                          <div className="flex items-center gap-1.5 text-slate-400">
+                            <Tag className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                            <span>{order.genre}</span>
+                          </div>
+                        )}
+                        {order.budget && order.budget !== '-' && (
+                          <div className="flex items-center gap-1.5 text-slate-400">
+                            <DollarSign className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                            <span>{order.budget}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Message Box */}
+                      <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800/60 text-xs text-slate-300 leading-relaxed">
+                        <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1">
+                          Pesan & Kebutuhan Proyek:
+                        </div>
+                        <p className="italic">"{order.message}"</p>
                       </div>
                     </div>
 
-                    {/* Meta info */}
-                    <div className="grid grid-cols-2 gap-2 text-xs text-slate-300">
-                      <div className="flex items-center gap-1.5 text-slate-400">
-                        <Phone className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                        <span className="text-white font-mono">{order.phone}</span>
-                      </div>
-                      {order.email && order.email !== '-' && (
-                        <div className="flex items-center gap-1.5 text-slate-400 truncate">
-                          <Mail className="w-3.5 h-3.5 text-sky-400 shrink-0" />
-                          <span className="truncate">{order.email}</span>
-                        </div>
-                      )}
-                      {order.genre && order.genre !== '-' && (
-                        <div className="flex items-center gap-1.5 text-slate-400">
-                          <Tag className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                          <span>{order.genre}</span>
-                        </div>
-                      )}
-                      {order.budget && order.budget !== '-' && (
-                        <div className="flex items-center gap-1.5 text-slate-400">
-                          <DollarSign className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                          <span>{order.budget}</span>
-                        </div>
-                      )}
-                    </div>
+                    {/* Actions: Reply WA + Hapus */}
+                    <div className="pt-2 flex items-center gap-2">
+                      <button
+                        onClick={() => handleReplyWhatsApp(order)}
+                        className="flex-1 py-2.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer"
+                      >
+                        <MessageSquare className="w-4 h-4" />
+                        <span>Balas via WhatsApp</span>
+                      </button>
 
-                    {/* Message Box */}
-                    <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800/60 text-xs text-slate-300 leading-relaxed">
-                      <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1">
-                        Pesan & Kebutuhan Proyek:
-                      </div>
-                      <p className="italic">"{order.message}"</p>
+                      <button
+                        onClick={() => handleDeleteOrder(order)}
+                        disabled={isDeleting}
+                        className="py-2.5 px-3.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 hover:text-rose-200 border border-rose-500/30 text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer disabled:opacity-50"
+                        title="Hapus pesanan ini"
+                      >
+                        {isDeleting ? (
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-3.5 h-3.5" />
+                        )}
+                        <span>Hapus</span>
+                      </button>
                     </div>
                   </div>
-
-                  {/* Actions */}
-                  <div className="pt-2 flex items-center gap-2">
-                    <button
-                      onClick={() => handleReplyWhatsApp(order)}
-                      className="flex-1 py-2.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer"
-                    >
-                      <MessageSquare className="w-4 h-4" />
-                      <span>Balas via WhatsApp</span>
-                    </button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

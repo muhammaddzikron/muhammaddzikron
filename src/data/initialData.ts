@@ -1,4 +1,20 @@
-import { Song, GalleryItem, Achievement, StatItem, SkillItem } from '../types/song';
+import { Song, GalleryItem, Achievement, StatItem, SkillItem, ComposerProfile } from '../types/song';
+
+export const INITIAL_COMPOSER_PROFILE: ComposerProfile = {
+  name: 'Muhammad Dzikron',
+  tagline: 'Songwriter & Composer',
+  headline: 'Menenun Jiwa ke dalam Harmoni & Nada',
+  photoUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=800&q=80',
+  bio: 'Muhammad Dzikron adalah seorang pencipta lagu, komposer, dan penata musik asal Indonesia yang mendedikasikan karyanya untuk menyampaikan pesan kedamaian, cinta spiritual, dan keteguhan hati.',
+  experience: 'Dengan pengalaman lebih dari 8 tahun dalam industri musik independen, beliau telah menggubah puluhan lagu lintas genre — dari Pop Religi yang menyentuh qolbu, Balada Akustik yang syahdu, hingga Komposisi Sinematik Orkestra untuk film pendek dan teater.',
+  location: 'Indonesia',
+  activeSince: 'Aktif Sejak 2016',
+  collaborationStatus: 'Terbuka untuk Kolaborasi',
+  statSongs: 85,
+  statAlbums: 12,
+  statListeners: 1500000,
+  statGenres: 8
+};
 
 // Fallback high quality royalty-free MP3 streams for instant audio playback in preview
 // along with authentic Google Drive stream URL format

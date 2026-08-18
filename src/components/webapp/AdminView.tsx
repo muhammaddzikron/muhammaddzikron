@@ -56,6 +56,7 @@ interface AdminViewProps {
   onResetToDefault: () => void;
   isAdminLoggedIn: boolean;
   onOpenLoginModal: () => void;
+  onOpenEditProfile?: () => void;
 }
 
 const EMPTY_SONG_FORM = {
@@ -79,7 +80,8 @@ export const AdminView: React.FC<AdminViewProps> = ({
   onLogout,
   onResetToDefault,
   isAdminLoggedIn,
-  onOpenLoginModal
+  onOpenLoginModal,
+  onOpenEditProfile
 }) => {
   const [activeSubTab, setActiveSubTab] = useState<'list' | 'add' | 'export' | 'orders'>('list');
   const [editingSongId, setEditingSongId] = useState<string | null>(null);
@@ -466,6 +468,17 @@ export const AdminView: React.FC<AdminViewProps> = ({
             <Download className="w-4 h-4" />
             <span>Cadangkan Data</span>
           </button>
+
+          {onOpenEditProfile && (
+            <button
+              onClick={onOpenEditProfile}
+              className="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer bg-slate-900 hover:bg-[#00ffc8]/20 text-[#00ffc8] border border-[#00ffc8]/30"
+              title="Edit Data Profil Komposer & Simpan ke Spreadsheet"
+            >
+              <User className="w-4 h-4 text-[#00ffc8]" />
+              <span>Edit Profil Komposer</span>
+            </button>
+          )}
         </div>
 
         <div className="flex items-center gap-2">

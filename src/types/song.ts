@@ -51,6 +51,22 @@ export interface SkillItem {
   color: string;
 }
 
+export interface ComposerProfile {
+  name: string;
+  tagline: string;
+  headline: string;
+  photoUrl: string;
+  bio: string;
+  experience: string;
+  location: string;
+  activeSince: string;
+  collaborationStatus: string;
+  statSongs: string | number;
+  statAlbums: string | number;
+  statListeners: string | number;
+  statGenres: string | number;
+}
+
 export interface Order {
   id: string;
   timestamp: string;

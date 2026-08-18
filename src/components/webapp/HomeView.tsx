@@ -323,9 +323,17 @@ export const HomeView: React.FC<HomeViewProps> = ({
               </div>
             </div>
 
-            <p className="text-xs text-slate-300 leading-relaxed italic border-l-2 border-[#0099ff] pl-3">
-              "Setiap nada diciptakan untuk menyentuh relung jiwa, menyampaikan pesan kebaikan, dan mengabadikan rasa dalam untaian melodi yang abadi."
-            </p>
+            <div className="text-xs text-slate-300 leading-relaxed border-l-2 border-[#00ffc8] pl-3 py-0.5 space-y-2">
+              <p className="italic text-slate-200">
+                &ldquo;Usia itu terbatas, tetapi karya tak mengenal batas.
+                Setiap perjalanan menyimpan cerita, setiap cerita memiliki rasa, dan setiap rasa dapat dirangkai menjadi nada.
+                Menulis bukan sekadar menciptakan lagu, melainkan mengabadikan jejak waktu dalam harmoni. Karena ketika usia berhenti melangkah, karya akan tetap berbicara, menemani, menginspirasi, dan hidup dalam ingatan.&rdquo;
+              </p>
+              <div className="pt-1 font-semibold text-[#00ffc8] not-italic leading-snug">
+                <p>Rangkai cerita menjadi nada,</p>
+                <p>Abadikan rasa menjadi karya.</p>
+              </div>
+            </div>
 
             {/* Mini Stats Grid */}
             <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800/80">

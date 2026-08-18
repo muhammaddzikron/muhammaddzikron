@@ -54,9 +54,11 @@ export const AboutSection: React.FC = () => {
                     </span>
                     <span>Pengalaman 10+ Tahun</span>
                   </div>
-                  <p className="text-sm text-slate-300 italic">
-                    &ldquo;Musik bukan sekadar rangkaian nada, melainkan cerminan jiwa yang mampu menyentuh relung hati pendengarnya.&rdquo;
-                  </p>
+                  <div className="text-xs text-slate-300 space-y-1.5 pt-1">
+                    <p className="italic">
+                      &ldquo;Usia itu terbatas, tetapi karya tak mengenal batas. Rangkai cerita menjadi nada, abadikan rasa menjadi karya.&rdquo;
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>

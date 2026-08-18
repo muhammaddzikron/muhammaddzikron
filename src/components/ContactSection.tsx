@@ -8,15 +8,24 @@ export const ContactSection: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.email || !formData.message) return;
+    if (!formData.name || !formData.message) return;
 
     setIsSubmitting(true);
+    const waText = encodeURIComponent(
+      `Halo Mas Muhammad Dzikron, saya ingin konsultasi/kerjasama musik:\n\n` +
+      `*Nama:* ${formData.name}\n` +
+      (formData.email ? `*Email:* ${formData.email}\n` : '') +
+      `*Pesan:*\n"${formData.message}"`
+    );
+    const waUrl = `https://wa.me/6281226854000?text=${waText}`;
+
     setTimeout(() => {
+      window.open(waUrl, '_blank');
       setIsSubmitting(false);
       setIsSuccess(true);
       setFormData({ name: '', email: '', message: '' });
       setTimeout(() => setIsSuccess(false), 5000);
-    }, 1200);
+    }, 800);
   };
 
   return (
@@ -71,8 +80,8 @@ export const ContactSection: React.FC = () => {
                   </div>
                   <div>
                     <span className="text-slate-400 block text-[11px]">WhatsApp Management</span>
-                    <a href="https://wa.me/6281234567890" target="_blank" rel="noreferrer" className="font-semibold text-white hover:text-[#00ffc8]">
-                      +62 812-3456-7890 (Official WA)
+                    <a href="https://wa.me/6281226854000" target="_blank" rel="noreferrer" className="font-semibold text-white hover:text-[#00ffc8]">
+                      +62 812-2685-4000 (Official WA)
                     </a>
                   </div>
                 </div>
@@ -209,11 +218,11 @@ export const ContactSection: React.FC = () => {
                   className="w-full py-4 rounded-2xl bg-gradient-to-r from-[#0099ff] to-[#00ffc8] text-slate-950 font-bold text-sm tracking-wide shadow-[0_0_25px_rgba(0,255,200,0.4)] hover:shadow-[0_0_40px_rgba(0,255,200,0.7)] hover:scale-[1.01] active:scale-[0.99] transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer"
                 >
                   {isSubmitting ? (
-                    <span>Mengirimkan Pesan...</span>
+                    <span>Mengirim dan konfirmasi WhatsApp ke 081226854000...</span>
                   ) : (
                     <>
-                      <Send className="w-4 h-4" />
-                      <span>Kirim Pesan Sekarang</span>
+                      <MessageSquare className="w-4 h-4" />
+                      <span>Kirim dan Konfirmasi WhatsApp ke 081226854000</span>
                     </>
                   )}
                 </button>

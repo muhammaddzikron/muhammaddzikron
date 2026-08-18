@@ -116,15 +116,30 @@ export const ContactView: React.FC<ContactViewProps> = ({
     setTimeout(() => setActionNotice(null), 3000);
   };
 
+  const [lastSubmittedWaUrl, setLastSubmittedWaUrl] = useState<string>('');
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+
+    const waText = encodeURIComponent(
+      `Halo Mas Muhammad Dzikron, saya ingin memesan / konsultasi proyek musik:\n\n` +
+      `*Nama:* ${formData.name}\n` +
+      `*WhatsApp:* ${formData.phone}\n` +
+      (formData.email ? `*Email:* ${formData.email}\n` : '') +
+      `*Layanan:* ${formData.serviceType}\n\n` +
+      `*Pesan / Kebutuhan Proyek:*\n"${formData.message}"`
+    );
+    const waUrl = `https://wa.me/6281226854000?text=${waText}`;
+    setLastSubmittedWaUrl(waUrl);
 
     try {
       await submitContactOrder(formData);
     } catch (err) {
       console.warn('Form submission error:', err);
     } finally {
+      // Langsung buka konfirmasi WhatsApp ke 081226854000
+      window.open(waUrl, '_blank');
       setIsSubmitting(false);
       setIsSubmitted(true);
       setTimeout(() => {
@@ -136,7 +151,7 @@ export const ContactView: React.FC<ContactViewProps> = ({
           serviceType: 'Lagu Custom / Single Baru',
           message: ''
         });
-      }, 5000);
+      }, 7000);
     }
   };
 
@@ -144,7 +159,7 @@ export const ContactView: React.FC<ContactViewProps> = ({
     const text = encodeURIComponent(
       `Halo Mas Muhammad Dzikron, saya tertarik untuk kolaborasi/pemesanan pembuatan lagu atau lisensi musik.`
     );
-    window.open(`https://wa.me/6281234567890?text=${text}`, '_blank');
+    window.open(`https://wa.me/6281226854000?text=${text}`, '_blank');
   };
 
   const handleReplyWhatsApp = (order: Order) => {
@@ -410,12 +425,23 @@ export const ContactView: React.FC<ContactViewProps> = ({
             </h2>
 
             {isSubmitted ? (
-              <div className="p-6 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-center space-y-2">
+              <div className="p-6 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-center space-y-3">
                 <CheckCircle2 className="w-10 h-10 mx-auto text-emerald-400" />
-                <h3 className="text-base font-bold text-white">Pesan Berhasil Terkirim!</h3>
-                <p className="text-xs text-slate-300">
-                  Terima kasih, tim manajemen Muhammad Dzikron akan segera menghubungi Anda kembali melalui WhatsApp/Email.
+                <h3 className="text-base font-bold text-white">Pesanan Terkirim!</h3>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  Konfirmasi WhatsApp ke <strong className="text-[#00ffc8]">081226854000</strong> telah dibuka. Jika jendela chat belum terbuka, klik tombol di bawah:
                 </p>
+                {lastSubmittedWaUrl && (
+                  <a
+                    href={lastSubmittedWaUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs transition cursor-pointer shadow-lg"
+                  >
+                    <MessageSquare className="w-4 h-4" />
+                    <span>Buka Chat WhatsApp (081226854000)</span>
+                  </a>
+                )}
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4 text-xs">
@@ -503,12 +529,12 @@ export const ContactView: React.FC<ContactViewProps> = ({
                   {isSubmitting ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Mengirim ke Spreadsheet...</span>
+                      <span>Mengirim dan konfirmasi WhatsApp ke 081226854000...</span>
                     </>
                   ) : (
                     <>
-                      <Send className="w-4 h-4" />
-                      <span>Kirim Formulir Permintaan</span>
+                      <MessageSquare className="w-4 h-4" />
+                      <span>Kirim dan Konfirmasi WhatsApp ke 081226854000</span>
                     </>
                   )}
                 </button>
@@ -528,19 +554,19 @@ export const ContactView: React.FC<ContactViewProps> = ({
 
             <div>
               <h3 className="text-base font-bold text-white">
-                Respon Cepat WhatsApp
+                Respon Cepat WhatsApp (081226854000)
               </h3>
               <p className="text-xs text-slate-300 mt-1">
-                Diskusikan proyek musik atau tawaran panggung langsung dengan manajemen resmi.
+                Diskusikan proyek musik langsung dengan Muhammad Dzikron melalui WhatsApp resmi <strong className="text-[#00ffc8]">081226854000</strong>.
               </p>
             </div>
 
             <button
               onClick={handleWhatsAppDirect}
-              className="w-full py-3 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-extrabold flex items-center justify-center gap-2 transition cursor-pointer"
+              className="w-full py-3 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-extrabold flex items-center justify-center gap-2 transition cursor-pointer shadow-md"
             >
               <MessageSquare className="w-4 h-4" />
-              <span>Chat WhatsApp Sekarang</span>
+              <span>Chat WhatsApp ke 081226854000</span>
             </button>
           </div>
 

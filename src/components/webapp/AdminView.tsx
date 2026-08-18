@@ -32,7 +32,8 @@ import {
   Pause,
   AlertCircle,
   ExternalLink,
-  Volume2
+  Volume2,
+  CheckCheck
 } from 'lucide-react';
 import { getGoogleDriveAudioUrl, getGoogleDriveImageUrl, extractDriveId } from '../../services/googleDrive';
 import {
@@ -40,8 +41,11 @@ import {
   deleteSongFromGoogleSheet,
   syncAllSongsToGoogleSheet,
   fetchOrdersFromGoogleSheet,
+  deleteOrderFromLocalAndSheet,
+  clearAllOrdersFromLocal,
   INITIAL_SAMPLE_ORDERS
 } from '../../services/appsScript';
+import { formatSongDuration, formatSecondsToMinutes } from '../../utils/duration';
 
 interface AdminViewProps {
   songs: Song[];
@@ -158,6 +162,34 @@ export const AdminView: React.FC<AdminViewProps> = ({
       `Halo Kak ${order.name}, terima kasih telah menghubungi Muhammad Dzikron Studio mengenai permintaan "${order.service}". Kami siap membantu proyek musik Anda.`
     );
     window.open(`https://wa.me/${formattedPhone}?text=${text}`, '_blank');
+  };
+
+  const [deletingOrderId, setDeletingOrderId] = useState<string | null>(null);
+
+  const handleDeleteOrder = async (order: Order) => {
+    if (!window.confirm(`Hapus pesanan dari klien "${order.name}"?`)) {
+      return;
+    }
+    const orderKey = order.id || `${order.name}-${order.timestamp}`;
+    setDeletingOrderId(orderKey);
+    try {
+      await deleteOrderFromLocalAndSheet(order);
+      setOrders((prev) => prev.filter((o) => o.id !== order.id && o.timestamp !== order.timestamp));
+      showNotification(`Pesanan dari "${order.name}" berhasil dihapus.`);
+    } catch (err) {
+      console.error('Error deleting order:', err);
+    } finally {
+      setDeletingOrderId(null);
+    }
+  };
+
+  const handleClearAllOrders = async () => {
+    if (!window.confirm('Apakah Anda yakin ingin menghapus SELURUH riwayat pesanan?')) {
+      return;
+    }
+    await clearAllOrdersFromLocal();
+    setOrders([]);
+    showNotification('Seluruh riwayat pesanan berhasil dibersihkan.');
   };
 
   if (!isAdminLoggedIn) {
@@ -495,9 +527,14 @@ export const AdminView: React.FC<AdminViewProps> = ({
                       </div>
                     </td>
                     <td className="py-3.5 px-4">
-                      <span className="inline-block px-2.5 py-0.5 rounded-md bg-slate-800 border border-slate-700 text-slate-300 text-[11px]">
-                        {song.genre} ({song.year})
-                      </span>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="inline-block px-2.5 py-0.5 rounded-md bg-slate-800 border border-slate-700 text-slate-300 text-[11px]">
+                          {song.genre} ({song.year})
+                        </span>
+                        <span className="inline-block px-2 py-0.5 rounded-md bg-slate-950 border border-slate-800 font-mono text-emerald-400 text-[10px]">
+                          {formatSongDuration(song.duration)}
+                        </span>
+                      </div>
                     </td>
                     <td className="py-3.5 px-4">
                       <button
@@ -669,6 +706,21 @@ export const AdminView: React.FC<AdminViewProps> = ({
               {/* Hidden audio element for testing */}
               <audio
                 ref={testAudioRef}
+                onLoadedMetadata={() => {
+                  if (
+                    testAudioRef.current &&
+                    testAudioRef.current.duration &&
+                    !isNaN(testAudioRef.current.duration) &&
+                    isFinite(testAudioRef.current.duration) &&
+                    testAudioRef.current.duration > 0
+                  ) {
+                    const realDuration = formatSecondsToMinutes(testAudioRef.current.duration);
+                    setFormData((prev) => ({
+                      ...prev,
+                      duration: realDuration
+                    }));
+                  }
+                }}
                 onEnded={() => setIsPlayingTest(false)}
                 onError={() => {
                   setIsPlayingTest(false);
@@ -806,14 +858,27 @@ export const AdminView: React.FC<AdminViewProps> = ({
               </p>
             </div>
 
-            <button
-              onClick={loadOrders}
-              disabled={isLoadingOrders}
-              className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 text-xs font-semibold flex items-center gap-2 transition cursor-pointer self-start sm:self-auto disabled:opacity-50"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${isLoadingOrders ? 'animate-spin' : ''}`} />
-              <span>{isLoadingOrders ? 'Memuat...' : 'Segarkan Data'}</span>
-            </button>
+            <div className="flex items-center gap-2">
+              {orders.length > 0 && (
+                <button
+                  onClick={handleClearAllOrders}
+                  className="px-3.5 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/20 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+                  title="Hapus semua riwayat pesanan lokal"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Bersihkan Semua</span>
+                </button>
+              )}
+
+              <button
+                onClick={loadOrders}
+                disabled={isLoadingOrders}
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 text-xs font-semibold flex items-center gap-2 transition cursor-pointer self-start sm:self-auto disabled:opacity-50"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isLoadingOrders ? 'animate-spin' : ''}`} />
+                <span>{isLoadingOrders ? 'Memuat...' : 'Segarkan Data'}</span>
+              </button>
+            </div>
           </div>
 
           {orders.length === 0 ? (
@@ -826,78 +891,97 @@ export const AdminView: React.FC<AdminViewProps> = ({
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {orders.map((order, idx) => (
-                <div
-                  key={order.id || idx}
-                  className="p-5 rounded-3xl bg-slate-900/80 border border-slate-800 hover:border-slate-700 transition space-y-4 shadow-lg flex flex-col justify-between"
-                >
-                  <div className="space-y-3">
-                    <div className="flex items-start justify-between gap-2 border-b border-slate-800/80 pb-3">
-                      <div>
-                        <span className="px-2.5 py-1 rounded-lg bg-[#00ffc8]/10 text-[#00ffc8] text-[10px] font-bold uppercase tracking-wider border border-[#00ffc8]/20">
-                          {order.service}
-                        </span>
-                        <h4 className="text-base font-bold text-white mt-2 flex items-center gap-2">
-                          <User className="w-4 h-4 text-slate-400" />
-                          <span>{order.name}</span>
-                        </h4>
+              {orders.map((order, idx) => {
+                const orderKey = order.id || `${order.name}-${order.timestamp}`;
+                const isDeletingThis = deletingOrderId === orderKey;
+
+                return (
+                  <div
+                    key={orderKey || idx}
+                    className="p-5 rounded-3xl bg-slate-900/80 border border-slate-800 hover:border-slate-700 transition space-y-4 shadow-lg flex flex-col justify-between"
+                  >
+                    <div className="space-y-3">
+                      <div className="flex items-start justify-between gap-2 border-b border-slate-800/80 pb-3">
+                        <div>
+                          <span className="px-2.5 py-1 rounded-lg bg-[#00ffc8]/10 text-[#00ffc8] text-[10px] font-bold uppercase tracking-wider border border-[#00ffc8]/20">
+                            {order.service}
+                          </span>
+                          <h4 className="text-base font-bold text-white mt-2 flex items-center gap-2">
+                            <User className="w-4 h-4 text-slate-400" />
+                            <span>{order.name}</span>
+                          </h4>
+                        </div>
+
+                        <div className="text-right shrink-0">
+                          <div className="text-[10px] text-slate-400 flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            <span>{order.timestamp}</span>
+                          </div>
+                          <span className="inline-block mt-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-semibold border border-emerald-500/20">
+                            {order.status || 'Baru Masuk'}
+                          </span>
+                        </div>
                       </div>
 
-                      <div className="text-right shrink-0">
-                        <div className="text-[10px] text-slate-400 flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          <span>{order.timestamp}</span>
+                      <div className="grid grid-cols-2 gap-2 text-xs text-slate-300">
+                        <div className="flex items-center gap-1.5 text-slate-400">
+                          <Phone className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                          <span className="text-white font-mono">{order.phone}</span>
                         </div>
-                        <span className="inline-block mt-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-semibold border border-emerald-500/20">
-                          {order.status || 'Baru Masuk'}
-                        </span>
+                        {order.email && order.email !== '-' && (
+                          <div className="flex items-center gap-1.5 text-slate-400 truncate">
+                            <Mail className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+                            <span className="truncate">{order.email}</span>
+                          </div>
+                        )}
+                        {order.genre && order.genre !== '-' && (
+                          <div className="flex items-center gap-1.5 text-slate-400">
+                            <Tag className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                            <span>{order.genre}</span>
+                          </div>
+                        )}
+                        {order.budget && order.budget !== '-' && (
+                          <div className="flex items-center gap-1.5 text-slate-400">
+                            <DollarSign className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                            <span>{order.budget}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800/60 text-xs text-slate-300 leading-relaxed">
+                        <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1">
+                          Pesan & Kebutuhan Proyek:
+                        </div>
+                        <p className="italic">"{order.message}"</p>
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2 text-xs text-slate-300">
-                      <div className="flex items-center gap-1.5 text-slate-400">
-                        <Phone className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                        <span className="text-white font-mono">{order.phone}</span>
-                      </div>
-                      {order.email && order.email !== '-' && (
-                        <div className="flex items-center gap-1.5 text-slate-400 truncate">
-                          <Mail className="w-3.5 h-3.5 text-sky-400 shrink-0" />
-                          <span className="truncate">{order.email}</span>
-                        </div>
-                      )}
-                      {order.genre && order.genre !== '-' && (
-                        <div className="flex items-center gap-1.5 text-slate-400">
-                          <Tag className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                          <span>{order.genre}</span>
-                        </div>
-                      )}
-                      {order.budget && order.budget !== '-' && (
-                        <div className="flex items-center gap-1.5 text-slate-400">
-                          <DollarSign className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                          <span>{order.budget}</span>
-                        </div>
-                      )}
-                    </div>
+                    <div className="pt-2 flex items-center gap-2">
+                      <button
+                        onClick={() => handleReplyWhatsApp(order)}
+                        className="flex-1 py-2.5 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer"
+                      >
+                        <MessageSquare className="w-4 h-4" />
+                        <span>Balas via WA</span>
+                      </button>
 
-                    <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800/60 text-xs text-slate-300 leading-relaxed">
-                      <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1">
-                        Pesan & Kebutuhan Proyek:
-                      </div>
-                      <p className="italic">"{order.message}"</p>
+                      <button
+                        onClick={() => handleDeleteOrder(order)}
+                        disabled={isDeletingThis}
+                        className="py-2.5 px-3 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 hover:text-rose-200 border border-rose-500/30 text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer disabled:opacity-50"
+                        title="Hapus pesanan ini"
+                      >
+                        {isDeletingThis ? (
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-3.5 h-3.5" />
+                        )}
+                        <span>Hapus</span>
+                      </button>
                     </div>
                   </div>
-
-                  <div className="pt-2">
-                    <button
-                      onClick={() => handleReplyWhatsApp(order)}
-                      className="w-full py-2.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer"
-                    >
-                      <MessageSquare className="w-4 h-4" />
-                      <span>Balas via WhatsApp</span>
-                    </button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

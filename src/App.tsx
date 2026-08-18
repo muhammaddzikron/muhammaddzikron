@@ -18,11 +18,11 @@ import { HomeView } from './components/webapp/HomeView';
 import { LibraryView } from './components/webapp/LibraryView';
 import { LyricsView } from './components/webapp/LyricsView';
 import { AboutView } from './components/webapp/AboutView';
-import { GalleryView } from './components/webapp/GalleryView';
 import { ContactView } from './components/webapp/ContactView';
 import { AdminView } from './components/webapp/AdminView';
 import { ShortcutsModal } from './components/webapp/ShortcutsModal';
 import { MobileBottomNav } from './components/webapp/MobileBottomNav';
+import { formatSongDuration } from './utils/duration';
 import { X, Disc3 } from 'lucide-react';
 
 export default function App() {
@@ -30,12 +30,13 @@ export default function App() {
     if (typeof window !== 'undefined') {
       try {
         const stored = localStorage.getItem('dzikron_cached_songs');
-        return stored ? JSON.parse(stored) : INITIAL_SONGS;
+        const list: Song[] = stored ? JSON.parse(stored) : INITIAL_SONGS;
+        return list.map((s) => ({ ...s, duration: formatSongDuration(s.duration) }));
       } catch {
-        return INITIAL_SONGS;
+        return INITIAL_SONGS.map((s) => ({ ...s, duration: formatSongDuration(s.duration) }));
       }
     }
-    return INITIAL_SONGS;
+    return INITIAL_SONGS.map((s) => ({ ...s, duration: formatSongDuration(s.duration) }));
   });
 
   const [currentSong, setCurrentSong] = useState<Song | null>(INITIAL_SONGS[0]);
@@ -105,6 +106,26 @@ export default function App() {
       localStorage.removeItem('dzikron_cached_songs');
     }
   };
+
+  const handleUpdateSongDuration = useCallback((songId: string, duration: string) => {
+    if (!duration || duration === '00:00') return;
+    setSongs((prev) => {
+      let hasChanged = false;
+      const updated = prev.map((s) => {
+        if (s.id === songId && s.duration !== duration) {
+          hasChanged = true;
+          return { ...s, duration };
+        }
+        return s;
+      });
+      if (hasChanged && typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('dzikron_cached_songs', JSON.stringify(updated));
+        } catch {}
+      }
+      return hasChanged ? updated : prev;
+    });
+  }, []);
 
   const handleAdminLogout = () => {
     localStorage.removeItem('dzikron_admin_authenticated');
@@ -229,7 +250,6 @@ export default function App() {
                     { id: 'library', label: `Semua Lagu (${songs.length})` },
                     { id: 'lyrics', label: 'Studio Lirik' },
                     { id: 'about', label: 'Profil Komposer' },
-                    { id: 'gallery', label: 'Galeri Studio' },
                     { id: 'contact', label: 'Kontak & Pesanan' }
                   ].map((item) => (
                     <button
@@ -347,8 +367,6 @@ export default function App() {
 
               {activeTab === 'about' && <AboutView />}
 
-              {activeTab === 'gallery' && <GalleryView />}
-
               {activeTab === 'contact' && (
                 <ContactView
                   isAdminLoggedIn={isAdminLoggedIn}
@@ -389,6 +407,7 @@ export default function App() {
         onOpenDetails={(s) => setSelectedDetailSong(s)}
         onToggleFavorite={toggleFavorite}
         favorites={favorites}
+        onSongDurationDetected={handleUpdateSongDuration}
       />
 
       {/* Mobile Bottom Navigation Bar (Shown on small screens) */}

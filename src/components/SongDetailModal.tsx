@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Song } from '../types/song';
+import { formatSongDuration } from '../utils/duration';
 import {
   X,
   Play,
@@ -165,7 +166,7 @@ export const SongDetailModal: React.FC<SongDetailModalProps> = ({
                   <Calendar className="w-3.5 h-3.5" /> {song.year}
                 </span>
                 <span className="px-3 py-1 rounded-full text-xs bg-slate-800 text-slate-300 flex items-center gap-1 font-mono">
-                  <Music className="w-3.5 h-3.5" /> {song.duration}
+                  <Music className="w-3.5 h-3.5" /> {formatSongDuration(song.duration)}
                 </span>
               </div>
 

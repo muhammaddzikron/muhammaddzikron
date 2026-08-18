@@ -18,6 +18,7 @@ import {
   Filter,
   CheckCircle2
 } from 'lucide-react';
+import { formatSongDuration } from '../../utils/duration';
 
 interface LibraryViewProps {
   songs: Song[];
@@ -315,7 +316,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
 
                         {/* Duration */}
                         <td className="py-3.5 px-4 hidden sm:table-cell font-mono text-slate-400 text-[11px]">
-                          {song.duration}
+                          {formatSongDuration(song.duration)}
                         </td>
 
                         {/* Actions */}
@@ -417,7 +418,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
                       {song.genre}
                     </span>
                     <span className="text-[10px] font-mono text-slate-400">
-                      {song.duration}
+                      {formatSongDuration(song.duration)}
                     </span>
                   </div>
 

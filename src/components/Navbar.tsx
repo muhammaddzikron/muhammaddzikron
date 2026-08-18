@@ -28,7 +28,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 40);
 
-      const sections = ['home', 'tentang', 'playlist', 'galeri', 'prestasi', 'kontak'];
+      const sections = ['home', 'tentang', 'playlist', 'prestasi', 'kontak'];
       const scrollPos = window.scrollY + 120;
 
       for (const section of sections) {
@@ -52,7 +52,6 @@ export const Navbar: React.FC<NavbarProps> = ({
     { name: 'Home', href: '#home', id: 'home' },
     { name: 'Tentang', href: '#tentang', id: 'tentang' },
     { name: 'Playlist', href: '#playlist', id: 'playlist' },
-    { name: 'Galeri', href: '#galeri', id: 'galeri' },
     { name: 'Prestasi', href: '#prestasi', id: 'prestasi' },
     { name: 'Kontak', href: '#kontak', id: 'kontak' },
   ];

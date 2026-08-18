@@ -4,7 +4,6 @@ import {
   Music2,
   FileText,
   User,
-  Image as ImageIcon,
   Send,
   ShieldCheck,
   Lock,
@@ -15,7 +14,7 @@ import {
 } from 'lucide-react';
 import { Song } from '../../types/song';
 
-export type WebAppTab = 'home' | 'library' | 'lyrics' | 'about' | 'gallery' | 'contact' | 'admin';
+export type WebAppTab = 'home' | 'library' | 'lyrics' | 'about' | 'contact' | 'admin';
 
 interface SidebarProps {
   activeTab: WebAppTab;
@@ -45,7 +44,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'library', label: 'Semua Lagu', icon: <Music2 className="w-4 h-4" />, badge: songsCount },
     { id: 'lyrics', label: 'Studio Lirik', icon: <FileText className="w-4 h-4" /> },
     { id: 'about', label: 'Profil Komposer', icon: <User className="w-4 h-4" /> },
-    { id: 'gallery', label: 'Galeri Studio', icon: <ImageIcon className="w-4 h-4" /> },
     { id: 'contact', label: 'Kontak & Pesanan', icon: <Send className="w-4 h-4" /> }
   ];
 

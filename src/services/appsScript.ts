@@ -1,6 +1,7 @@
 import { Song, Order } from '../types/song';
 import { INITIAL_SONGS } from '../data/initialData';
 import { getGoogleDriveAudioUrl, getGoogleDriveImageUrl } from './googleDrive';
+import { formatSongDuration } from '../utils/duration';
 
 export const DEFAULT_APPS_SCRIPT_URL =
   'https://script.google.com/macros/s/AKfycbwptAPCvBm9EAp7jGpIFg1vy53hJdrYokwbVZfQDnC8LlsiUTRkkAzZ2MZ-S0EOcdbE/exec';
@@ -104,13 +105,52 @@ export async function fetchOrdersFromGoogleSheet(): Promise<{ orders: Order[]; i
   }
 }
 
-function getCachedOrders(): Order[] {
+export function getCachedOrders(): Order[] {
   if (typeof window === 'undefined') return [];
   try {
     const raw = localStorage.getItem(LOCAL_STORAGE_ORDERS_CACHE_KEY);
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
+  }
+}
+
+export function saveCachedOrders(orders: Order[]): void {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(LOCAL_STORAGE_ORDERS_CACHE_KEY, JSON.stringify(orders));
+}
+
+export async function deleteOrderFromLocalAndSheet(order: Order): Promise<{ success: boolean; message?: string }> {
+  // 1. Update local cache
+  const currentOrders = getCachedOrders();
+  const updatedOrders = currentOrders.filter((o) => o.id !== order.id && o.timestamp !== order.timestamp);
+  saveCachedOrders(updatedOrders);
+
+  // 2. Attempt delete on Google Apps Script if endpoint exists
+  const endpoint = getStoredAppsScriptUrl();
+  if (endpoint) {
+    try {
+      await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        mode: 'no-cors',
+        body: JSON.stringify({
+          action: 'delete_order',
+          name: order.name,
+          timestamp: order.timestamp
+        })
+      });
+    } catch (e) {
+      console.warn('Gagal menghapus pesanan di Apps Script:', e);
+    }
+  }
+
+  return { success: true, message: 'Pesanan berhasil dihapus' };
+}
+
+export async function clearAllOrdersFromLocal(): Promise<void> {
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem(LOCAL_STORAGE_ORDERS_CACHE_KEY);
   }
 }
 
@@ -204,7 +244,7 @@ export async function fetchSongsFromGoogleSheet(
         year: year,
         cover: coverImage,
         driveId: String(driveId),
-        duration: String(duration),
+        duration: formatSongDuration(duration),
         lyrics: String(lyrics),
         status: String(status),
         order: order,
@@ -565,6 +605,25 @@ function doPost(e) {
         'Baru Masuk'
       ]);
       return ContentService.createTextOutput(JSON.stringify({ status: 'success' })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // 5. Hapus Pesanan Masuk
+    if (action === 'delete_order' || action === 'hapus_pesanan') {
+      var sheet = ss.getSheetByName('Pesanan');
+      if (sheet) {
+        var data = sheet.getDataRange().getValues();
+        var clientName = String(body.name || '').trim().toLowerCase();
+        var clientTimestamp = String(body.timestamp || '').trim();
+        for (var i = 1; i < data.length; i++) {
+          var rowName = String(data[i][1]).trim().toLowerCase();
+          var rowTime = String(data[i][0]).trim();
+          if ((clientName && rowName === clientName) || (clientTimestamp && rowTime === clientTimestamp)) {
+            sheet.deleteRow(i + 1);
+            break;
+          }
+        }
+      }
+      return ContentService.createTextOutput(JSON.stringify({ status: 'success', message: 'Pesanan terhapus' })).setMimeType(ContentService.MimeType.JSON);
     }
     
     return ContentService.createTextOutput(JSON.stringify({ status: 'ok' })).setMimeType(ContentService.MimeType.JSON);

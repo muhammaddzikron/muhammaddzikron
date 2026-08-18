@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { WebAppTab } from './Sidebar';
 import { STATS } from '../../data/initialData';
+import { formatSongDuration } from '../../utils/duration';
 
 interface HomeViewProps {
   songs: Song[];
@@ -81,7 +82,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 <span>•</span>
                 <span>Tahun {featuredSong.year}</span>
                 <span>•</span>
-                <span className="font-mono">{featuredSong.duration}</span>
+                <span className="font-mono">{formatSongDuration(featuredSong.duration)}</span>
               </div>
 
               <p className="text-xs sm:text-sm text-slate-300/90 leading-relaxed max-w-xl line-clamp-3">

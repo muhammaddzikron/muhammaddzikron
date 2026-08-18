@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Song } from '../../types/song';
+import React, { useState, useEffect, useRef } from 'react';
+import { Song, Order } from '../../types/song';
 import {
   ShieldCheck,
   Plus,
@@ -19,13 +19,28 @@ import {
   Lock,
   ArrowRight,
   RefreshCw,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Inbox,
+  MessageSquare,
+  Phone,
+  Mail,
+  Clock,
+  User,
+  Tag,
+  DollarSign,
+  Play,
+  Pause,
+  AlertCircle,
+  ExternalLink,
+  Volume2
 } from 'lucide-react';
-import { getGoogleDriveAudioUrl, getGoogleDriveImageUrl } from '../../services/googleDrive';
+import { getGoogleDriveAudioUrl, getGoogleDriveImageUrl, extractDriveId } from '../../services/googleDrive';
 import {
   saveSongToGoogleSheet,
   deleteSongFromGoogleSheet,
-  syncAllSongsToGoogleSheet
+  syncAllSongsToGoogleSheet,
+  fetchOrdersFromGoogleSheet,
+  INITIAL_SAMPLE_ORDERS
 } from '../../services/appsScript';
 
 interface AdminViewProps {
@@ -59,13 +74,91 @@ export const AdminView: React.FC<AdminViewProps> = ({
   isAdminLoggedIn,
   onOpenLoginModal
 }) => {
-  const [activeSubTab, setActiveSubTab] = useState<'list' | 'add' | 'export'>('list');
+  const [activeSubTab, setActiveSubTab] = useState<'list' | 'add' | 'export' | 'orders'>('list');
   const [editingSongId, setEditingSongId] = useState<string | null>(null);
   const [formData, setFormData] = useState(EMPTY_SONG_FORM);
 
   const [copiedStatus, setCopiedStatus] = useState<string | null>(null);
   const [successToast, setSuccessToast] = useState<string | null>(null);
   const [isSyncingGSheet, setIsSyncingGSheet] = useState(false);
+
+  // Audio testing state for form
+  const [isTestingAudio, setIsTestingAudio] = useState(false);
+  const [isPlayingTest, setIsPlayingTest] = useState(false);
+  const [testAudioError, setTestAudioError] = useState<string | null>(null);
+  const [testAudioSuccess, setTestAudioSuccess] = useState(false);
+  const testAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Orders state
+  const [orders, setOrders] = useState<Order[]>(INITIAL_SAMPLE_ORDERS);
+  const [isLoadingOrders, setIsLoadingOrders] = useState(false);
+  const [ordersLive, setOrdersLive] = useState(false);
+
+  useEffect(() => {
+    if (isAdminLoggedIn) {
+      loadOrders();
+    }
+  }, [isAdminLoggedIn]);
+
+  const loadOrders = async () => {
+    setIsLoadingOrders(true);
+    const res = await fetchOrdersFromGoogleSheet();
+    setOrders(res.orders);
+    setOrdersLive(res.isLive);
+    setIsLoadingOrders(false);
+  };
+
+  const handleTestDriveAudio = () => {
+    if (!formData.driveId.trim()) {
+      setTestAudioError('Harap isi link atau ID Google Drive terlebih dahulu');
+      return;
+    }
+
+    setTestAudioError(null);
+    setTestAudioSuccess(false);
+    setIsTestingAudio(true);
+
+    const streamUrl = getGoogleDriveAudioUrl(formData.driveId.trim());
+
+    if (testAudioRef.current) {
+      if (isPlayingTest) {
+        testAudioRef.current.pause();
+        setIsPlayingTest(false);
+        setIsTestingAudio(false);
+        return;
+      }
+
+      testAudioRef.current.src = streamUrl;
+      testAudioRef.current.load();
+      testAudioRef.current
+        .play()
+        .then(() => {
+          setIsTestingAudio(false);
+          setIsPlayingTest(true);
+          setTestAudioSuccess(true);
+        })
+        .catch((err) => {
+          console.warn('Test audio error:', err);
+          setIsTestingAudio(false);
+          setIsPlayingTest(false);
+          setTestAudioError(
+            'Audio belum bisa diputar otomatis. Pastikan file di Google Drive diset: "Siapa saja yang memiliki link: Pelihat".'
+          );
+        });
+    }
+  };
+
+  const handleReplyWhatsApp = (order: Order) => {
+    const cleanPhone = order.phone.replace(/[^0-9]/g, '');
+    let formattedPhone = cleanPhone;
+    if (formattedPhone.startsWith('0')) {
+      formattedPhone = '62' + formattedPhone.slice(1);
+    }
+    const text = encodeURIComponent(
+      `Halo Kak ${order.name}, terima kasih telah menghubungi Muhammad Dzikron Studio mengenai permintaan "${order.service}". Kami siap membantu proyek musik Anda.`
+    );
+    window.open(`https://wa.me/${formattedPhone}?text=${text}`, '_blank');
+  };
 
   if (!isAdminLoggedIn) {
     return (
@@ -273,17 +366,18 @@ export const AdminView: React.FC<AdminViewProps> = ({
 
           <button
             onClick={onLogout}
-            className="px-3.5 py-2 rounded-xl bg-rose-500/10 text-rose-300 hover:bg-rose-500/20 border border-rose-500/30 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+            className="px-4 py-2 rounded-xl bg-rose-500 hover:bg-rose-400 text-slate-950 text-xs font-bold flex items-center gap-2 transition cursor-pointer shadow-[0_0_15px_rgba(244,63,94,0.3)] hover:scale-105"
+            title="Keluar dari sesi Administrator"
           >
-            <LogOut className="w-3.5 h-3.5" />
-            <span>Keluar Admin</span>
+            <LogOut className="w-4 h-4 text-slate-950" />
+            <span>Keluar / Logout Admin</span>
           </button>
         </div>
       </div>
 
       {/* Sub Tabs */}
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => setActiveSubTab('list')}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
@@ -312,6 +406,18 @@ export const AdminView: React.FC<AdminViewProps> = ({
           </button>
 
           <button
+            onClick={() => setActiveSubTab('orders')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+              activeSubTab === 'orders'
+                ? 'bg-[#00ffc8] text-slate-950 shadow-[0_0_12px_rgba(0,255,200,0.3)]'
+                : 'bg-slate-900 text-slate-300 hover:text-white'
+            }`}
+          >
+            <Inbox className="w-4 h-4" />
+            <span>Pesanan Masuk ({orders.length})</span>
+          </button>
+
+          <button
             onClick={() => setActiveSubTab('export')}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
               activeSubTab === 'export'
@@ -324,14 +430,25 @@ export const AdminView: React.FC<AdminViewProps> = ({
           </button>
         </div>
 
-        <button
-          onClick={handleSyncAllToGoogleSheet}
-          disabled={isSyncingGSheet}
-          className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-emerald-400 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
-        >
-          <FileSpreadsheet className="w-3.5 h-3.5" />
-          <span>Upload Semua ({songs.length} Lagu) ke Sheet</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleSyncAllToGoogleSheet}
+            disabled={isSyncingGSheet}
+            className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-emerald-400 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+          >
+            <FileSpreadsheet className="w-3.5 h-3.5" />
+            <span>Upload ke Sheet</span>
+          </button>
+
+          <button
+            onClick={onLogout}
+            className="px-3 py-1.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30 text-xs font-bold flex items-center gap-1.5 transition cursor-pointer"
+            title="Keluar dari mode admin"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span>Logout</span>
+          </button>
+        </div>
       </div>
 
       {/* Sub Tab 1: Song List */}
@@ -495,19 +612,97 @@ export const AdminView: React.FC<AdminViewProps> = ({
               />
             </div>
 
-            <div>
-              <label className="block font-semibold text-slate-300 mb-1">
-                Link Lengkap Google Drive / ID Drive / URL MP3 *
-              </label>
-              <input
-                type="text"
-                value={formData.driveId}
-                onChange={(e) => setFormData({ ...formData, driveId: e.target.value })}
-                placeholder="https://drive.google.com/file/d/... atau ID File Drive"
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white font-mono text-xs focus:outline-none focus:border-[#00ffc8]"
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="block font-semibold text-slate-300 text-xs">
+                  Link Google Drive / ID File Audio *
+                </label>
+                {formData.driveId.trim() && (
+                  <span className="text-[11px] font-mono text-[#00ffc8]">
+                    ID: {extractDriveId(formData.driveId) || 'URL Standar'}
+                  </span>
+                )}
+              </div>
+
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  required
+                  value={formData.driveId}
+                  onChange={(e) => {
+                    setFormData({ ...formData, driveId: e.target.value });
+                    setTestAudioError(null);
+                    setTestAudioSuccess(false);
+                    if (isPlayingTest && testAudioRef.current) {
+                      testAudioRef.current.pause();
+                      setIsPlayingTest(false);
+                    }
+                  }}
+                  placeholder="https://drive.google.com/file/d/1A2B3C... atau 1A2B3C..."
+                  className="flex-1 px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white font-mono text-xs focus:outline-none focus:border-[#00ffc8]"
+                />
+
+                <button
+                  type="button"
+                  onClick={handleTestDriveAudio}
+                  disabled={!formData.driveId.trim() || isTestingAudio}
+                  className={`px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shrink-0 ${
+                    isPlayingTest
+                      ? 'bg-rose-500 text-slate-950 shadow-[0_0_12px_rgba(244,63,94,0.4)]'
+                      : testAudioSuccess
+                      ? 'bg-emerald-500 text-slate-950'
+                      : 'bg-slate-800 hover:bg-[#00ffc8] text-slate-200 hover:text-slate-950 border border-slate-700'
+                  }`}
+                  title="Tes Putar Audio dari Google Drive"
+                >
+                  {isTestingAudio ? (
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  ) : isPlayingTest ? (
+                    <Pause className="w-3.5 h-3.5 fill-current" />
+                  ) : (
+                    <Play className="w-3.5 h-3.5 fill-current" />
+                  )}
+                  <span>{isPlayingTest ? 'Jeda Tes' : 'Tes Audio'}</span>
+                </button>
+              </div>
+
+              {/* Hidden audio element for testing */}
+              <audio
+                ref={testAudioRef}
+                onEnded={() => setIsPlayingTest(false)}
+                onError={() => {
+                  setIsPlayingTest(false);
+                  setIsTestingAudio(false);
+                  setTestAudioError(
+                    'Audio tidak dapat diputar. Pastikan link Google Drive diset "Siapa saja yang memiliki link" dan dapat diakses publik.'
+                  );
+                }}
               />
-              <p className="text-[10px] text-slate-400 mt-1">
-                Bisa memasukkan link lengkap Google Drive maupun File ID. Pastikan file Drive diset ke <em>"Siapa saja yang memiliki link"</em>.
+
+              {/* Status feedback */}
+              {testAudioSuccess && (
+                <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-[11px] flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>Audio berhasil dimuat dari Google Drive dan dapat diputar!</span>
+                </div>
+              )}
+
+              {testAudioError && (
+                <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[11px] space-y-1">
+                  <div className="flex items-center gap-1.5 font-semibold">
+                    <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+                    <span>Petunjuk Izin Google Drive:</span>
+                  </div>
+                  <p className="text-[10px] text-amber-200/90 leading-relaxed pl-5">
+                    1. Buka Google Drive &gt; Klik kanan file MP3 &gt; <strong>Bagikan (Share)</strong>.<br />
+                    2. Ubah Akses Umum menjadi: <strong>"Siapa saja yang memiliki link" (Anyone with the link)</strong>.<br />
+                    3. Salin link dan tempelkan kembali di kolom ini.
+                  </p>
+                </div>
+              )}
+
+              <p className="text-[10px] text-slate-400">
+                Mendukung URL penuh Google Drive, file ID drive, atau direct MP3 URL.
               </p>
             </div>
 
@@ -595,6 +790,117 @@ export const AdminView: React.FC<AdminViewProps> = ({
             </button>
           </div>
         </form>
+      )}
+
+      {/* Sub Tab: Orders / Pesanan Masuk */}
+      {activeSubTab === 'orders' && (
+        <div className="space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-slate-900/60 border border-slate-800">
+            <div>
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <Inbox className="w-5 h-5 text-[#00ffc8]" />
+                <span>Daftar Pesanan & Permintaan Klien Masuk</span>
+              </h3>
+              <p className="text-xs text-slate-400 mt-1">
+                Data pesanan yang masuk melalui formulir kontak dan tersimpan di Google Spreadsheet (Tab: <strong>Pesanan</strong>).
+              </p>
+            </div>
+
+            <button
+              onClick={loadOrders}
+              disabled={isLoadingOrders}
+              className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 text-xs font-semibold flex items-center gap-2 transition cursor-pointer self-start sm:self-auto disabled:opacity-50"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isLoadingOrders ? 'animate-spin' : ''}`} />
+              <span>{isLoadingOrders ? 'Memuat...' : 'Segarkan Data'}</span>
+            </button>
+          </div>
+
+          {orders.length === 0 ? (
+            <div className="py-16 text-center rounded-3xl border border-slate-800 bg-slate-900/40 space-y-3">
+              <Inbox className="w-10 h-10 mx-auto text-slate-600" />
+              <p className="text-sm font-semibold text-slate-400">Belum ada pesanan masuk</p>
+              <p className="text-xs text-slate-500">
+                Formulir pesanan yang diisi klien akan otomatis muncul di sini.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {orders.map((order, idx) => (
+                <div
+                  key={order.id || idx}
+                  className="p-5 rounded-3xl bg-slate-900/80 border border-slate-800 hover:border-slate-700 transition space-y-4 shadow-lg flex flex-col justify-between"
+                >
+                  <div className="space-y-3">
+                    <div className="flex items-start justify-between gap-2 border-b border-slate-800/80 pb-3">
+                      <div>
+                        <span className="px-2.5 py-1 rounded-lg bg-[#00ffc8]/10 text-[#00ffc8] text-[10px] font-bold uppercase tracking-wider border border-[#00ffc8]/20">
+                          {order.service}
+                        </span>
+                        <h4 className="text-base font-bold text-white mt-2 flex items-center gap-2">
+                          <User className="w-4 h-4 text-slate-400" />
+                          <span>{order.name}</span>
+                        </h4>
+                      </div>
+
+                      <div className="text-right shrink-0">
+                        <div className="text-[10px] text-slate-400 flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          <span>{order.timestamp}</span>
+                        </div>
+                        <span className="inline-block mt-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-semibold border border-emerald-500/20">
+                          {order.status || 'Baru Masuk'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-xs text-slate-300">
+                      <div className="flex items-center gap-1.5 text-slate-400">
+                        <Phone className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                        <span className="text-white font-mono">{order.phone}</span>
+                      </div>
+                      {order.email && order.email !== '-' && (
+                        <div className="flex items-center gap-1.5 text-slate-400 truncate">
+                          <Mail className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+                          <span className="truncate">{order.email}</span>
+                        </div>
+                      )}
+                      {order.genre && order.genre !== '-' && (
+                        <div className="flex items-center gap-1.5 text-slate-400">
+                          <Tag className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                          <span>{order.genre}</span>
+                        </div>
+                      )}
+                      {order.budget && order.budget !== '-' && (
+                        <div className="flex items-center gap-1.5 text-slate-400">
+                          <DollarSign className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                          <span>{order.budget}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800/60 text-xs text-slate-300 leading-relaxed">
+                      <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1">
+                        Pesan & Kebutuhan Proyek:
+                      </div>
+                      <p className="italic">"{order.message}"</p>
+                    </div>
+                  </div>
+
+                  <div className="pt-2">
+                    <button
+                      onClick={() => handleReplyWhatsApp(order)}
+                      className="w-full py-2.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer"
+                    >
+                      <MessageSquare className="w-4 h-4" />
+                      <span>Balas via WhatsApp</span>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       )}
 
       {/* Sub Tab 3: Export */}

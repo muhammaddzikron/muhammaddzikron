@@ -69,7 +69,15 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     setAudioError(false);
     const driveInput = currentSong.driveId || currentSong.audioUrl || '';
     const candList = getGoogleDriveAudioCandidates(driveInput);
-    const finalCandidates = candList.length > 0 ? candList : (currentSong.audioUrl ? [currentSong.audioUrl] : []);
+    
+    const finalCandidates: string[] = [];
+    candList.forEach((c) => {
+      if (c && !finalCandidates.includes(c)) finalCandidates.push(c);
+    });
+
+    if (currentSong.audioUrl && !finalCandidates.includes(currentSong.audioUrl)) {
+      finalCandidates.push(currentSong.audioUrl);
+    }
 
     setCandidates(finalCandidates);
     setCandidateIndex(0);

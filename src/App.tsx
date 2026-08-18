@@ -183,6 +183,7 @@ export default function App() {
           favoritesCount={favorites.length}
           isAdminLoggedIn={isAdminLoggedIn}
           onOpenAdminLogin={() => setShowAdminLoginModal(true)}
+          onAdminLogout={handleAdminLogout}
           currentSong={currentSong}
           isPlaying={isPlaying}
         />
@@ -249,19 +250,33 @@ export default function App() {
                 </nav>
               </div>
 
-              <button
-                onClick={() => {
-                  setMobileDrawerOpen(false);
-                  if (isAdminLoggedIn) {
-                    setActiveTab('admin');
-                  } else {
-                    setShowAdminLoginModal(true);
-                  }
-                }}
-                className="w-full py-3 rounded-xl bg-slate-900 border border-slate-800 text-[#00ffc8] text-xs font-bold"
-              >
-                {isAdminLoggedIn ? 'Buka Admin Panel' : 'Login Admin CMS'}
-              </button>
+              <div className="space-y-2">
+                <button
+                  onClick={() => {
+                    setMobileDrawerOpen(false);
+                    if (isAdminLoggedIn) {
+                      setActiveTab('admin');
+                    } else {
+                      setShowAdminLoginModal(true);
+                    }
+                  }}
+                  className="w-full py-3 rounded-xl bg-slate-900 border border-slate-800 text-[#00ffc8] text-xs font-bold"
+                >
+                  {isAdminLoggedIn ? 'Buka Admin Panel' : 'Login Admin CMS'}
+                </button>
+
+                {isAdminLoggedIn && (
+                  <button
+                    onClick={() => {
+                      setMobileDrawerOpen(false);
+                      handleAdminLogout();
+                    }}
+                    className="w-full py-2.5 rounded-xl bg-rose-500/10 text-rose-300 border border-rose-500/30 text-xs font-bold"
+                  >
+                    Keluar / Logout Admin
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -280,6 +295,7 @@ export default function App() {
             onPlayPause={() => setIsPlaying(!isPlaying)}
             isAdminLoggedIn={isAdminLoggedIn}
             onOpenAdminLogin={() => setShowAdminLoginModal(true)}
+            onAdminLogout={handleAdminLogout}
             onOpenShortcuts={() => setShowShortcutsModal(true)}
             onToggleMobileMenu={() => setMobileDrawerOpen(true)}
           />
@@ -333,7 +349,12 @@ export default function App() {
 
               {activeTab === 'gallery' && <GalleryView />}
 
-              {activeTab === 'contact' && <ContactView />}
+              {activeTab === 'contact' && (
+                <ContactView
+                  isAdminLoggedIn={isAdminLoggedIn}
+                  onOpenLoginModal={() => setShowAdminLoginModal(true)}
+                />
+              )}
 
               {activeTab === 'admin' && (
                 <AdminView

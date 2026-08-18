@@ -50,6 +50,19 @@ export interface SkillItem {
   color: string;
 }
 
+export interface Order {
+  id: string;
+  timestamp: string;
+  name: string;
+  phone: string;
+  email: string;
+  service: string;
+  genre: string;
+  budget: string;
+  message: string;
+  status: string;
+}
+
 export interface AppConfig {
   appsScriptUrl: string;
   autoPlayNext: boolean;

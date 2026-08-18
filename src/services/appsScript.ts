@@ -1,4 +1,4 @@
-import { Song } from '../types/song';
+import { Song, Order } from '../types/song';
 import { INITIAL_SONGS } from '../data/initialData';
 import { getGoogleDriveAudioUrl, getGoogleDriveImageUrl } from './googleDrive';
 
@@ -7,6 +7,34 @@ export const DEFAULT_APPS_SCRIPT_URL =
 
 const LOCAL_STORAGE_APPS_SCRIPT_KEY = 'dzikron_apps_script_url';
 const LOCAL_STORAGE_CACHE_KEY = 'dzikron_cached_songs';
+const LOCAL_STORAGE_ORDERS_CACHE_KEY = 'dzikron_cached_orders';
+
+export const INITIAL_SAMPLE_ORDERS: Order[] = [
+  {
+    id: 'ord-1',
+    timestamp: '2026-08-15 14:30:22',
+    name: 'Ahmad Fauzi (PT Harmoni Media)',
+    phone: '081298765432',
+    email: 'fauzi@harmonimedia.co.id',
+    service: 'Jingle Iklan & Brand Anthem',
+    genre: 'Pop Akustik Modern',
+    budget: 'Rp 10.000.000 - Rp 15.000.000',
+    message: 'Membutuhkan jingle korporat durasi 60 detik bernuansa ceria dan inspiratif untuk campaign ramadhan.',
+    status: 'Baru Masuk'
+  },
+  {
+    id: 'ord-2',
+    timestamp: '2026-08-14 09:15:00',
+    name: 'Siti Nurhaliza Putri',
+    phone: '085712348899',
+    email: 'sitinur@gmail.com',
+    service: 'Penciptaan Lagu Custom / Single Baru',
+    genre: 'Pop Religi / Sholawat',
+    budget: 'Rp 5.000.000 - Rp 8.000.000',
+    message: 'Ingin dibuatkan lagu religi untuk kado pernikahan bertema syukur dan keluarga sakinah.',
+    status: 'Sedang Diproses'
+  }
+];
 
 export function getStoredAppsScriptUrl(): string {
   if (typeof window === 'undefined') return DEFAULT_APPS_SCRIPT_URL;
@@ -17,6 +45,73 @@ export function getStoredAppsScriptUrl(): string {
 export function setStoredAppsScriptUrl(url: string): void {
   if (typeof window === 'undefined') return;
   localStorage.setItem(LOCAL_STORAGE_APPS_SCRIPT_KEY, url.trim());
+}
+
+export async function fetchOrdersFromGoogleSheet(): Promise<{ orders: Order[]; isLive: boolean; error?: string }> {
+  const endpoint = getStoredAppsScriptUrl();
+  if (!endpoint) {
+    const cached = getCachedOrders();
+    return { orders: cached.length > 0 ? cached : INITIAL_SAMPLE_ORDERS, isLive: false };
+  }
+
+  try {
+    const separator = endpoint.includes('?') ? '&' : '?';
+    const fetchUrl = `${endpoint}${separator}type=orders&_t=${Date.now()}`;
+    const res = await fetch(fetchUrl, { method: 'GET', mode: 'cors' });
+    if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+
+    const json = await res.json();
+    let rawList: any[] = [];
+    if (Array.isArray(json)) {
+      rawList = json;
+    } else if (json && json.data && Array.isArray(json.data.orders)) {
+      rawList = json.data.orders;
+    } else if (json && Array.isArray(json.orders)) {
+      rawList = json.orders;
+    }
+
+    if (rawList.length === 0) {
+      const cached = getCachedOrders();
+      return { orders: cached.length > 0 ? cached : INITIAL_SAMPLE_ORDERS, isLive: true };
+    }
+
+    const parsedOrders: Order[] = rawList.map((item: any, index: number) => ({
+      id: `order-${index + 1}-${item.Timestamp || Date.now()}`,
+      timestamp: item['Timestamp'] || item['timestamp'] || item['Waktu'] || new Date().toLocaleString('id-ID'),
+      name: item['Nama Klien'] || item['nama'] || item['name'] || item['Nama'] || 'Klien',
+      phone: String(item['Nomor WhatsApp'] || item['whatsapp'] || item['phone'] || item['Telepon'] || '-'),
+      email: item['Email'] || item['email'] || '-',
+      service: item['Jenis Layanan'] || item['layanan'] || item['service'] || 'Cipta Lagu',
+      genre: item['Genre Musik'] || item['genre'] || '-',
+      budget: item['Estimasi Budget'] || item['budget'] || '-',
+      message: item['Deskripsi Proyek'] || item['deskripsi'] || item['message'] || item['pesan'] || '-',
+      status: item['Status Pesanan'] || item['status'] || 'Baru Masuk'
+    }));
+
+    if (typeof window !== 'undefined' && parsedOrders.length > 0) {
+      localStorage.setItem(LOCAL_STORAGE_ORDERS_CACHE_KEY, JSON.stringify(parsedOrders));
+    }
+
+    return { orders: parsedOrders, isLive: true };
+  } catch (err: any) {
+    console.warn('Gagal memuat pesanan dari Apps Script:', err.message);
+    const cached = getCachedOrders();
+    return {
+      orders: cached.length > 0 ? cached : INITIAL_SAMPLE_ORDERS,
+      isLive: false,
+      error: err.message
+    };
+  }
+}
+
+function getCachedOrders(): Order[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(LOCAL_STORAGE_ORDERS_CACHE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
 }
 
 export async function fetchSongsFromGoogleSheet(
@@ -302,6 +397,28 @@ export const APPS_SCRIPT_CODE_SAMPLE = `/**
 function doGet(e) {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var type = (e && e.parameter && e.parameter.type) ? e.parameter.type.toLowerCase() : 'all';
+    
+    // Jika meminta data pesanan
+    if (type === 'orders' || type === 'pesanan') {
+      var sheet = ss.getSheetByName('Pesanan');
+      if (!sheet) return ContentService.createTextOutput(JSON.stringify([])).setMimeType(ContentService.MimeType.JSON);
+      var data = sheet.getDataRange().getValues();
+      if (data.length <= 1) return ContentService.createTextOutput(JSON.stringify([])).setMimeType(ContentService.MimeType.JSON);
+      var headers = data[0].map(function(h) { return String(h).trim(); });
+      var orders = [];
+      for (var i = 1; i < data.length; i++) {
+        var row = data[i];
+        var obj = {};
+        for (var j = 0; j < headers.length; j++) {
+          obj[headers[j]] = row[j];
+        }
+        orders.push(obj);
+      }
+      return ContentService.createTextOutput(JSON.stringify(orders)).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    // Default: Ambil Data Lagu
     var sheet = ss.getSheetByName('Lagu') || ss.getActiveSheet();
     var data = sheet.getDataRange().getValues();
     if (data.length <= 1) {

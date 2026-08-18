@@ -8,6 +8,7 @@ import {
   Send,
   ShieldCheck,
   Lock,
+  LogOut,
   Heart,
   Disc3,
   Sparkles
@@ -23,6 +24,7 @@ interface SidebarProps {
   favoritesCount: number;
   isAdminLoggedIn: boolean;
   onOpenAdminLogin: () => void;
+  onAdminLogout?: () => void;
   currentSong: Song | null;
   isPlaying: boolean;
 }
@@ -34,6 +36,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   favoritesCount,
   isAdminLoggedIn,
   onOpenAdminLogin,
+  onAdminLogout,
   currentSong,
   isPlaying
 }) => {
@@ -153,7 +156,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       {/* Sidebar Footer (Admin Section) */}
-      <div className="p-4 border-t border-slate-800/80 bg-slate-950/60">
+      <div className="p-4 border-t border-slate-800/80 bg-slate-950/60 space-y-2">
         <button
           onClick={() => {
             if (isAdminLoggedIn) {
@@ -180,6 +183,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </>
           )}
         </button>
+
+        {isAdminLoggedIn && onAdminLogout && (
+          <button
+            onClick={onAdminLogout}
+            className="w-full py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/20 transition cursor-pointer"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span>Keluar / Logout Admin</span>
+          </button>
+        )}
       </div>
 
     </aside>

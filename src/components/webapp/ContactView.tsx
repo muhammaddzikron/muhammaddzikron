@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Send,
   Mail,
@@ -9,14 +9,33 @@ import {
   Music2,
   FileCheck,
   Headphones,
-  Instagram,
-  Youtube,
-  Radio,
-  Loader2
+  Loader2,
+  Inbox,
+  RefreshCw,
+  Clock,
+  User,
+  DollarSign,
+  Tag,
+  ExternalLink,
+  ShieldCheck,
+  Lock,
+  ChevronRight,
+  Eye,
+  FileText
 } from 'lucide-react';
-import { submitContactOrder } from '../../services/appsScript';
+import { submitContactOrder, fetchOrdersFromGoogleSheet, INITIAL_SAMPLE_ORDERS } from '../../services/appsScript';
+import { Order } from '../../types/song';
 
-export const ContactView: React.FC = () => {
+interface ContactViewProps {
+  isAdminLoggedIn?: boolean;
+  onOpenLoginModal?: () => void;
+}
+
+export const ContactView: React.FC<ContactViewProps> = ({
+  isAdminLoggedIn = false,
+  onOpenLoginModal
+}) => {
+  // Public form state
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -26,6 +45,28 @@ export const ContactView: React.FC = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+
+  // Admin orders state
+  const [orders, setOrders] = useState<Order[]>(INITIAL_SAMPLE_ORDERS);
+  const [isLoadingOrders, setIsLoadingOrders] = useState(false);
+  const [ordersLive, setOrdersLive] = useState(false);
+  const [viewPublicFormAsAdmin, setViewPublicFormAsAdmin] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+
+  // Load orders when admin is logged in
+  useEffect(() => {
+    if (isAdminLoggedIn) {
+      loadOrders();
+    }
+  }, [isAdminLoggedIn]);
+
+  const loadOrders = async () => {
+    setIsLoadingOrders(true);
+    const res = await fetchOrdersFromGoogleSheet();
+    setOrders(res.orders);
+    setOrdersLive(res.isLive);
+    setIsLoadingOrders(false);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,9 +99,201 @@ export const ContactView: React.FC = () => {
     window.open(`https://wa.me/6281234567890?text=${text}`, '_blank');
   };
 
+  const handleReplyWhatsApp = (order: Order) => {
+    const cleanPhone = order.phone.replace(/[^0-9]/g, '');
+    let formattedPhone = cleanPhone;
+    if (formattedPhone.startsWith('0')) {
+      formattedPhone = '62' + formattedPhone.slice(1);
+    }
+    const text = encodeURIComponent(
+      `Halo Kak ${order.name}, terima kasih telah menghubungi Muhammad Dzikron Studio mengenai permintaan "${order.service}". Kami siap membantu proyek musik Anda.`
+    );
+    window.open(`https://wa.me/${formattedPhone}?text=${text}`, '_blank');
+  };
+
+  // ==========================================
+  // JIKA DALAM POSISI LOGIN ADMIN: TAMPILKAN DAFTAR PESANAN
+  // ==========================================
+  if (isAdminLoggedIn && !viewPublicFormAsAdmin) {
+    return (
+      <div className="space-y-6 pb-16 animate-in fade-in duration-300">
+        
+        {/* Admin Header Banner */}
+        <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-slate-900/90 via-slate-900/60 to-[#042018] border border-slate-800/80 shadow-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-bold uppercase tracking-wider border border-emerald-500/20">
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span>Admin Dashboard &bull; Manajemen Pesanan Klien</span>
+            </div>
+            <h1 className="text-xl sm:text-3xl font-serif font-extrabold text-white">
+              Daftar Pesanan & <span className="text-gradient">Permintaan Masuk</span>
+            </h1>
+            <p className="text-xs text-slate-300">
+              Semua formulir pesanan yang dikirim pengunjung website tersimpan di tab <strong>Pesanan</strong> Google Spreadsheet.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2.5">
+            <button
+              onClick={loadOrders}
+              disabled={isLoadingOrders}
+              className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-emerald-400 text-xs font-semibold flex items-center gap-2 transition cursor-pointer disabled:opacity-50"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isLoadingOrders ? 'animate-spin' : ''}`} />
+              <span>{isLoadingOrders ? 'Memuat...' : 'Segarkan Data'}</span>
+            </button>
+
+            <button
+              onClick={() => setViewPublicFormAsAdmin(true)}
+              className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 hover:text-white text-xs font-semibold flex items-center gap-2 transition cursor-pointer"
+            >
+              <Eye className="w-3.5 h-3.5" />
+              <span>Lihat Form Pengunjung</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Stats Row */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="p-4 rounded-2xl bg-slate-900/70 border border-slate-800">
+            <div className="text-[11px] text-slate-400 font-medium">Total Pesanan</div>
+            <div className="text-xl font-bold text-white mt-1">{orders.length}</div>
+          </div>
+          <div className="p-4 rounded-2xl bg-slate-900/70 border border-slate-800">
+            <div className="text-[11px] text-emerald-400 font-medium">Status Koneksi</div>
+            <div className="text-xs font-bold text-white mt-1.5 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span>{ordersLive ? 'Spreadsheet Live' : 'Database Lokal'}</span>
+            </div>
+          </div>
+          <div className="p-4 rounded-2xl bg-slate-900/70 border border-slate-800">
+            <div className="text-[11px] text-sky-400 font-medium">Layanan Populer</div>
+            <div className="text-xs font-bold text-white mt-1 truncate">Lagu Custom</div>
+          </div>
+          <div className="p-4 rounded-2xl bg-slate-900/70 border border-slate-800">
+            <div className="text-[11px] text-amber-400 font-medium">Aksi Cepat</div>
+            <div className="text-xs font-bold text-slate-300 mt-1">Balas via WhatsApp</div>
+          </div>
+        </div>
+
+        {/* Orders List */}
+        <div className="space-y-4">
+          {orders.length === 0 ? (
+            <div className="py-16 text-center rounded-3xl border border-slate-800 bg-slate-900/40 space-y-3">
+              <Inbox className="w-10 h-10 mx-auto text-slate-600" />
+              <p className="text-sm font-semibold text-slate-400">Belum ada pesanan masuk</p>
+              <p className="text-xs text-slate-500">
+                Formulir yang diisi oleh pengunjung di halaman kontak akan otomatis muncul di sini.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {orders.map((order, idx) => (
+                <div
+                  key={order.id || idx}
+                  className="p-5 rounded-3xl bg-slate-900/80 border border-slate-800 hover:border-slate-700 transition space-y-4 shadow-lg flex flex-col justify-between"
+                >
+                  <div className="space-y-3">
+                    {/* Header: Service & Date */}
+                    <div className="flex items-start justify-between gap-2 border-b border-slate-800/80 pb-3">
+                      <div>
+                        <span className="px-2.5 py-1 rounded-lg bg-[#00ffc8]/10 text-[#00ffc8] text-[10px] font-bold uppercase tracking-wider border border-[#00ffc8]/20">
+                          {order.service}
+                        </span>
+                        <h3 className="text-base font-bold text-white mt-2 flex items-center gap-2">
+                          <User className="w-4 h-4 text-slate-400" />
+                          <span>{order.name}</span>
+                        </h3>
+                      </div>
+
+                      <div className="text-right shrink-0">
+                        <div className="text-[10px] text-slate-400 flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          <span>{order.timestamp}</span>
+                        </div>
+                        <span className="inline-block mt-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-semibold border border-emerald-500/20">
+                          {order.status || 'Baru Masuk'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Meta info */}
+                    <div className="grid grid-cols-2 gap-2 text-xs text-slate-300">
+                      <div className="flex items-center gap-1.5 text-slate-400">
+                        <Phone className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                        <span className="text-white font-mono">{order.phone}</span>
+                      </div>
+                      {order.email && order.email !== '-' && (
+                        <div className="flex items-center gap-1.5 text-slate-400 truncate">
+                          <Mail className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+                          <span className="truncate">{order.email}</span>
+                        </div>
+                      )}
+                      {order.genre && order.genre !== '-' && (
+                        <div className="flex items-center gap-1.5 text-slate-400">
+                          <Tag className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                          <span>{order.genre}</span>
+                        </div>
+                      )}
+                      {order.budget && order.budget !== '-' && (
+                        <div className="flex items-center gap-1.5 text-slate-400">
+                          <DollarSign className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                          <span>{order.budget}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Message Box */}
+                    <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800/60 text-xs text-slate-300 leading-relaxed">
+                      <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1">
+                        Pesan & Kebutuhan Proyek:
+                      </div>
+                      <p className="italic">"{order.message}"</p>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="pt-2 flex items-center gap-2">
+                    <button
+                      onClick={() => handleReplyWhatsApp(order)}
+                      className="flex-1 py-2.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer"
+                    >
+                      <MessageSquare className="w-4 h-4" />
+                      <span>Balas via WhatsApp</span>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+      </div>
+    );
+  }
+
+  // ==========================================
+  // JIKA DALAM POSISI LOGOUT (PENGUNJUNG / CLIENT): TAMPILKAN FORMULIR
+  // ==========================================
   return (
     <div className="space-y-8 pb-16 animate-in fade-in duration-300">
       
+      {/* Admin Quick Switch Bar (Only visible if viewing as admin) */}
+      {isAdminLoggedIn && viewPublicFormAsAdmin && (
+        <div className="p-3.5 rounded-2xl bg-slate-900 border border-slate-700 flex items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-2 text-amber-300">
+            <ShieldCheck className="w-4 h-4" />
+            <span>Mode Pratinjau Formulir Pengunjung (Anda sedang login sebagai Admin)</span>
+          </div>
+          <button
+            onClick={() => setViewPublicFormAsAdmin(false)}
+            className="px-3 py-1.5 rounded-xl bg-[#00ffc8] text-slate-950 font-bold hover:scale-105 transition cursor-pointer"
+          >
+            Kembali ke Daftar Pesanan Masuk
+          </button>
+        </div>
+      )}
+
       {/* Top Banner */}
       <div className="p-6 sm:p-10 rounded-3xl bg-gradient-to-r from-slate-900/90 via-slate-900/60 to-[#042018] border border-slate-800/80 shadow-2xl">
         <div className="max-w-3xl space-y-3">
@@ -262,3 +495,4 @@ export const ContactView: React.FC = () => {
     </div>
   );
 };
+

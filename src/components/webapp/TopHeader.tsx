@@ -3,6 +3,7 @@ import {
   Search,
   ShieldCheck,
   Lock,
+  LogOut,
   Play,
   Pause,
   HelpCircle,
@@ -21,6 +22,7 @@ interface TopHeaderProps {
   onPlayPause: () => void;
   isAdminLoggedIn: boolean;
   onOpenAdminLogin: () => void;
+  onAdminLogout: () => void;
   onOpenShortcuts: () => void;
   onToggleMobileMenu: () => void;
 }
@@ -35,6 +37,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
   onPlayPause,
   isAdminLoggedIn,
   onOpenAdminLogin,
+  onAdminLogout,
   onOpenShortcuts,
   onToggleMobileMenu
 }) => {
@@ -129,32 +132,38 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
         </button>
 
         {/* Admin Quick Action */}
-        <button
-          onClick={() => {
-            if (isAdminLoggedIn) {
-              onSelectTab('admin');
-            } else {
-              onOpenAdminLogin();
-            }
-          }}
-          className={`px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 border transition cursor-pointer ${
-            isAdminLoggedIn
-              ? 'bg-gradient-to-r from-[#0099ff] to-[#00ffc8] text-slate-950 border-transparent shadow-[0_0_12px_rgba(0,255,200,0.35)]'
-              : 'bg-slate-900 text-slate-200 border-slate-800 hover:border-[#00ffc8]/50'
-          }`}
-        >
-          {isAdminLoggedIn ? (
-            <>
+        {isAdminLoggedIn ? (
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => onSelectTab('admin')}
+              className={`px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 border transition cursor-pointer ${
+                activeTab === 'admin'
+                  ? 'bg-[#00ffc8] text-slate-950 border-[#00ffc8] shadow-[0_0_12px_rgba(0,255,200,0.35)]'
+                  : 'bg-slate-900 text-emerald-400 border-emerald-500/40 hover:bg-emerald-500/20'
+              }`}
+            >
               <ShieldCheck className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Admin Panel</span>
-            </>
-          ) : (
-            <>
-              <Lock className="w-3.5 h-3.5 text-[#00ffc8]" />
-              <span className="hidden sm:inline">Login Admin</span>
-            </>
-          )}
-        </button>
+              <span className="hidden sm:inline">Dasbor Admin</span>
+            </button>
+
+            <button
+              onClick={onAdminLogout}
+              className="px-2.5 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/40 transition cursor-pointer"
+              title="Keluar dari mode Admin (Logout)"
+            >
+              <LogOut className="w-3.5 h-3.5 text-rose-400" />
+              <span className="hidden sm:inline">Logout</span>
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={onOpenAdminLogin}
+            className="px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 bg-slate-900 text-slate-200 border border-slate-800 hover:border-[#00ffc8]/50 hover:text-white transition cursor-pointer"
+          >
+            <Lock className="w-3.5 h-3.5 text-[#00ffc8]" />
+            <span className="hidden sm:inline">Login Admin</span>
+          </button>
+        )}
 
       </div>
 

@@ -12,6 +12,7 @@ export interface Song {
   status: string;
   order: number;
   audioUrl?: string; // Resolved direct stream URL
+  youtubeUrl?: string; // Link/URL video YouTube
   isFavorite?: boolean;
 }
 

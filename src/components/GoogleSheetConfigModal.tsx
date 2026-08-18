@@ -157,7 +157,7 @@ export const GoogleSheetConfigModal: React.FC<GoogleSheetConfigModalProps> = ({
             <li>
               Pastikan nama tab lembar kerja adalah <strong>Lagu</strong> dengan header kolom di Baris 1: <br />
               <code className="text-[#00ffc8] bg-slate-900 px-2 py-1 rounded text-[11px] block mt-1">
-                No | Judul Lagu | Penyanyi | Genre | Tahun | Link Google Drive | Cover URL | Durasi | Lirik | Status | Urutan
+                No | Judul Lagu | Penyanyi | Genre | Tahun | Link Google Drive | Cover URL | Link YouTube | Durasi | Lirik | Status | Urutan
               </code>
             </li>
             <li>

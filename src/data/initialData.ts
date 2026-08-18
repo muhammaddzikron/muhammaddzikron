@@ -12,6 +12,7 @@ export const INITIAL_SONGS: Song[] = [
     year: 2024,
     cover: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=800&q=80',
     driveId: '1A2b3C4d5E6f7G8h9I0j1K2l3M4n5O6p',
+    youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
     audioUrl: 'https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=piano-moment-114471.mp3',
     duration: '04:12',
     status: 'Publish',

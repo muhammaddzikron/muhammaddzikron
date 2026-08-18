@@ -226,6 +226,18 @@ export async function fetchSongsFromGoogleSheet(
       const lyrics = item['Lirik'] || item['lyrics'] || item['Lirik Lagu'] || 'Lirik belum tersedia.';
       const status = item['Status'] || item['status'] || 'Publish';
       const order = Number(item['Urutan'] || item['order'] || item['No'] || index + 1);
+      const rawYoutube =
+        item['Link YouTube'] ||
+        item['Link Youtube'] ||
+        item['YouTube'] ||
+        item['Youtube'] ||
+        item['Video YouTube'] ||
+        item['Video Youtube'] ||
+        item['Link Video'] ||
+        item['Video'] ||
+        item['youtubeUrl'] ||
+        item['youtube'] ||
+        '';
 
       // Construct working streaming URL
       const audioStream = driveId
@@ -248,7 +260,8 @@ export async function fetchSongsFromGoogleSheet(
         lyrics: String(lyrics),
         status: String(status),
         order: order,
-        audioUrl: audioStream
+        audioUrl: audioStream,
+        youtubeUrl: String(rawYoutube).trim()
       };
     }).filter((s) => s.status.toLowerCase() !== 'draft' && s.status.toLowerCase() !== 'hidden');
 
@@ -344,6 +357,9 @@ export async function saveSongToGoogleSheet(song: Song): Promise<{ success: bool
       year: song.year,
       driveId: song.driveId,
       cover: song.cover,
+      youtubeUrl: song.youtubeUrl || '',
+      youtube: song.youtubeUrl || '',
+      'Link YouTube': song.youtubeUrl || '',
       duration: song.duration,
       lyrics: song.lyrics,
       status: song.status,
@@ -409,6 +425,9 @@ export async function syncAllSongsToGoogleSheet(songs: Song[]): Promise<{ succes
           year: s.year,
           driveId: s.driveId,
           cover: s.cover,
+          youtubeUrl: s.youtubeUrl || '',
+          youtube: s.youtubeUrl || '',
+          'Link YouTube': s.youtubeUrl || '',
           duration: s.duration,
           lyrics: s.lyrics,
           status: s.status,
@@ -430,7 +449,7 @@ export async function syncAllSongsToGoogleSheet(songs: Song[]): Promise<{ succes
 export const APPS_SCRIPT_CODE_SAMPLE = `/**
  * =========================================================================
  * GOOGLE APPS SCRIPT DATABASE - MUHAMMAD DZIKRON
- * Menampung: Katalog Lagu, Pesanan Kolaborasi, dan Galeri Studio
+ * Menampung: Katalog Lagu, Video YouTube, dan Pesanan Kolaborasi
  * =========================================================================
  */
 
@@ -502,7 +521,7 @@ function doPost(e) {
     if (action === 'save_song' || action === 'add_song' || action === 'tambah_lagu') {
       var sheet = getOrCreateSheet(ss, 'Lagu', [
         'No', 'Judul Lagu', 'Penyanyi', 'Genre', 'Tahun',
-        'Link Google Drive', 'Cover URL', 'Durasi', 'Lirik', 'Status', 'Urutan'
+        'Link Google Drive', 'Cover URL', 'Link YouTube', 'Durasi', 'Lirik', 'Status', 'Urutan'
       ]);
       
       var data = sheet.getDataRange().getValues();
@@ -524,10 +543,11 @@ function doPost(e) {
         body.year || body.tahun || new Date().getFullYear(),
         body.driveId || body.link_drive || '',
         body.cover || '',
+        body.youtubeUrl || body.youtube || body['Link YouTube'] || '',
         body.duration || body.durasi || '03:30',
         body.lyrics || body.lirik || '',
         body.status || 'Publish',
-        body.order || (rowIndex > 0 ? data[rowIndex-1][10] : data.length)
+        body.order || (rowIndex > 0 ? data[rowIndex-1][11] : data.length)
       ];
       
       if (rowIndex > 0) {
@@ -544,11 +564,11 @@ function doPost(e) {
     if (action === 'sync_all' && Array.isArray(body.songs)) {
       var sheet = getOrCreateSheet(ss, 'Lagu', [
         'No', 'Judul Lagu', 'Penyanyi', 'Genre', 'Tahun',
-        'Link Google Drive', 'Cover URL', 'Durasi', 'Lirik', 'Status', 'Urutan'
+        'Link Google Drive', 'Cover URL', 'Link YouTube', 'Durasi', 'Lirik', 'Status', 'Urutan'
       ]);
       sheet.clearContents();
-      sheet.appendRow(['No', 'Judul Lagu', 'Penyanyi', 'Genre', 'Tahun', 'Link Google Drive', 'Cover URL', 'Durasi', 'Lirik', 'Status', 'Urutan']);
-      sheet.getRange(1, 1, 1, 11).setFontWeight('bold').setBackground('#f3f4f6');
+      sheet.appendRow(['No', 'Judul Lagu', 'Penyanyi', 'Genre', 'Tahun', 'Link Google Drive', 'Cover URL', 'Link YouTube', 'Durasi', 'Lirik', 'Status', 'Urutan']);
+      sheet.getRange(1, 1, 1, 12).setFontWeight('bold').setBackground('#f3f4f6');
       
       for (var s = 0; s < body.songs.length; s++) {
         var song = body.songs[s];
@@ -560,6 +580,7 @@ function doPost(e) {
           song.year || new Date().getFullYear(),
           song.driveId || '',
           song.cover || '',
+          song.youtubeUrl || song.youtube || '',
           song.duration || '03:30',
           song.lyrics || '',
           song.status || 'Publish',

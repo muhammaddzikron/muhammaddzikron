@@ -33,9 +33,11 @@ import {
   AlertCircle,
   ExternalLink,
   Volume2,
-  CheckCheck
+  CheckCheck,
+  Youtube
 } from 'lucide-react';
 import { getGoogleDriveAudioUrl, getGoogleDriveImageUrl, extractDriveId } from '../../services/googleDrive';
+import { extractYouTubeId } from '../../utils/youtube';
 import {
   saveSongToGoogleSheet,
   deleteSongFromGoogleSheet,
@@ -64,6 +66,7 @@ const EMPTY_SONG_FORM = {
   year: new Date().getFullYear().toString(),
   cover: '',
   driveId: '',
+  youtubeUrl: '',
   duration: '03:45',
   lyrics: '',
   status: 'Publish',
@@ -230,6 +233,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
       year: String(song.year),
       cover: song.cover || '',
       driveId: song.driveId || '',
+      youtubeUrl: song.youtubeUrl || '',
       duration: song.duration || '03:30',
       lyrics: song.lyrics || '',
       status: song.status || 'Publish',
@@ -271,6 +275,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
             year: formData.year,
             cover: finalCover,
             driveId: formData.driveId.trim(),
+            youtubeUrl: formData.youtubeUrl.trim(),
             duration: formData.duration.trim(),
             lyrics: formData.lyrics.trim(),
             status: formData.status,
@@ -296,6 +301,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
         year: formData.year,
         cover: finalCover,
         driveId: formData.driveId.trim(),
+        youtubeUrl: formData.youtubeUrl.trim(),
         duration: formData.duration.trim(),
         lyrics: formData.lyrics.trim(),
         status: formData.status,
@@ -521,7 +527,14 @@ export const AdminView: React.FC<AdminViewProps> = ({
                           className="w-9 h-9 rounded-lg object-cover bg-slate-800 border border-slate-700"
                         />
                         <div>
-                          <div className="font-bold text-white text-sm">{song.title}</div>
+                          <div className="font-bold text-white text-sm flex items-center gap-1.5">
+                            <span>{song.title}</span>
+                            {song.youtubeUrl && (
+                              <span className="px-1.5 py-0.5 rounded bg-red-600/20 border border-red-500/30 text-red-400 text-[9px] font-bold flex items-center gap-0.5" title="Video YouTube Terhubung">
+                                <Youtube className="w-2.5 h-2.5" /> Video
+                              </span>
+                            )}
+                          </div>
                           <div className="text-[11px] text-slate-400">{song.singer}</div>
                         </div>
                       </div>
@@ -755,6 +768,30 @@ export const AdminView: React.FC<AdminViewProps> = ({
 
               <p className="text-[10px] text-slate-400">
                 Mendukung URL penuh Google Drive, file ID drive, atau direct MP3 URL.
+              </p>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block font-semibold text-slate-300 flex items-center gap-1.5">
+                  <Youtube className="w-3.5 h-3.5 text-red-500" />
+                  <span>Link Video YouTube (Opsional)</span>
+                </label>
+                {formData.youtubeUrl.trim() && extractYouTubeId(formData.youtubeUrl) && (
+                  <span className="text-[10px] font-mono text-emerald-400 flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3" /> ID: {extractYouTubeId(formData.youtubeUrl)}
+                  </span>
+                )}
+              </div>
+              <input
+                type="text"
+                value={formData.youtubeUrl}
+                onChange={(e) => setFormData({ ...formData, youtubeUrl: e.target.value })}
+                placeholder="https://www.youtube.com/watch?v=... atau https://youtu.be/..."
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-[#00ffc8]"
+              />
+              <p className="text-[10px] text-slate-400 mt-1">
+                Jika diisi, video musik siap putar otomatis tampil di detail lagu. Kosongkan jika belum memiliki link video.
               </p>
             </div>
 

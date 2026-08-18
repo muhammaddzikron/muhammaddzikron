@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Song } from '../types/song';
 import { formatSongDuration } from '../utils/duration';
+import { getYouTubeEmbedUrl, getYouTubeWatchUrl } from '../utils/youtube';
 import {
   X,
   Play,
@@ -15,7 +16,9 @@ import {
   Calendar,
   User,
   Sparkles,
-  ExternalLink
+  ExternalLink,
+  Youtube,
+  Tv
 } from 'lucide-react';
 
 interface SongDetailModalProps {
@@ -39,6 +42,9 @@ export const SongDetailModal: React.FC<SongDetailModalProps> = ({
   const [lyricsCopied, setLyricsCopied] = useState(false);
 
   if (!song) return null;
+
+  const youtubeEmbedUrl = getYouTubeEmbedUrl(song.youtubeUrl);
+  const youtubeWatchUrl = getYouTubeWatchUrl(song.youtubeUrl);
 
   const currentUrl = typeof window !== 'undefined' ? window.location.href : '';
   const shareText = `Dengarkan lagu "${song.title}" karya ${song.singer} (Cipt. Muhammad Dzikron)`;
@@ -154,8 +160,8 @@ export const SongDetailModal: React.FC<SongDetailModalProps> = ({
 
           </div>
 
-          {/* Right Column: Song Metadata & Full Lyrics */}
-          <div className="md:col-span-7 flex flex-col justify-between">
+          {/* Right Column: Song Metadata, YouTube Video, & Full Lyrics */}
+          <div className="md:col-span-7 flex flex-col justify-between space-y-5">
             <div>
               {/* Badges */}
               <div className="flex flex-wrap items-center gap-2 mb-3">
@@ -168,6 +174,11 @@ export const SongDetailModal: React.FC<SongDetailModalProps> = ({
                 <span className="px-3 py-1 rounded-full text-xs bg-slate-800 text-slate-300 flex items-center gap-1 font-mono">
                   <Music className="w-3.5 h-3.5" /> {formatSongDuration(song.duration)}
                 </span>
+                {youtubeEmbedUrl && (
+                  <span className="px-3 py-1 rounded-full text-xs bg-red-600/20 text-red-400 border border-red-500/30 flex items-center gap-1.5 font-medium">
+                    <Youtube className="w-3.5 h-3.5 text-red-500" /> Video Siap Putar
+                  </span>
+                )}
               </div>
 
               {/* Title & Artist */}
@@ -178,9 +189,45 @@ export const SongDetailModal: React.FC<SongDetailModalProps> = ({
                 <User className="w-4 h-4 text-[#0099ff]" />
                 Penyanyi: <span className="font-semibold text-white">{song.singer}</span>
               </p>
-              <p className="text-xs text-slate-400 mb-6">
-                Ciptaan & Aransement: <span className="text-[#00ffc8] font-medium">Muhammad Dzikron</span>
+              <p className="text-xs text-slate-400 mb-5">
+                Ciptaan & Aransemen: <span className="text-[#00ffc8] font-medium">Muhammad Dzikron</span>
               </p>
+
+              {/* YouTube Video Player Embed (Conditionally rendered when youtubeUrl is present) */}
+              {youtubeEmbedUrl && (
+                <div className="mb-6 space-y-2 rounded-2xl bg-slate-900/90 border border-red-500/30 p-3 sm:p-4 shadow-xl">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-xs font-bold text-white">
+                      <div className="p-1 rounded bg-red-600 text-white">
+                        <Youtube className="w-3.5 h-3.5" />
+                      </div>
+                      <span>Video Musik / YouTube</span>
+                    </div>
+
+                    {youtubeWatchUrl && (
+                      <a
+                        href={youtubeWatchUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[11px] text-red-400 hover:text-red-300 flex items-center gap-1 font-medium transition"
+                      >
+                        <span>Buka di YouTube</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    )}
+                  </div>
+
+                  <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-black border border-slate-800 shadow-inner">
+                    <iframe
+                      src={youtubeEmbedUrl}
+                      title={`Video musik ${song.title} - ${song.singer}`}
+                      className="w-full h-full border-0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      allowFullScreen
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* Full Lyrics Box */}
               <div className="glass-card p-5 rounded-2xl border border-slate-800 relative mb-6">
@@ -198,7 +245,7 @@ export const SongDetailModal: React.FC<SongDetailModalProps> = ({
                 </div>
 
                 <div className="max-h-60 overflow-y-auto pr-2 text-xs sm:text-sm text-slate-300 whitespace-pre-line leading-relaxed font-sans">
-                  {song.lyrics}
+                  {song.lyrics || 'Lirik belum tersedia untuk lagu ini.'}
                 </div>
               </div>
 

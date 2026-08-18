@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Song } from '../../types/song';
+import { getYouTubeEmbedUrl, getYouTubeWatchUrl } from '../../utils/youtube';
 import {
   FileText,
   Music,
@@ -13,7 +14,10 @@ import {
   Disc3,
   Heart,
   ListMusic,
-  Share2
+  Share2,
+  Youtube,
+  Tv,
+  ExternalLink
 } from 'lucide-react';
 import { AudioVisualizer } from '../AudioVisualizer';
 
@@ -38,6 +42,7 @@ export const LyricsView: React.FC<LyricsViewProps> = ({
 }) => {
   const [fontSize, setFontSize] = useState<'sm' | 'base' | 'lg' | 'xl'>('base');
   const [copied, setCopied] = useState(false);
+  const [activeTab, setActiveTab] = useState<'lyrics' | 'video'>('lyrics');
 
   const activeSong = currentSong || songs[0] || null;
 
@@ -49,6 +54,9 @@ export const LyricsView: React.FC<LyricsViewProps> = ({
       </div>
     );
   }
+
+  const youtubeEmbedUrl = getYouTubeEmbedUrl(activeSong.youtubeUrl);
+  const youtubeWatchUrl = getYouTubeWatchUrl(activeSong.youtubeUrl);
 
   const handleCopyLyrics = () => {
     if (!activeSong.lyrics) return;
@@ -89,7 +97,7 @@ export const LyricsView: React.FC<LyricsViewProps> = ({
           <div>
             <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#00ffc8]/10 text-[#00ffc8] text-[10px] font-bold uppercase tracking-wider mb-1 border border-[#00ffc8]/20">
               <Sparkles className="w-3 h-3" />
-              <span>Studio Lirik Interaktif</span>
+              <span>Studio Lirik & Video Interaktif</span>
             </div>
             <h1 className="text-xl sm:text-3xl font-serif font-extrabold text-white tracking-tight">
               {activeSong.title}
@@ -100,8 +108,32 @@ export const LyricsView: React.FC<LyricsViewProps> = ({
           </div>
         </div>
 
-        {/* Action Controls & Font Zoom */}
+        {/* Action Controls & Mode Switch */}
         <div className="flex flex-wrap items-center gap-2.5">
+          {/* View Mode Switcher if YouTube is available */}
+          {youtubeEmbedUrl && (
+            <div className="flex items-center p-1 rounded-xl bg-slate-950 border border-slate-800">
+              <button
+                onClick={() => setActiveTab('lyrics')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
+                  activeTab === 'lyrics' ? 'bg-slate-800 text-[#00ffc8]' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <FileText className="w-3.5 h-3.5" />
+                <span>Lirik</span>
+              </button>
+              <button
+                onClick={() => setActiveTab('video')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
+                  activeTab === 'video' ? 'bg-red-600/30 text-red-400 border border-red-500/40' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Youtube className="w-3.5 h-3.5 text-red-500" />
+                <span>Video YouTube</span>
+              </button>
+            </div>
+          )}
+
           {/* Quick Play Trigger */}
           <button
             onClick={() => onPlaySong(activeSong)}
@@ -164,7 +196,7 @@ export const LyricsView: React.FC<LyricsViewProps> = ({
 
       </div>
 
-      {/* Grid Layout: Song Selector + Lyrics Stage */}
+      {/* Grid Layout: Song Selector + Stage */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
         {/* Left Column: Playlist Switcher (4 cols) */}
@@ -177,6 +209,7 @@ export const LyricsView: React.FC<LyricsViewProps> = ({
           <div className="rounded-3xl border border-slate-800 bg-slate-900/70 divide-y divide-slate-800/60 overflow-hidden max-h-[550px] overflow-y-auto">
             {songs.map((song) => {
               const isSelected = activeSong.id === song.id;
+              const hasVideo = Boolean(getYouTubeEmbedUrl(song.youtubeUrl));
               return (
                 <div
                   key={song.id}
@@ -192,8 +225,11 @@ export const LyricsView: React.FC<LyricsViewProps> = ({
                       className="w-9 h-9 rounded-lg object-cover bg-slate-800 shrink-0"
                     />
                     <div className="min-w-0">
-                      <div className={`text-xs font-bold truncate ${isSelected ? 'text-[#00ffc8]' : 'text-white'}`}>
-                        {song.title}
+                      <div className={`text-xs font-bold truncate flex items-center gap-1.5 ${isSelected ? 'text-[#00ffc8]' : 'text-white'}`}>
+                        <span>{song.title}</span>
+                        {hasVideo && (
+                          <Youtube className="w-3 h-3 text-red-500 shrink-0 inline" />
+                        )}
                       </div>
                       <div className="text-[10px] text-slate-400 truncate">
                         {song.singer}
@@ -210,7 +246,7 @@ export const LyricsView: React.FC<LyricsViewProps> = ({
           </div>
         </div>
 
-        {/* Right Column: Lyrics Reader Stage (8 cols) */}
+        {/* Right Column: Lyrics or YouTube Stage (8 cols) */}
         <div className="lg:col-span-8">
           <div className="relative rounded-3xl border border-slate-800 bg-slate-950/80 p-6 sm:p-10 shadow-2xl overflow-hidden min-h-[550px]">
             
@@ -226,19 +262,51 @@ export const LyricsView: React.FC<LyricsViewProps> = ({
               </div>
             )}
 
-            {/* Lyrics Content */}
-            <div className="relative z-10 space-y-4">
-              {activeSong.lyrics ? (
-                <div className={`${fontClasses} font-serif whitespace-pre-line text-slate-200 tracking-wide select-text`}>
-                  {activeSong.lyrics}
+            {/* Stage Content: Video View or Lyrics View */}
+            {activeTab === 'video' && youtubeEmbedUrl ? (
+              <div className="relative z-10 space-y-4 animate-in fade-in duration-300">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs font-bold text-white">
+                    <Youtube className="w-4 h-4 text-red-500" />
+                    <span>Official Video YouTube: {activeSong.title}</span>
+                  </div>
+                  {youtubeWatchUrl && (
+                    <a
+                      href={youtubeWatchUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1 font-semibold transition"
+                    >
+                      <span>Tonton di YouTube</span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  )}
                 </div>
-              ) : (
-                <div className="py-12 text-center text-slate-400">
-                  <p>Lirik belum ditambahkan untuk lagu ini.</p>
-                  <p className="text-xs mt-1 text-slate-400">Gunakan Dashboard Admin CMS untuk mengisi lirik.</p>
+
+                <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-black border border-slate-800 shadow-2xl">
+                  <iframe
+                    src={youtubeEmbedUrl}
+                    title={`Video musik ${activeSong.title} - ${activeSong.singer}`}
+                    className="w-full h-full border-0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowFullScreen
+                  />
                 </div>
-              )}
-            </div>
+              </div>
+            ) : (
+              <div className="relative z-10 space-y-4">
+                {activeSong.lyrics ? (
+                  <div className={`${fontClasses} font-serif whitespace-pre-line text-slate-200 tracking-wide select-text`}>
+                    {activeSong.lyrics}
+                  </div>
+                ) : (
+                  <div className="py-12 text-center text-slate-400">
+                    <p>Lirik belum ditambahkan untuk lagu ini.</p>
+                    <p className="text-xs mt-1 text-slate-400">Gunakan Dashboard Admin CMS untuk mengisi lirik.</p>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Lyrics Footer Info */}
             <div className="relative z-10 mt-8 pt-6 border-t border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-slate-400">
@@ -247,6 +315,11 @@ export const LyricsView: React.FC<LyricsViewProps> = ({
                 <span className="px-2.5 py-0.5 rounded-full bg-slate-900 border border-slate-800 text-[#00ffc8] text-[11px] font-medium">
                   {activeSong.genre} • {activeSong.year}
                 </span>
+                {youtubeEmbedUrl && (
+                  <span className="px-2.5 py-0.5 rounded-full bg-red-600/20 text-red-400 text-[11px] font-medium flex items-center gap-1">
+                    <Youtube className="w-3 h-3 text-red-500" /> Video Ready
+                  </span>
+                )}
               </div>
             </div>
 

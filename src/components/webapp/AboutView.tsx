@@ -1,21 +1,11 @@
 import React from 'react';
 import {
   User,
-  Music,
-  Award,
-  Sparkles,
-  Sliders,
-  CheckCircle2,
   Calendar,
   MapPin,
-  Flame,
-  Feather,
-  Radio,
-  Mic2,
-  Disc,
   HeartHandshake
 } from 'lucide-react';
-import { ACHIEVEMENTS, SKILLS, STATS } from '../../data/initialData';
+import { STATS } from '../../data/initialData';
 
 export const AboutView: React.FC = () => {
   return (
@@ -95,67 +85,6 @@ export const AboutView: React.FC = () => {
             </div>
           </div>
         ))}
-      </div>
-
-      {/* 3. Musical Skills & Philosophy */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        
-        {/* Skills (6 cols) */}
-        <div className="lg:col-span-6 space-y-4">
-          <div className="flex items-center gap-2 text-sm font-bold text-white">
-            <Sliders className="w-4 h-4 text-[#00ffc8]" />
-            <span>Keahlian & Kompetensi Musikal</span>
-          </div>
-
-          <div className="p-6 rounded-3xl bg-slate-900/70 border border-slate-800 space-y-4 shadow-xl">
-            {SKILLS.map((skill) => (
-              <div key={skill.name} className="space-y-1.5">
-                <div className="flex items-center justify-between text-xs font-semibold">
-                  <span className="text-slate-200">{skill.name}</span>
-                  <span className="font-mono text-[#00ffc8]">{skill.percentage}%</span>
-                </div>
-                <div className="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-gradient-to-r from-[#0099ff] to-[#00ffc8] transition-all duration-1000"
-                    style={{ width: `${skill.percentage}%` }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Achievements Timeline (6 cols) */}
-        <div className="lg:col-span-6 space-y-4">
-          <div className="flex items-center gap-2 text-sm font-bold text-white">
-            <Award className="w-4 h-4 text-[#0099ff]" />
-            <span>Penghargaan & Prestasi Karya</span>
-          </div>
-
-          <div className="p-6 rounded-3xl bg-slate-900/70 border border-slate-800 space-y-4 shadow-xl divide-y divide-slate-800/80">
-            {ACHIEVEMENTS.map((ach) => (
-              <div key={ach.id} className="pt-4 first:pt-0 space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <span className="px-2 py-0.5 rounded-md bg-[#00ffc8]/10 text-[#00ffc8] text-[10px] font-bold uppercase tracking-wider">
-                    {ach.category} • {ach.year}
-                  </span>
-                  <span className="text-[11px] text-slate-400 font-mono">
-                    {ach.location}
-                  </span>
-                </div>
-
-                <h3 className="text-sm font-bold text-white">
-                  {ach.title}
-                </h3>
-
-                <p className="text-xs text-slate-400 leading-relaxed">
-                  {ach.description}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-
       </div>
 
     </div>

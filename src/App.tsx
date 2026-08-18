@@ -39,7 +39,22 @@ export default function App() {
     return INITIAL_SONGS.map((s) => ({ ...s, duration: formatSongDuration(s.duration) }));
   });
 
-  const [currentSong, setCurrentSong] = useState<Song | null>(INITIAL_SONGS[0]);
+  const [currentSong, setCurrentSong] = useState<Song | null>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('dzikron_cached_songs');
+        if (stored) {
+          const list: Song[] = JSON.parse(stored);
+          if (list && list.length > 0) {
+            return { ...list[0], duration: formatSongDuration(list[0].duration) };
+          }
+        }
+      } catch {}
+    }
+    return INITIAL_SONGS.length > 0
+      ? { ...INITIAL_SONGS[0], duration: formatSongDuration(INITIAL_SONGS[0].duration) }
+      : null;
+  });
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLiveSheet, setIsLiveSheet] = useState(false);
   const [isLoadingSheet, setIsLoadingSheet] = useState(false);
@@ -82,11 +97,20 @@ export default function App() {
     setIsLiveSheet(result.isLive);
     setIsLoadingSheet(false);
 
-    if (!currentSong && result.songs.length > 0) {
-      setCurrentSong(result.songs[0]);
+    if (result.songs.length > 0) {
+      setCurrentSong((prev) => {
+        if (!prev) return result.songs[0];
+        const matched = result.songs.find(
+          (s) =>
+            s.id === prev.id ||
+            (s.title.toLowerCase().trim() === prev.title.toLowerCase().trim() &&
+              s.singer.toLowerCase().trim() === prev.singer.toLowerCase().trim())
+        );
+        return matched || result.songs[0];
+      });
     }
     return result.isLive;
-  }, [currentSong]);
+  }, []);
 
   useEffect(() => {
     loadSongs();
@@ -157,17 +181,37 @@ export default function App() {
   };
 
   const handleNextSong = () => {
-    if (!currentSong || songs.length === 0) return;
-    const idx = songs.findIndex((s) => s.id === currentSong.id);
-    const nextIndex = (idx + 1) % songs.length;
+    if (songs.length === 0) return;
+    if (!currentSong) {
+      setCurrentSong(songs[0]);
+      setIsPlaying(true);
+      return;
+    }
+    const idx = songs.findIndex(
+      (s) =>
+        s.id === currentSong.id ||
+        (s.title.toLowerCase().trim() === currentSong.title.toLowerCase().trim() &&
+          s.singer.toLowerCase().trim() === currentSong.singer.toLowerCase().trim())
+    );
+    const nextIndex = idx === -1 ? 0 : (idx + 1) % songs.length;
     setCurrentSong(songs[nextIndex]);
     setIsPlaying(true);
   };
 
   const handlePrevSong = () => {
-    if (!currentSong || songs.length === 0) return;
-    const idx = songs.findIndex((s) => s.id === currentSong.id);
-    const prevIndex = (idx - 1 + songs.length) % songs.length;
+    if (songs.length === 0) return;
+    if (!currentSong) {
+      setCurrentSong(songs[0]);
+      setIsPlaying(true);
+      return;
+    }
+    const idx = songs.findIndex(
+      (s) =>
+        s.id === currentSong.id ||
+        (s.title.toLowerCase().trim() === currentSong.title.toLowerCase().trim() &&
+          s.singer.toLowerCase().trim() === currentSong.singer.toLowerCase().trim())
+    );
+    const prevIndex = idx === -1 ? 0 : (idx - 1 + songs.length) % songs.length;
     setCurrentSong(songs[prevIndex]);
     setIsPlaying(true);
   };

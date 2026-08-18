@@ -150,24 +150,38 @@ export const GoogleSheetConfigModal: React.FC<GoogleSheetConfigModalProps> = ({
             Panduan Menghubungkan Google Spreadsheet:
           </h4>
 
-          <ol className="list-decimal list-inside space-y-2.5 leading-relaxed text-slate-300 pl-1">
+          <ol className="list-decimal list-inside space-y-3 leading-relaxed text-slate-300 pl-1">
             <li>
-              Buat <strong>Google Spreadsheet baru</strong> di Google Drive Anda.
+              Buka atau buat <strong>Google Spreadsheet</strong> di Google Drive Anda.
             </li>
             <li>
-              Pastikan nama tab lembar kerja adalah <strong>Lagu</strong> dengan header kolom di Baris 1: <br />
-              <code className="text-[#00ffc8] bg-slate-900 px-2 py-1 rounded text-[11px] block mt-1">
-                No | Judul Lagu | Penyanyi | Genre | Tahun | Link Google Drive | Cover URL | Link YouTube | Durasi | Lirik | Status | Urutan
-              </code>
-            </li>
-            <li>
-              Isi data lagu dan simpan file audio MP3 lagu di Google Drive. Dapatkan File ID file Google Drive tersebut.
+              Struktur Tab Spreadsheet:
+              <div className="mt-2 space-y-2">
+                <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
+                  <span className="text-[11px] font-bold text-[#00ffc8]">Tab 1: "Lagu" (Kolom Baris 1):</span>
+                  <code className="text-slate-300 block text-[10px] mt-1 font-mono">
+                    No | Judul Lagu | Penyanyi | Genre | Tahun | Link Google Drive | Cover URL | Link YouTube | Durasi | Lirik | Status | Urutan
+                  </code>
+                </div>
+                <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
+                  <span className="text-[11px] font-bold text-[#0099ff]">Tab 2: "Profil" (Format Kunci-Nilai Kolom A-B atau Kolom Horizontal):</span>
+                  <code className="text-slate-300 block text-[10px] mt-1 font-mono">
+                    Kolom A: Field | Kolom B: Value (Nama, Tagline, Headline, Foto, Biografi, Pengalaman, Lokasi, Tahun Aktif, Status Kolaborasi, Total Lagu, Album & EP, Total Pendengar, Genre Musik)
+                  </code>
+                </div>
+                <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
+                  <span className="text-[11px] font-bold text-amber-400">Tab 3: "Pesanan" (Pesanan / Kolaborasi Masuk):</span>
+                  <code className="text-slate-300 block text-[10px] mt-1 font-mono">
+                    Timestamp | Nama Klien | Nomor WhatsApp | Email | Jenis Layanan | Genre Musik | Estimasi Budget | Deskripsi Proyek | Status Pesanan
+                  </code>
+                </div>
+              </div>
             </li>
             <li>
               Klik menu <strong>Extensions &rarr; Apps Script</strong>.
             </li>
             <li>
-              Hapus kode default dan tempelkan (paste) kode Apps Script berikut:
+              Hapus kode default dan tempelkan (paste) seluruh kode Apps Script di bawah:
             </li>
           </ol>
 

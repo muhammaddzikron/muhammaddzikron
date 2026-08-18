@@ -29,7 +29,7 @@ import {
   fetchOrdersFromGoogleSheet,
   deleteOrderFromLocalAndSheet,
   clearAllOrdersFromLocal,
-  INITIAL_SAMPLE_ORDERS
+  getCachedOrders
 } from '../../services/appsScript';
 import { Order } from '../../types/song';
 
@@ -54,7 +54,7 @@ export const ContactView: React.FC<ContactViewProps> = ({
   const [isSubmitted, setIsSubmitted] = useState(false);
 
   // Admin orders state
-  const [orders, setOrders] = useState<Order[]>(INITIAL_SAMPLE_ORDERS);
+  const [orders, setOrders] = useState<Order[]>(() => getCachedOrders());
   const [isLoadingOrders, setIsLoadingOrders] = useState(false);
   const [ordersLive, setOrdersLive] = useState(false);
   const [viewPublicFormAsAdmin, setViewPublicFormAsAdmin] = useState(false);

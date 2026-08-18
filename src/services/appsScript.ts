@@ -11,32 +11,7 @@ const LOCAL_STORAGE_CACHE_KEY = 'dzikron_cached_songs';
 const LOCAL_STORAGE_ORDERS_CACHE_KEY = 'dzikron_cached_orders';
 const LOCAL_STORAGE_PROFILE_KEY = 'dzikron_cached_profile';
 
-export const INITIAL_SAMPLE_ORDERS: Order[] = [
-  {
-    id: 'ord-1',
-    timestamp: '2026-08-15 14:30:22',
-    name: 'Ahmad Fauzi (PT Harmoni Media)',
-    phone: '081298765432',
-    email: 'fauzi@harmonimedia.co.id',
-    service: 'Jingle Iklan & Brand Anthem',
-    genre: 'Pop Akustik Modern',
-    budget: 'Rp 10.000.000 - Rp 15.000.000',
-    message: 'Membutuhkan jingle korporat durasi 60 detik bernuansa ceria dan inspiratif untuk campaign ramadhan.',
-    status: 'Baru Masuk'
-  },
-  {
-    id: 'ord-2',
-    timestamp: '2026-08-14 09:15:00',
-    name: 'Siti Nurhaliza Putri',
-    phone: '085712348899',
-    email: 'sitinur@gmail.com',
-    service: 'Penciptaan Lagu Custom / Single Baru',
-    genre: 'Pop Religi / Sholawat',
-    budget: 'Rp 5.000.000 - Rp 8.000.000',
-    message: 'Ingin dibuatkan lagu religi untuk kado pernikahan bertema syukur dan keluarga sakinah.',
-    status: 'Sedang Diproses'
-  }
-];
+export const INITIAL_SAMPLE_ORDERS: Order[] = [];
 
 export function getStoredAppsScriptUrl(): string {
   if (typeof window === 'undefined') return DEFAULT_APPS_SCRIPT_URL;
@@ -195,7 +170,7 @@ export async function fetchOrdersFromGoogleSheet(): Promise<{ orders: Order[]; i
   const endpoint = getStoredAppsScriptUrl();
   if (!endpoint) {
     const cached = getCachedOrders();
-    return { orders: cached.length > 0 ? cached : INITIAL_SAMPLE_ORDERS, isLive: false };
+    return { orders: cached, isLive: false };
   }
 
   try {
@@ -215,8 +190,10 @@ export async function fetchOrdersFromGoogleSheet(): Promise<{ orders: Order[]; i
     }
 
     if (rawList.length === 0) {
-      const cached = getCachedOrders();
-      return { orders: cached.length > 0 ? cached : INITIAL_SAMPLE_ORDERS, isLive: true };
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(LOCAL_STORAGE_ORDERS_CACHE_KEY, JSON.stringify([]));
+      }
+      return { orders: [], isLive: true };
     }
 
     const parsedOrders: Order[] = rawList.map((item: any, index: number) => ({
@@ -232,7 +209,7 @@ export async function fetchOrdersFromGoogleSheet(): Promise<{ orders: Order[]; i
       status: item['Status Pesanan'] || item['status'] || 'Baru Masuk'
     }));
 
-    if (typeof window !== 'undefined' && parsedOrders.length > 0) {
+    if (typeof window !== 'undefined') {
       localStorage.setItem(LOCAL_STORAGE_ORDERS_CACHE_KEY, JSON.stringify(parsedOrders));
     }
 
@@ -241,7 +218,7 @@ export async function fetchOrdersFromGoogleSheet(): Promise<{ orders: Order[]; i
     console.warn('Gagal memuat pesanan dari Apps Script:', err.message);
     const cached = getCachedOrders();
     return {
-      orders: cached.length > 0 ? cached : INITIAL_SAMPLE_ORDERS,
+      orders: cached,
       isLive: false,
       error: err.message
     };
@@ -252,7 +229,16 @@ export function getCachedOrders(): Order[] {
   if (typeof window === 'undefined') return [];
   try {
     const raw = localStorage.getItem(LOCAL_STORAGE_ORDERS_CACHE_KEY);
-    return raw ? JSON.parse(raw) : [];
+    if (!raw) return [];
+    const list: Order[] = JSON.parse(raw);
+    // Filter out old dummy sample orders if any lingered in localStorage
+    return list.filter(
+      (o) =>
+        o.id !== 'ord-1' &&
+        o.id !== 'ord-2' &&
+        !String(o.name || '').includes('Ahmad Fauzi') &&
+        !String(o.name || '').includes('Siti Nurhaliza Putri')
+    );
   } catch {
     return [];
   }
@@ -610,16 +596,64 @@ export async function syncAllSongsToGoogleSheet(songs: Song[]): Promise<{ succes
 export const APPS_SCRIPT_CODE_SAMPLE = `/**
  * =========================================================================
  * GOOGLE APPS SCRIPT DATABASE - MUHAMMAD DZIKRON
- * Menampung: Katalog Lagu, Profil Komposer, Video YouTube, dan Pesanan Kolaborasi
+ * Menampung 3 Tab:
+ * 1. Tab "Lagu"     : Katalog Lagu, Google Drive ID, Link YouTube, Durasi, Cover, Lirik
+ * 2. Tab "Profil"   : Identitas, Foto Profil, Bio, dan Statistik Komposer
+ * 3. Tab "Pesanan"  : Pesanan Kolaborasi / Kontak Klien Masuk
  * =========================================================================
  */
+
+// Jalankan fungsi ini sekali di Apps Script Editor jika ingin membuat semua Tab & Kolom secara instan!
+function inisialisasiTabProfilDanLagu() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  
+  // 1. Tab Lagu
+  var sheetLagu = getOrCreateSheet(ss, 'Lagu', [
+    'No', 'Judul Lagu', 'Penyanyi', 'Genre', 'Tahun',
+    'Link Google Drive', 'Cover URL', 'Link YouTube', 'Durasi', 'Lirik', 'Status', 'Urutan'
+  ]);
+  
+  // 2. Tab Profil (Format Baris & Kolom Lengkap)
+  var sheetProfil = getOrCreateSheet(ss, 'Profil', ['Field', 'Value']);
+  if (sheetProfil.getLastRow() <= 1) {
+    sheetProfil.clearContents();
+    sheetProfil.appendRow(['Field', 'Value']);
+    sheetProfil.getRange(1, 1, 1, 2).setFontWeight('bold').setBackground('#e0f2fe');
+    var defaultProfile = [
+      ['Nama', 'Muhammad Dzikron'],
+      ['Tagline', 'Songwriter & Composer'],
+      ['Headline', 'Menenun Jiwa ke dalam Harmoni & Nada'],
+      ['Foto', 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=800&q=80'],
+      ['Biografi', 'Komposer dan penulis lagu berdedikasi menciptakan karya musik pop, religi, dan sinematik dengan kedalaman rasa.'],
+      ['Pengalaman', 'Telah menciptakan lebih dari 80+ karya lagu, jingle korporat, dan aransemen orkestrasi untuk berbagai musisi dan label.'],
+      ['Lokasi', 'Indonesia'],
+      ['Tahun Aktif', 'Aktif Sejak 2016'],
+      ['Status Kolaborasi', 'Terbuka untuk Kolaborasi'],
+      ['Total Lagu', 85],
+      ['Album & EP', 12],
+      ['Total Pendengar', 1500000],
+      ['Genre Musik', 8]
+    ];
+    for (var i = 0; i < defaultProfile.length; i++) {
+      sheetProfil.appendRow(defaultProfile[i]);
+    }
+  }
+  
+  // 3. Tab Pesanan
+  var sheetPesanan = getOrCreateSheet(ss, 'Pesanan', [
+    'Timestamp', 'Nama Klien', 'Nomor WhatsApp', 'Email',
+    'Jenis Layanan', 'Genre Musik', 'Estimasi Budget', 'Deskripsi Proyek', 'Status Pesanan'
+  ]);
+  
+  Logger.log('Semua tab berhasil diinisialisasi!');
+}
 
 function doGet(e) {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var type = (e && e.parameter && e.parameter.type) ? e.parameter.type.toLowerCase() : 'all';
     
-    // 1. Jika meminta data profil komposer
+    // 1. Ambil Profil Komposer
     if (type === 'profile' || type === 'profil') {
       var sheet = ss.getSheetByName('Profil');
       if (!sheet) {
@@ -627,17 +661,48 @@ function doGet(e) {
           .setMimeType(ContentService.MimeType.JSON);
       }
       var data = sheet.getDataRange().getValues();
-      var profile = {};
-      for (var p = 0; p < data.length; p++) {
-        var key = String(data[p][0] || '').trim();
-        var val = data[p][1];
-        if (key) profile[key] = val;
+      if (data.length === 0) {
+        return ContentService.createTextOutput(JSON.stringify({ status: 'empty' }))
+          .setMimeType(ContentService.MimeType.JSON);
       }
+      
+      var profile = {};
+      
+      // Deteksi Format Horizontal (Baris 1 = Kolom Header, Baris 2 = Nilai)
+      if (data.length >= 2 && String(data[0][0]).toLowerCase().indexOf('field') === -1) {
+        var headers = data[0].map(function(h) { return String(h).trim(); });
+        var rowVals = data[1];
+        for (var h = 0; h < headers.length; h++) {
+          var hKey = headers[h].toLowerCase();
+          var val = rowVals[h];
+          if (hKey.indexOf('nama') >= 0) profile.name = val;
+          else if (hKey.indexOf('tagline') >= 0) profile.tagline = val;
+          else if (hKey.indexOf('headline') >= 0) profile.headline = val;
+          else if (hKey.indexOf('foto') >= 0 || hKey.indexOf('photo') >= 0) profile.photoUrl = val;
+          else if (hKey.indexOf('bio') >= 0) profile.bio = val;
+          else if (hKey.indexOf('pengalaman') >= 0 || hKey.indexOf('experience') >= 0) profile.experience = val;
+          else if (hKey.indexOf('lokasi') >= 0 || hKey.indexOf('location') >= 0) profile.location = val;
+          else if (hKey.indexOf('tahun') >= 0 || hKey.indexOf('aktif') >= 0) profile.activeSince = val;
+          else if (hKey.indexOf('kolaborasi') >= 0 || hKey.indexOf('status') >= 0) profile.collaborationStatus = val;
+          else if (hKey.indexOf('lagu') >= 0 || hKey.indexOf('songs') >= 0) profile.statSongs = val;
+          else if (hKey.indexOf('album') >= 0) profile.statAlbums = val;
+          else if (hKey.indexOf('pendengar') >= 0 || hKey.indexOf('listeners') >= 0) profile.statListeners = val;
+          else if (hKey.indexOf('genre') >= 0) profile.statGenres = val;
+        }
+      } else {
+        // Format Vertikal (Kolom A = Field, Kolom B = Value)
+        for (var p = 0; p < data.length; p++) {
+          var key = String(data[p][0] || '').trim();
+          var val = data[p][1];
+          if (key) profile[key] = val;
+        }
+      }
+      
       return ContentService.createTextOutput(JSON.stringify({ status: 'success', profile: profile }))
         .setMimeType(ContentService.MimeType.JSON);
     }
     
-    // 2. Jika meminta data pesanan klien
+    // 2. Ambil Pesanan Masuk
     if (type === 'orders' || type === 'pesanan') {
       var sheet = ss.getSheetByName('Pesanan');
       if (!sheet) return ContentService.createTextOutput(JSON.stringify([])).setMimeType(ContentService.MimeType.JSON);
@@ -656,7 +721,7 @@ function doGet(e) {
       return ContentService.createTextOutput(JSON.stringify(orders)).setMimeType(ContentService.MimeType.JSON);
     }
     
-    // 3. Default: Ambil Data Lagu
+    // 3. Default: Ambil Seluruh Data Katalog Lagu
     var sheet = ss.getSheetByName('Lagu') || ss.getActiveSheet();
     var data = sheet.getDataRange().getValues();
     if (data.length <= 1) {
@@ -702,7 +767,7 @@ function doPost(e) {
       var sheet = getOrCreateSheet(ss, 'Profil', ['Field', 'Value']);
       sheet.clearContents();
       sheet.appendRow(['Field', 'Value']);
-      sheet.getRange(1, 1, 1, 2).setFontWeight('bold').setBackground('#f3f4f6');
+      sheet.getRange(1, 1, 1, 2).setFontWeight('bold').setBackground('#e0f2fe');
       
       var profileEntries = [
         ['Nama', prof.name || 'Muhammad Dzikron'],

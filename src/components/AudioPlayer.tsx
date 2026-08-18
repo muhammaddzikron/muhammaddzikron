@@ -70,22 +70,32 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     if (!currentSong || !audioRef.current) return;
 
     setAudioError(false);
-    const driveInput = currentSong.driveId || currentSong.audioUrl || '';
-    const candList = getGoogleDriveAudioCandidates(driveInput);
     
-    const finalCandidates: string[] = [];
-    candList.forEach((c) => {
-      if (c && !finalCandidates.includes(c)) finalCandidates.push(c);
-    });
+    const directAudio = currentSong.audioUrl?.trim() || '';
+    const driveInput = currentSong.driveId?.trim() || (directAudio.includes('drive.google.com') || directAudio.includes('docs.google.com') ? directAudio : '');
 
-    if (currentSong.audioUrl && !finalCandidates.includes(currentSong.audioUrl)) {
-      finalCandidates.push(currentSong.audioUrl);
+    const finalCandidates: string[] = [];
+
+    // If directAudio is a valid direct link (e.g. mp3/wav/cdn/etc), try it first!
+    if (directAudio && !directAudio.includes('drive.google.com') && !directAudio.includes('docs.google.com')) {
+      finalCandidates.push(directAudio);
+    }
+
+    if (driveInput) {
+      const candList = getGoogleDriveAudioCandidates(driveInput);
+      candList.forEach((c) => {
+        if (c && !finalCandidates.includes(c)) finalCandidates.push(c);
+      });
+    }
+
+    if (directAudio && !finalCandidates.includes(directAudio)) {
+      finalCandidates.push(directAudio);
     }
 
     setCandidates(finalCandidates);
     setCandidateIndex(0);
 
-    const initialSrc = finalCandidates[0] || currentSong.audioUrl || '';
+    const initialSrc = finalCandidates[0] || directAudio || '';
     if (initialSrc) {
       audioRef.current.src = initialSrc;
       audioRef.current.load();
@@ -217,6 +227,20 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
     }
   };
 
+  const handleReloadAndPlay = () => {
+    setAudioError(false);
+    if (audioRef.current) {
+      const nextIdx = (candidateIndex + 1) % (candidates.length || 1);
+      setCandidateIndex(nextIdx);
+      const targetSrc = candidates[nextIdx] || currentSong.audioUrl || '';
+      if (targetSrc) {
+        audioRef.current.src = targetSrc;
+        audioRef.current.load();
+        audioRef.current.play().catch(() => {});
+      }
+    }
+  };
+
   const formatTime = (secs: number) => {
     if (isNaN(secs) || secs < 0) return '00:00';
     const m = Math.floor(secs / 60);
@@ -249,8 +273,40 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
 
       {/* Floating Bottom Spotify-Style Player Bar */}
       <div className="fixed bottom-0 left-0 right-0 z-50 p-2 sm:p-4 pointer-events-none">
-        <div className="max-w-7xl mx-auto glass-panel rounded-3xl p-3 sm:p-4 border border-slate-700/80 shadow-[0_20px_50px_rgba(0,0,0,0.9)] pointer-events-auto backdrop-blur-2xl">
-          {/* Top Mini Progress Bar */}
+        <div className="max-w-7xl mx-auto pointer-events-auto">
+          {/* Audio Issue Notification Banner */}
+          {audioError && (
+            <div className="mb-2 p-3 px-4 rounded-2xl bg-amber-950/90 border border-amber-500/50 text-amber-200 text-xs flex flex-wrap items-center justify-between gap-3 shadow-2xl backdrop-blur-xl animate-in slide-in-from-bottom-2">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+                <span className="truncate sm:whitespace-normal">
+                  Audio terhambat diputar otomatis. Pastikan file Google Drive berstatus <strong>"Siapa saja yang memiliki link"</strong> (Publik).
+                </span>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={handleReloadAndPlay}
+                  className="px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs transition cursor-pointer shadow"
+                >
+                  Coba Format Lain
+                </button>
+                {googleDriveViewLink && (
+                  <a
+                    href={googleDriveViewLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3 py-1.5 rounded-xl bg-slate-900/90 border border-amber-500/40 text-amber-300 hover:text-white text-xs flex items-center gap-1.5 transition"
+                  >
+                    <span>Buka File Drive</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div className="glass-panel rounded-3xl p-3 sm:p-4 border border-slate-700/80 shadow-[0_20px_50px_rgba(0,0,0,0.9)] backdrop-blur-2xl">
+            {/* Top Mini Progress Bar */}
           <div className="relative w-full h-1 bg-slate-800 rounded-full mb-3 cursor-pointer group">
             <div
               className="absolute h-full bg-gradient-to-r from-[#0099ff] to-[#00ffc8] rounded-full group-hover:bg-[#00ffc8]"
@@ -433,6 +489,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
 
         </div>
       </div>
+    </div>
 
       {/* Playlist Queue Drawer Modal */}
       {showQueue && (

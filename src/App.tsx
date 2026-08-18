@@ -33,18 +33,35 @@ import { MobileBottomNav } from './components/webapp/MobileBottomNav';
 import { formatSongDuration } from './utils/duration';
 import { X, Disc3 } from 'lucide-react';
 
+const DUMMY_IDS = [
+  '1A2b3C4d5E6f7G8h9I0j1K2l3M4n5O6p',
+  '2B3c4D5e6F7g8H9i0J1k2L3m4N5o6P7q',
+  '3C4d5E6f7G8h9I0j1K2l3M4n5O6p7Q8r',
+  '4D5e6F7g8H9i0J1k2L3m4N5o6P7q8R9s',
+  '5E6f7G8h9I0j1K2l3M4n5O6p7Q8r9S0t',
+  '6F7g8H9i0J1k2L3m4N5o6P7q8R9s0T1u'
+];
+
+function sanitizeSongItem(s: Song): Song {
+  return {
+    ...s,
+    driveId: DUMMY_IDS.includes(s.driveId || '') ? '' : s.driveId,
+    duration: formatSongDuration(s.duration)
+  };
+}
+
 export default function App() {
   const [songs, setSongs] = useState<Song[]>(() => {
     if (typeof window !== 'undefined') {
       try {
         const stored = localStorage.getItem('dzikron_cached_songs');
         const list: Song[] = stored ? JSON.parse(stored) : INITIAL_SONGS;
-        return list.map((s) => ({ ...s, duration: formatSongDuration(s.duration) }));
+        return list.map(sanitizeSongItem);
       } catch {
-        return INITIAL_SONGS.map((s) => ({ ...s, duration: formatSongDuration(s.duration) }));
+        return INITIAL_SONGS.map(sanitizeSongItem);
       }
     }
-    return INITIAL_SONGS.map((s) => ({ ...s, duration: formatSongDuration(s.duration) }));
+    return INITIAL_SONGS.map(sanitizeSongItem);
   });
 
   // Profile State
@@ -60,14 +77,12 @@ export default function App() {
         if (stored) {
           const list: Song[] = JSON.parse(stored);
           if (list && list.length > 0) {
-            return { ...list[0], duration: formatSongDuration(list[0].duration) };
+            return sanitizeSongItem(list[0]);
           }
         }
       } catch {}
     }
-    return INITIAL_SONGS.length > 0
-      ? { ...INITIAL_SONGS[0], duration: formatSongDuration(INITIAL_SONGS[0].duration) }
-      : null;
+    return INITIAL_SONGS.length > 0 ? sanitizeSongItem(INITIAL_SONGS[0]) : null;
   });
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLiveSheet, setIsLiveSheet] = useState(false);

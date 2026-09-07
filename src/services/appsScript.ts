@@ -301,6 +301,30 @@ export async function clearAllOrdersFromLocal(): Promise<void> {
   }
 }
 
+// Helper to detect if a cell value contains song lyrics
+export function isLikelyLyrics(val: any): boolean {
+  if (!val || typeof val !== 'string') return false;
+  const str = val.trim();
+  if (str.length > 35 && (str.includes('\n') || str.includes(' '))) return true;
+  if (/^(intro|verse|\(verse|\[verse|###|chorus|\(chorus|\[chorus|reff|\(reff|\[reff|bridge|outro|coda)/i.test(str)) return true;
+  return false;
+}
+
+// Helper to detect if a cell value is a Google Sheets ISO date/time string
+export function isLikelyDateOrTime(val: any): boolean {
+  if (!val || typeof val !== 'string') return false;
+  return val.includes('1899-12-') || (val.includes('T') && val.endsWith('Z'));
+}
+
+// Helper to clean markdown headers and extra spaces from lyrics
+export function cleanLyricsText(raw: any): string {
+  if (!raw) return '';
+  let str = String(raw).trim();
+  // Clean markdown "### Verse" -> clean standard verse heading
+  str = str.replace(/^###\s+/gm, '');
+  return str;
+}
+
 export async function fetchSongsFromGoogleSheet(
   customUrl?: string
 ): Promise<{ songs: Song[]; isLive: boolean; error?: string }> {
@@ -346,10 +370,10 @@ export async function fetchSongsFromGoogleSheet(
     const parsedSongs: Song[] = rawSongsArray.map((item: any, index: number) => {
       // Handle both Indonesian & English key variations from Spreadsheet
       const title =
-        item['Judul Lagu'] || item['judul'] || item['title'] || item['Judul'] || 'Lagu Tanpa Judul';
+        item['Judul Lagu'] || item['judul'] || item['title'] || item['Judul'] || `Lagu #${index + 1}`;
       const singer =
         item['Penyanyi'] || item['singer'] || item['Penyanyi/Artis'] || item['Artis'] || 'Muhammad Dzikron';
-      const genre = item['Genre'] || item['genre'] || 'Pop';
+      const genre = item['Genre'] || item['genre'] || 'Pop Indie';
       const year = item['Tahun'] || item['year'] || new Date().getFullYear();
       const rawCover =
         item['Cover'] || item['cover'] || item['Cover URL'] || item['Link Cover'] || item['Foto'] || '';
@@ -369,10 +393,61 @@ export async function fetchSongsFromGoogleSheet(
         item['Audio'] ||
         item['URL'] ||
         '';
-      const duration = item['Durasi'] || item['duration'] || item['Durasi Lagu'] || '03:30';
-      const lyrics = item['Lirik'] || item['lyrics'] || item['Lirik Lagu'] || 'Lirik belum tersedia.';
-      const status = item['Status'] || item['status'] || 'Publish';
-      const order = Number(item['Urutan'] || item['order'] || item['No'] || index + 1);
+
+      // 1. Smart Lyrics Detection (handles column shifts where lyrics may land in 'Urutan' or 'Status' or '')
+      let rawLyrics = '';
+      if (isLikelyLyrics(item['Urutan'])) {
+        rawLyrics = item['Urutan'];
+      } else if (isLikelyLyrics(item['Status'])) {
+        rawLyrics = item['Status'];
+      } else if (isLikelyLyrics(item['Lirik'])) {
+        rawLyrics = item['Lirik'];
+      } else if (isLikelyLyrics(item[''])) {
+        rawLyrics = item[''];
+      } else if (item['Lirik'] && !isLikelyDateOrTime(item['Lirik'])) {
+        rawLyrics = item['Lirik'];
+      } else if (item['lyrics'] || item['Lirik Lagu']) {
+        rawLyrics = item['lyrics'] || item['Lirik Lagu'];
+      }
+
+      // If lyrics still empty, match with INITIAL_SONGS by title if available
+      if (!rawLyrics || rawLyrics.length < 10) {
+        const matchedInitial = INITIAL_SONGS.find(
+          (s) => s.title.toLowerCase().trim() === String(title).toLowerCase().trim()
+        );
+        if (matchedInitial && matchedInitial.lyrics) {
+          rawLyrics = matchedInitial.lyrics;
+        }
+      }
+
+      const lyrics = cleanLyricsText(rawLyrics);
+
+      // 2. Smart Duration Detection (handles case where Google Sheets duration shifted to 'Lirik' or 'Durasi')
+      let rawDuration = item['Durasi'] || item['duration'] || item['Durasi Lagu'] || '';
+      if (isLikelyDateOrTime(item['Lirik'])) {
+        rawDuration = item['Lirik'];
+      }
+      const duration = formatSongDuration(rawDuration);
+
+      // 3. Strict Status Sanitization (status must NEVER contain lyrics, defaults to 'Publish')
+      let status = 'Publish';
+      const rawStatusStr = String(item['Status'] || '').trim().toLowerCase();
+      if (!isLikelyLyrics(item['Status'])) {
+        if (rawStatusStr === 'draft' || rawStatusStr === 'hidden') {
+          status = 'Draft';
+        }
+      }
+
+      // 4. Smart Order Detection
+      let order = index + 1;
+      if (item['Urutan'] && !isLikelyLyrics(item['Urutan']) && !isNaN(Number(item['Urutan']))) {
+        order = Number(item['Urutan']);
+      } else if (item[''] && !isNaN(Number(item['']))) {
+        order = Number(item['']);
+      } else if (item['No'] && !isNaN(Number(item['No']))) {
+        order = Number(item['No']);
+      }
+
       const rawYoutube =
         item['Link YouTube'] ||
         item['Link Youtube'] ||
@@ -389,28 +464,28 @@ export async function fetchSongsFromGoogleSheet(
       // Construct working streaming URL
       const audioStream = driveId
         ? getGoogleDriveAudioUrl(driveId)
-        : (item['audioUrl'] || INITIAL_SONGS[index % INITIAL_SONGS.length].audioUrl);
+        : (item['audioUrl'] || (INITIAL_SONGS[index % INITIAL_SONGS.length]?.audioUrl || ''));
       const coverImage = rawCover
         ? getGoogleDriveImageUrl(rawCover)
-        : INITIAL_SONGS[index % INITIAL_SONGS.length].cover;
+        : (INITIAL_SONGS[index % INITIAL_SONGS.length]?.cover || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=800&q=80');
 
       return {
-        id: `gsheet-${index + 1}-${driveId || index}`,
+        id: `gsheet-${index + 1}-${driveId ? driveId.substring(0, 15) : index}`,
         no: Number(item['No'] || index + 1),
-        title: String(title),
-        singer: String(singer),
-        genre: String(genre),
+        title: String(title).trim(),
+        singer: String(singer).trim(),
+        genre: String(genre).trim(),
         year: year,
         cover: coverImage,
-        driveId: String(driveId),
-        duration: formatSongDuration(duration),
-        lyrics: String(lyrics),
-        status: String(status),
+        driveId: String(driveId).trim(),
+        duration: duration,
+        lyrics: lyrics,
+        status: status,
         order: order,
         audioUrl: audioStream,
         youtubeUrl: String(rawYoutube).trim()
       };
-    }).filter((s) => s.status.toLowerCase() !== 'draft' && s.status.toLowerCase() !== 'hidden');
+    }).filter((s) => s.status !== 'Draft');
 
     parsedSongs.sort((a, b) => a.order - b.order);
 
@@ -482,7 +557,24 @@ function getCachedSongs(): Song[] {
   if (typeof window === 'undefined') return [];
   try {
     const raw = localStorage.getItem(LOCAL_STORAGE_CACHE_KEY);
-    return raw ? JSON.parse(raw) : [];
+    if (!raw) return [];
+    const list: Song[] = JSON.parse(raw);
+    // Purge cache if it contains old dummy songs
+    const hasDummy = list.some(
+      (s) =>
+        s.title === 'Cinta Dalam Doa' ||
+        s.title === 'Melodi Sunyi' ||
+        s.title === 'Langkah Kemenangan' ||
+        s.title === 'Cahaya Ibu' ||
+        s.title === 'Harmoni Nusantara' ||
+        s.id === 'song-1' ||
+        s.id === 'song-2'
+    );
+    if (hasDummy) {
+      localStorage.removeItem(LOCAL_STORAGE_CACHE_KEY);
+      return [];
+    }
+    return list;
   } catch {
     return [];
   }

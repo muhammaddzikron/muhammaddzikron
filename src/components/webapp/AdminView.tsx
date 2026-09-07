@@ -238,7 +238,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
       youtubeUrl: song.youtubeUrl || '',
       duration: song.duration || '03:30',
       lyrics: song.lyrics || '',
-      status: song.status || 'Publish',
+      status: song.status === 'Draft' ? 'Draft' : 'Publish',
       order: song.order || 1
     });
     setActiveSubTab('add');
@@ -565,14 +565,14 @@ export const AdminView: React.FC<AdminViewProps> = ({
                     <td className="py-3.5 px-4">
                       <button
                         onClick={() => handleToggleStatus(song.id)}
-                        className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 transition ${
-                          song.status === 'Publish'
-                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                            : 'bg-slate-800 text-slate-400 border border-slate-700'
+                        className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 transition cursor-pointer ${
+                          song.status === 'Draft'
+                            ? 'bg-slate-800 text-slate-400 border border-slate-700'
+                            : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
                         }`}
                       >
-                        {song.status === 'Publish' ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
-                        <span>{song.status || 'Publish'}</span>
+                        {song.status === 'Draft' ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                        <span>{song.status === 'Draft' ? 'Draft' : 'Publish'}</span>
                       </button>
                     </td>
                     <td className="py-3.5 px-4 text-right">

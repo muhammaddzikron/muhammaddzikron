@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Song } from '../../types/song';
 import { getYouTubeEmbedUrl, getYouTubeWatchUrl } from '../../utils/youtube';
+import { FormattedLyrics } from '../FormattedLyrics';
 import {
   FileText,
   Music,
@@ -17,7 +18,9 @@ import {
   Share2,
   Youtube,
   Tv,
-  ExternalLink
+  ExternalLink,
+  Download,
+  Search
 } from 'lucide-react';
 import { AudioVisualizer } from '../AudioVisualizer';
 
@@ -43,14 +46,16 @@ export const LyricsView: React.FC<LyricsViewProps> = ({
   const [fontSize, setFontSize] = useState<'sm' | 'base' | 'lg' | 'xl'>('base');
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<'lyrics' | 'video'>('lyrics');
+  const [selectedSongId, setSelectedSongId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const activeSong = currentSong || songs[0] || null;
+  const activeSong = (selectedSongId ? songs.find((s) => s.id === selectedSongId) : null) || currentSong || songs[0] || null;
 
   if (!activeSong) {
     return (
       <div className="py-20 text-center text-slate-400">
         <Music className="w-12 h-12 mx-auto mb-3 text-slate-600" />
-        <p>Belum ada lagu yang dipilih.</p>
+        <p>Belum ada lagu yang tersedia.</p>
       </div>
     );
   }
@@ -65,12 +70,33 @@ export const LyricsView: React.FC<LyricsViewProps> = ({
     setTimeout(() => setCopied(false), 2500);
   };
 
+  const handleDownloadLyrics = () => {
+    if (!activeSong.lyrics) return;
+    const content = `Judul: ${activeSong.title}\nPencipta: ${activeSong.singer}\nGenre: ${activeSong.genre} (${activeSong.year})\n\n=========================================\nLIRIK LAGU:\n=========================================\n\n${activeSong.lyrics}\n\n© Muhammad Dzikron. Hak Cipta Dilindungi Undang-Undang.`;
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Lirik_${activeSong.title.replace(/\s+/g, '_')}_Muhammad_Dzikron.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   const fontClasses = {
     sm: 'text-xs sm:text-sm leading-relaxed',
     base: 'text-sm sm:text-base leading-relaxed',
     lg: 'text-base sm:text-lg leading-loose',
     xl: 'text-lg sm:text-xl leading-loose font-medium'
   }[fontSize];
+
+  const filteredSongs = songs.filter(
+    (s) =>
+      s.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      s.singer.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      s.genre.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <div className="space-y-6 pb-16 animate-in fade-in duration-300">
@@ -79,7 +105,11 @@ export const LyricsView: React.FC<LyricsViewProps> = ({
       <div className="p-6 rounded-3xl bg-gradient-to-r from-slate-900/90 via-slate-900/60 to-[#031c22] border border-slate-800/80 shadow-2xl flex flex-col md:flex-row md:items-center justify-between gap-6">
         
         <div className="flex items-center gap-4">
-          <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden border-2 border-slate-700/80 shrink-0 shadow-lg group cursor-pointer" onClick={onTogglePlayPause}>
+          <div
+            className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden border-2 border-slate-700/80 shrink-0 shadow-lg group cursor-pointer"
+            onClick={() => onPlaySong(activeSong)}
+            title="Klik untuk memutar lagu ini"
+          >
             <img
               src={activeSong.cover}
               alt={activeSong.title}
@@ -156,9 +186,19 @@ export const LyricsView: React.FC<LyricsViewProps> = ({
           <button
             onClick={handleCopyLyrics}
             className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 border border-slate-700 transition cursor-pointer"
+            title="Salin lirik ke clipboard"
           >
             {copied ? <Check className="w-3.5 h-3.5 text-[#00ffc8]" /> : <Copy className="w-3.5 h-3.5" />}
-            <span>{copied ? 'Lirik Disalin!' : 'Salin Lirik'}</span>
+            <span>{copied ? 'Tersalin!' : 'Salin Lirik'}</span>
+          </button>
+
+          {/* Download Text Button */}
+          <button
+            onClick={handleDownloadLyrics}
+            className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition cursor-pointer"
+            title="Unduh Lirik (.txt)"
+          >
+            <Download className="w-3.5 h-3.5" />
           </button>
 
           {/* Font Size Adjusters */}
@@ -201,48 +241,86 @@ export const LyricsView: React.FC<LyricsViewProps> = ({
         
         {/* Left Column: Playlist Switcher (4 cols) */}
         <div className="lg:col-span-4 space-y-3">
-          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-400">
-            <ListMusic className="w-4 h-4 text-[#00ffc8]" />
-            <span>Pilih Lagu Lain</span>
+          <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest text-slate-400">
+            <div className="flex items-center gap-2">
+              <ListMusic className="w-4 h-4 text-[#00ffc8]" />
+              <span>Daftar Karya ({songs.length})</span>
+            </div>
+          </div>
+
+          {/* Search box */}
+          <div className="relative">
+            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+            <input
+              type="text"
+              placeholder="Cari lagu / genre..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-8 pr-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-[#00ffc8]"
+            />
           </div>
 
           <div className="rounded-3xl border border-slate-800 bg-slate-900/70 divide-y divide-slate-800/60 overflow-hidden max-h-[550px] overflow-y-auto">
-            {songs.map((song) => {
-              const isSelected = activeSong.id === song.id;
-              const hasVideo = Boolean(getYouTubeEmbedUrl(song.youtubeUrl));
-              return (
-                <div
-                  key={song.id}
-                  onClick={() => onPlaySong(song)}
-                  className={`flex items-center justify-between p-3 hover:bg-slate-800/50 transition cursor-pointer ${
-                    isSelected ? 'bg-[#00ffc8]/10 border-l-3 border-[#00ffc8]' : ''
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <img
-                      src={song.cover}
-                      alt={song.title}
-                      className="w-9 h-9 rounded-lg object-cover bg-slate-800 shrink-0"
-                    />
-                    <div className="min-w-0">
-                      <div className={`text-xs font-bold truncate flex items-center gap-1.5 ${isSelected ? 'text-[#00ffc8]' : 'text-white'}`}>
-                        <span>{song.title}</span>
-                        {hasVideo && (
-                          <Youtube className="w-3 h-3 text-red-500 shrink-0 inline" />
-                        )}
+            {filteredSongs.length === 0 ? (
+              <div className="p-6 text-center text-xs text-slate-400">Tidak ada lagu yang cocok.</div>
+            ) : (
+              filteredSongs.map((song) => {
+                const isSelected = activeSong.id === song.id;
+                const isCurrentPlaying = currentSong?.id === song.id && isPlaying;
+                const hasVideo = Boolean(getYouTubeEmbedUrl(song.youtubeUrl));
+                return (
+                  <div
+                    key={song.id}
+                    onClick={() => setSelectedSongId(song.id)}
+                    className={`flex items-center justify-between p-3 hover:bg-slate-800/50 transition cursor-pointer ${
+                      isSelected ? 'bg-[#00ffc8]/10 border-l-3 border-[#00ffc8]' : ''
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="relative w-9 h-9 rounded-lg overflow-hidden bg-slate-800 shrink-0 group/play">
+                        <img
+                          src={song.cover}
+                          alt={song.title}
+                          className="w-full h-full object-cover"
+                        />
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onPlaySong(song);
+                          }}
+                          className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover/play:opacity-100 transition"
+                          title="Putar audio"
+                        >
+                          {isCurrentPlaying ? (
+                            <Pause className="w-3.5 h-3.5 text-[#00ffc8]" />
+                          ) : (
+                            <Play className="w-3.5 h-3.5 text-[#00ffc8] fill-current ml-0.5" />
+                          )}
+                        </button>
                       </div>
-                      <div className="text-[10px] text-slate-400 truncate">
-                        {song.singer}
+
+                      <div className="min-w-0">
+                        <div className={`text-xs font-bold truncate flex items-center gap-1.5 ${isSelected ? 'text-[#00ffc8]' : 'text-white'}`}>
+                          <span>{song.title}</span>
+                          {hasVideo && (
+                            <Youtube className="w-3 h-3 text-red-500 shrink-0 inline" />
+                          )}
+                        </div>
+                        <div className="text-[10px] text-slate-400 truncate">
+                          {song.singer} • {song.genre}
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <span className="text-[10px] font-mono text-slate-400 shrink-0">
-                    {song.duration}
-                  </span>
-                </div>
-              );
-            })}
+                    <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                      <span className="text-[10px] font-mono text-slate-400">
+                        {song.duration}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
 
@@ -294,17 +372,8 @@ export const LyricsView: React.FC<LyricsViewProps> = ({
                 </div>
               </div>
             ) : (
-              <div className="relative z-10 space-y-4">
-                {activeSong.lyrics ? (
-                  <div className={`${fontClasses} font-serif whitespace-pre-line text-slate-200 tracking-wide select-text`}>
-                    {activeSong.lyrics}
-                  </div>
-                ) : (
-                  <div className="py-12 text-center text-slate-400">
-                    <p>Lirik belum ditambahkan untuk lagu ini.</p>
-                    <p className="text-xs mt-1 text-slate-400">Gunakan Dashboard Admin CMS untuk mengisi lirik.</p>
-                  </div>
-                )}
+              <div className="relative z-10">
+                <FormattedLyrics lyrics={activeSong.lyrics} fontSizeClass={fontClasses} />
               </div>
             )}
 
@@ -331,3 +400,4 @@ export const LyricsView: React.FC<LyricsViewProps> = ({
     </div>
   );
 };
+

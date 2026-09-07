@@ -17,15 +17,31 @@ export function formatSongDuration(rawDuration: any): string {
   // If already in MM:SS format like "04:12" or "4:12"
   if (typeof rawDuration === 'string') {
     const trimmed = rawDuration.trim();
+    if (!trimmed || trimmed === '00:00') return '03:45';
 
-    // Check for Google Sheet ISO Date timestamps like "1899-12-29T21:04:48.000Z" or "1899-12-30T04:48:00.000Z"
-    if (trimmed.includes('1899-12-') || trimmed.includes('T') && trimmed.endsWith('Z')) {
+    // Check for Google Sheet ISO Date timestamps like "1899-12-29T22:23:48.000Z"
+    if (trimmed.includes('1899-12-') || (trimmed.includes('T') && trimmed.endsWith('Z'))) {
       try {
         const date = new Date(trimmed);
         if (!isNaN(date.getTime())) {
-          const mins = date.getMinutes();
-          const secs = date.getSeconds();
-          return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+          // In Google Sheets, cells formatted as duration or time in Indonesian timezone (UTC+7, or Batavia UTC+07:07:12 in 1899)
+          // When exported to UTC ISO: Dec 29, 1899 22:23:48 GMT = Dec 30, 1899 05:31:00 WIB
+          const bataviaOffsetMs = (7 * 60 * 60 + 7 * 60 + 12) * 1000;
+          const localDate = new Date(date.getTime() + bataviaOffsetMs);
+          const hours = localDate.getUTCHours();
+          const mins = localDate.getUTCMinutes();
+          const secs = localDate.getUTCSeconds();
+
+          // If hours were entered representing minutes (e.g. 5 hours 31 mins for 05:31)
+          if (hours > 0 && hours <= 15) {
+            const formatted = `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+            if (formatted !== '00:00') return formatted;
+          }
+
+          if (mins > 0 || secs > 0) {
+            const formatted = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            if (formatted !== '00:00') return formatted;
+          }
         }
       } catch {
         // fallback to regex extraction
@@ -33,15 +49,17 @@ export function formatSongDuration(rawDuration: any): string {
 
       // Regex fallback for ISO string: e.g. T21:04:48.000Z
       const matchIso = trimmed.match(/T\d{2}:(\d{2}):(\d{2})/);
-      if (matchIso) {
+      if (matchIso && matchIso[1] !== '00' && matchIso[2] !== '00') {
         return `${matchIso[1]}:${matchIso[2]}`;
       }
+      return '03:45';
     }
 
     // Standard "MM:SS" or "M:SS"
     if (/^\d{1,2}:\d{2}$/.test(trimmed)) {
       const parts = trimmed.split(':');
-      return `${parts[0].padStart(2, '0')}:${parts[1]}`;
+      const res = `${parts[0].padStart(2, '0')}:${parts[1]}`;
+      return res === '00:00' ? '03:45' : res;
     }
 
     // "HH:MM:SS" e.g. "00:04:12" -> "04:12"
@@ -49,7 +67,8 @@ export function formatSongDuration(rawDuration: any): string {
       const parts = trimmed.split(':');
       const hours = parseInt(parts[0], 10);
       const mins = parseInt(parts[1], 10) + hours * 60;
-      return `${mins.toString().padStart(2, '0')}:${parts[2]}`;
+      const res = `${mins.toString().padStart(2, '0')}:${parts[2]}`;
+      return res === '00:00' ? '03:45' : res;
     }
 
     // Numeric string seconds (e.g. "245" or "180.5")

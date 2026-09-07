@@ -46,7 +46,8 @@ function sanitizeSongItem(s: Song): Song {
   return {
     ...s,
     driveId: DUMMY_IDS.includes(s.driveId || '') ? '' : s.driveId,
-    duration: formatSongDuration(s.duration)
+    duration: formatSongDuration(s.duration),
+    status: s.status === 'Draft' ? 'Draft' : 'Publish'
   };
 }
 
@@ -55,11 +56,24 @@ export default function App() {
     if (typeof window !== 'undefined') {
       try {
         const stored = localStorage.getItem('dzikron_cached_songs');
-        const list: Song[] = stored ? JSON.parse(stored) : INITIAL_SONGS;
-        return list.map(sanitizeSongItem);
-      } catch {
-        return INITIAL_SONGS.map(sanitizeSongItem);
-      }
+        if (stored) {
+          const list: Song[] = JSON.parse(stored);
+          const hasOldDummy = list.some(
+            (s) =>
+              s.title === 'Cinta Dalam Doa' ||
+              s.title === 'Melodi Sunyi' ||
+              s.title === 'Langkah Kemenangan' ||
+              s.title === 'Cahaya Ibu' ||
+              s.id === 'song-1' ||
+              s.id === 'song-2'
+          );
+          if (!hasOldDummy && list.length > 0) {
+            return list.map(sanitizeSongItem);
+          } else {
+            localStorage.removeItem('dzikron_cached_songs');
+          }
+        }
+      } catch {}
     }
     return INITIAL_SONGS.map(sanitizeSongItem);
   });
@@ -76,7 +90,10 @@ export default function App() {
         const stored = localStorage.getItem('dzikron_cached_songs');
         if (stored) {
           const list: Song[] = JSON.parse(stored);
-          if (list && list.length > 0) {
+          const hasOldDummy = list.some(
+            (s) => s.title === 'Cinta Dalam Doa' || s.title === 'Melodi Sunyi' || s.id === 'song-1'
+          );
+          if (!hasOldDummy && list.length > 0) {
             return sanitizeSongItem(list[0]);
           }
         }
@@ -107,12 +124,14 @@ export default function App() {
     if (typeof window !== 'undefined') {
       try {
         const stored = localStorage.getItem('dzikron_favorite_songs');
-        return stored ? JSON.parse(stored) : ['song-1', 'song-2'];
-      } catch {
-        return ['song-1', 'song-2'];
-      }
+        if (stored) {
+          const list: string[] = JSON.parse(stored);
+          const filtered = list.filter((id) => !['song-1', 'song-2', 'song-3', 'song-4', 'song-5', 'song-6'].includes(id));
+          if (filtered.length > 0) return filtered;
+        }
+      } catch {}
     }
-    return ['song-1', 'song-2'];
+    return ['song-real-1', 'song-real-2'];
   });
 
   const [selectedDetailSong, setSelectedDetailSong] = useState<Song | null>(null);

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Song } from '../types/song';
 import { formatSongDuration } from '../utils/duration';
 import { getYouTubeEmbedUrl, getYouTubeWatchUrl } from '../utils/youtube';
+import { FormattedLyrics } from './FormattedLyrics';
 import {
   X,
   Play,
@@ -244,8 +245,8 @@ export const SongDetailModal: React.FC<SongDetailModalProps> = ({
                   </button>
                 </div>
 
-                <div className="max-h-60 overflow-y-auto pr-2 text-xs sm:text-sm text-slate-300 whitespace-pre-line leading-relaxed font-sans">
-                  {song.lyrics || 'Lirik belum tersedia untuk lagu ini.'}
+                <div className="max-h-60 overflow-y-auto pr-2 text-xs sm:text-sm text-slate-300 font-sans">
+                  <FormattedLyrics lyrics={song.lyrics} fontSizeClass="text-xs sm:text-sm leading-relaxed" />
                 </div>
               </div>
 

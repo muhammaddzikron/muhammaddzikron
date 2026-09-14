@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Song } from '../types/song';
 import { formatSongDuration } from '../utils/duration';
 import { getYouTubeEmbedUrl, getYouTubeWatchUrl } from '../utils/youtube';
@@ -7,6 +7,8 @@ import {
   X,
   Play,
   Pause,
+  SkipBack,
+  SkipForward,
   Heart,
   Share2,
   Copy,
@@ -29,6 +31,10 @@ interface SongDetailModalProps {
   onPlayPause: () => void;
   onToggleFavorite: (songId: string) => void;
   isFavorite: boolean;
+  onNext?: () => void;
+  onPrev?: () => void;
+  currentIndex?: number;
+  totalSongs?: number;
 }
 
 export const SongDetailModal: React.FC<SongDetailModalProps> = ({
@@ -37,10 +43,19 @@ export const SongDetailModal: React.FC<SongDetailModalProps> = ({
   isPlaying,
   onPlayPause,
   onToggleFavorite,
-  isFavorite
+  isFavorite,
+  onNext,
+  onPrev,
+  currentIndex,
+  totalSongs
 }) => {
   const [copied, setCopied] = useState(false);
   const [lyricsCopied, setLyricsCopied] = useState(false);
+
+  useEffect(() => {
+    setCopied(false);
+    setLyricsCopied(false);
+  }, [song?.id]);
 
   if (!song) return null;
 
@@ -124,23 +139,44 @@ export const SongDetailModal: React.FC<SongDetailModalProps> = ({
               </div>
             </div>
 
-            {/* Play Button & Favorites */}
-            <div className="flex items-center gap-4 mt-2 w-full justify-center">
+            {/* Play Button, Previous/Next & Favorites */}
+            <div className="flex items-center gap-2.5 sm:gap-3 mt-2 w-full justify-center">
+              {onPrev && (
+                <button
+                  onClick={onPrev}
+                  className="p-3 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-[#00ffc8] border border-slate-700 transition cursor-pointer shadow-md"
+                  title="Lagu Sebelumnya"
+                >
+                  <SkipBack className="w-4 h-4" />
+                </button>
+              )}
+
               <button
                 onClick={onPlayPause}
-                className="px-6 py-3 rounded-full bg-gradient-to-r from-[#0099ff] to-[#00ffc8] text-slate-950 font-bold text-sm flex items-center gap-2 shadow-[0_0_20px_rgba(0,255,200,0.4)] hover:scale-105 transition cursor-pointer"
+                className="px-5 sm:px-6 py-3 rounded-full bg-gradient-to-r from-[#0099ff] to-[#00ffc8] text-slate-950 font-bold text-xs sm:text-sm flex items-center gap-2 shadow-[0_0_20px_rgba(0,255,200,0.4)] hover:scale-105 transition cursor-pointer"
               >
                 {isPlaying ? <Pause className="w-4 h-4 fill-slate-950" /> : <Play className="w-4 h-4 fill-slate-950" />}
                 <span>{isPlaying ? 'Jeda Lagu' : 'Putar Sekarang'}</span>
               </button>
 
+              {onNext && (
+                <button
+                  onClick={onNext}
+                  className="p-3 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-[#00ffc8] border border-slate-700 transition cursor-pointer shadow-md"
+                  title="Lagu Berikutnya"
+                >
+                  <SkipForward className="w-4 h-4" />
+                </button>
+              )}
+
               <button
                 onClick={() => onToggleFavorite(song.id)}
-                className={`p-3 rounded-full border transition cursor-pointer ${
+                className={`p-3 rounded-full border transition cursor-pointer shadow-md ${
                   isFavorite
                     ? 'bg-rose-500/20 border-rose-500 text-rose-500'
                     : 'bg-slate-800 border-slate-700 text-slate-300 hover:text-white'
                 }`}
+                title={isFavorite ? 'Hapus dari Favorit' : 'Tambah ke Favorit'}
               >
                 <Heart className={`w-5 h-5 ${isFavorite ? 'fill-rose-500' : ''}`} />
               </button>
@@ -178,6 +214,11 @@ export const SongDetailModal: React.FC<SongDetailModalProps> = ({
                 {youtubeEmbedUrl && (
                   <span className="px-3 py-1 rounded-full text-xs bg-red-600/20 text-red-400 border border-red-500/30 flex items-center gap-1.5 font-medium">
                     <Youtube className="w-3.5 h-3.5 text-red-500" /> Video Siap Putar
+                  </span>
+                )}
+                {typeof currentIndex === 'number' && typeof totalSongs === 'number' && totalSongs > 0 && (
+                  <span className="px-3 py-1 rounded-full text-xs font-mono bg-slate-800/90 text-slate-300 border border-slate-700">
+                    Track {currentIndex + 1}/{totalSongs}
                   </span>
                 )}
               </div>

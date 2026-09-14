@@ -237,45 +237,55 @@ export default function App() {
       setIsPlaying(!isPlaying);
     } else {
       setCurrentSong(song);
+      if (selectedDetailSong) {
+        setSelectedDetailSong(song);
+      }
       setIsPlaying(true);
     }
   };
 
   const handleNextSong = () => {
     if (songs.length === 0) return;
-    if (!currentSong) {
-      setCurrentSong(songs[0]);
-      setIsPlaying(true);
-      return;
-    }
+    const baseSong = currentSong || selectedDetailSong || songs[0];
     const idx = songs.findIndex(
       (s) =>
-        s.id === currentSong.id ||
-        (s.title.toLowerCase().trim() === currentSong.title.toLowerCase().trim() &&
-          s.singer.toLowerCase().trim() === currentSong.singer.toLowerCase().trim())
+        s.id === baseSong.id ||
+        (s.title.toLowerCase().trim() === baseSong.title.toLowerCase().trim() &&
+          s.singer.toLowerCase().trim() === baseSong.singer.toLowerCase().trim())
     );
     const nextIndex = idx === -1 ? 0 : (idx + 1) % songs.length;
-    setCurrentSong(songs[nextIndex]);
+    const nextSong = songs[nextIndex];
+    setCurrentSong(nextSong);
+    if (selectedDetailSong) {
+      setSelectedDetailSong(nextSong);
+    }
     setIsPlaying(true);
   };
 
   const handlePrevSong = () => {
     if (songs.length === 0) return;
-    if (!currentSong) {
-      setCurrentSong(songs[0]);
-      setIsPlaying(true);
-      return;
-    }
+    const baseSong = currentSong || selectedDetailSong || songs[0];
     const idx = songs.findIndex(
       (s) =>
-        s.id === currentSong.id ||
-        (s.title.toLowerCase().trim() === currentSong.title.toLowerCase().trim() &&
-          s.singer.toLowerCase().trim() === currentSong.singer.toLowerCase().trim())
+        s.id === baseSong.id ||
+        (s.title.toLowerCase().trim() === baseSong.title.toLowerCase().trim() &&
+          s.singer.toLowerCase().trim() === baseSong.singer.toLowerCase().trim())
     );
     const prevIndex = idx === -1 ? 0 : (idx - 1 + songs.length) % songs.length;
-    setCurrentSong(songs[prevIndex]);
+    const prevSong = songs[prevIndex];
+    setCurrentSong(prevSong);
+    if (selectedDetailSong) {
+      setSelectedDetailSong(prevSong);
+    }
     setIsPlaying(true);
   };
+
+  // Automatically update preview modal if it is currently open when song changes
+  useEffect(() => {
+    if (selectedDetailSong && currentSong && selectedDetailSong.id !== currentSong.id) {
+      setSelectedDetailSong(currentSong);
+    }
+  }, [currentSong]);
 
   const handleTestAndSaveAppsScript = async (url: string) => {
     setStoredAppsScriptUrl(url);
@@ -511,6 +521,9 @@ export default function App() {
         onPrev={handlePrevSong}
         onSelectSong={(s) => {
           setCurrentSong(s);
+          if (selectedDetailSong) {
+            setSelectedDetailSong(s);
+          }
           setIsPlaying(true);
         }}
         onOpenDetails={(s) => setSelectedDetailSong(s)}
@@ -543,6 +556,10 @@ export default function App() {
           }}
           onToggleFavorite={toggleFavorite}
           isFavorite={favorites.includes(selectedDetailSong.id)}
+          onNext={handleNextSong}
+          onPrev={handlePrevSong}
+          currentIndex={songs.findIndex((s) => s.id === selectedDetailSong.id)}
+          totalSongs={songs.length}
         />
       )}
 

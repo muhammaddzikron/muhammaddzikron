@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Song } from '../../types/song';
 import { getYouTubeEmbedUrl, getYouTubeWatchUrl } from '../../utils/youtube';
 import { FormattedLyrics } from '../FormattedLyrics';
@@ -48,6 +48,13 @@ export const LyricsView: React.FC<LyricsViewProps> = ({
   const [activeTab, setActiveTab] = useState<'lyrics' | 'video'>('lyrics');
   const [selectedSongId, setSelectedSongId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Automatically update active lyric song when current playing song changes
+  useEffect(() => {
+    if (currentSong) {
+      setSelectedSongId(currentSong.id);
+    }
+  }, [currentSong?.id]);
 
   const activeSong = (selectedSongId ? songs.find((s) => s.id === selectedSongId) : null) || currentSong || songs[0] || null;
 

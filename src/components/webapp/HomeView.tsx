@@ -45,7 +45,8 @@ export const HomeView: React.FC<HomeViewProps> = ({
   onToggleFavorite,
   favorites
 }) => {
-  const featuredSong = songs[0] || null;
+  // Featured song dynamically follows currently playing/active song, falling back to songs[0]
+  const featuredSong = currentSong || songs[0] || null;
   const popularSongs = songs.slice(0, 5);
 
   const genres = Array.from(new Set(songs.map((s) => s.genre)));
@@ -66,7 +67,17 @@ export const HomeView: React.FC<HomeViewProps> = ({
             <div className="lg:col-span-7 space-y-4">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#00ffc8]/15 border border-[#00ffc8]/30 text-[#00ffc8] text-xs font-bold uppercase tracking-wider">
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>Featured Masterpiece Release</span>
+                <span>
+                  {isPlaying && currentSong?.id === featuredSong.id
+                    ? 'Now Playing • Featured Masterpiece'
+                    : 'Featured Masterpiece Release'}
+                </span>
+                {isPlaying && currentSong?.id === featuredSong.id && (
+                  <span className="flex h-2 w-2 relative">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00ffc8] opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-[#00ffc8]"></span>
+                  </span>
+                )}
               </div>
 
               <h1 className="text-3xl sm:text-5xl font-serif font-extrabold text-white tracking-tight leading-tight">

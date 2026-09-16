@@ -30,8 +30,9 @@ import { ContactView } from './components/webapp/ContactView';
 import { AdminView } from './components/webapp/AdminView';
 import { ShortcutsModal } from './components/webapp/ShortcutsModal';
 import { MobileBottomNav } from './components/webapp/MobileBottomNav';
+import { VisitorStatsWidget } from './components/webapp/VisitorStatsWidget';
 import { formatSongDuration } from './utils/duration';
-import { X, Disc3 } from 'lucide-react';
+import { X, Disc3, Heart, FileText, Sparkles } from 'lucide-react';
 
 const DUMMY_IDS = [
   '1A2b3C4d5E6f7G8h9I0j1K2l3M4n5O6p',
@@ -334,7 +335,7 @@ export default function App() {
           >
             <div
               onClick={(e) => e.stopPropagation()}
-              className="w-72 h-full bg-[#080d17] border-r border-slate-800 p-5 flex flex-col justify-between"
+              className="w-72 h-full bg-[#080d17] border-r border-slate-800 p-5 flex flex-col justify-between overflow-y-auto"
             >
               <div className="space-y-6">
                 <div className="flex items-center justify-between pb-4 border-b border-slate-800">
@@ -375,7 +376,7 @@ export default function App() {
                         setActiveTab(item.id as WebAppTab);
                         setMobileDrawerOpen(false);
                       }}
-                      className={`w-full text-left px-4 py-3 rounded-xl transition ${
+                      className={`w-full text-left px-4 py-2.5 rounded-xl transition cursor-pointer text-xs font-semibold ${
                         activeTab === item.id
                           ? 'bg-[#00ffc8] text-slate-950 font-bold'
                           : 'text-slate-300 hover:bg-slate-800'
@@ -385,6 +386,52 @@ export default function App() {
                     </button>
                   ))}
                 </nav>
+
+                {/* Koleksi Saya (Mobile) */}
+                <div className="pt-2 border-t border-slate-800/80">
+                  <div className="px-2 mb-2 text-[10px] font-bold uppercase tracking-widest text-slate-400 flex items-center justify-between">
+                    <span>Koleksi Saya</span>
+                    <Sparkles className="w-3 h-3 text-[#00ffc8]" />
+                  </div>
+                  <div className="space-y-1">
+                    <button
+                      onClick={() => {
+                        setActiveTab('library');
+                        setMobileDrawerOpen(false);
+                      }}
+                      className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-slate-300 hover:bg-slate-800/50"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Heart className="w-3.5 h-3.5 text-rose-400 fill-rose-500/30" />
+                        <span>Lagu Favorit</span>
+                      </div>
+                      <span className="px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 text-[10px] font-bold">
+                        {favorites.length}
+                      </span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setActiveTab('lyrics');
+                        setMobileDrawerOpen(false);
+                      }}
+                      className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-slate-300 hover:bg-slate-800/50"
+                    >
+                      <div className="flex items-center gap-2">
+                        <FileText className="w-3.5 h-3.5 text-[#0099ff]" />
+                        <span>Sedang Diputar</span>
+                      </div>
+                      <span className="text-[10px] text-slate-400 truncate max-w-[90px]">
+                        {currentSong ? currentSong.title : 'None'}
+                      </span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Statistik Pengunjung & Sumber Trafik (Di Bawah Koleksi Saya) */}
+                <div className="pt-2 border-t border-slate-800/80">
+                  <VisitorStatsWidget />
+                </div>
               </div>
 
               {isAdminLoggedIn && (

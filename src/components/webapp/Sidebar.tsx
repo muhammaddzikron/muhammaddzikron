@@ -12,6 +12,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { Song } from '../../types/song';
+import { VisitorStatsWidget } from './VisitorStatsWidget';
 
 export type WebAppTab = 'home' | 'library' | 'lyrics' | 'about' | 'contact' | 'admin';
 
@@ -149,6 +150,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </button>
           </div>
         </div>
+
+        {/* Statistik Pengunjung & Sumber Trafik (Di Bawah Koleksi Saya) */}
+        <VisitorStatsWidget />
 
       </div>
 

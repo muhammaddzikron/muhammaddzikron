@@ -63,7 +63,8 @@ export const SongDetailModal: React.FC<SongDetailModalProps> = ({
   const youtubeWatchUrl = getYouTubeWatchUrl(song.youtubeUrl);
 
   const currentUrl = typeof window !== 'undefined' ? window.location.href : '';
-  const shareText = `Dengarkan lagu "${song.title}" karya ${song.singer} (Cipt. Muhammad Dzikron)`;
+  const creator = song.singer || 'Muhammad Dzikron';
+  const shareText = `Dengarkan lagu "${song.title}" - Ciptaan & Aransemen: ${creator}`;
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(`${currentUrl}#song-${song.id}`);
@@ -72,7 +73,7 @@ export const SongDetailModal: React.FC<SongDetailModalProps> = ({
   };
 
   const handleCopyLyrics = () => {
-    navigator.clipboard.writeText(`${song.title} - ${song.singer}\nCiptaan: Muhammad Dzikron\n\n${song.lyrics}`);
+    navigator.clipboard.writeText(`${song.title}\nCiptaan & Aransemen: ${creator}\n\n${song.lyrics}`);
     setLyricsCopied(true);
     setTimeout(() => setLyricsCopied(false), 2000);
   };
@@ -223,16 +224,14 @@ export const SongDetailModal: React.FC<SongDetailModalProps> = ({
                 )}
               </div>
 
-              {/* Title & Artist */}
+              {/* Title & Creator */}
               <h2 className="text-2xl sm:text-4xl font-serif font-extrabold text-white mb-2">
                 {song.title}
               </h2>
-              <p className="text-sm text-slate-300 mb-1 flex items-center gap-2">
-                <User className="w-4 h-4 text-[#0099ff]" />
-                Penyanyi: <span className="font-semibold text-white">{song.singer}</span>
-              </p>
-              <p className="text-xs text-slate-400 mb-5">
-                Ciptaan & Aransemen: <span className="text-[#00ffc8] font-medium">Muhammad Dzikron</span>
+              <p className="text-sm text-slate-300 mb-5 flex items-center gap-2 flex-wrap">
+                <User className="w-4 h-4 text-[#00ffc8] shrink-0" />
+                <span className="text-slate-400">Ciptaan & Aransemen:</span>
+                <span className="font-semibold text-[#00ffc8]">{creator}</span>
               </p>
 
               {/* YouTube Video Player Embed (Conditionally rendered when youtubeUrl is present) */}

@@ -68,6 +68,7 @@ export default function App() {
               s.id === 'song-2'
           );
           if (!hasOldDummy && list.length > 0) {
+            list.sort((a, b) => (b.order - a.order) || (b.no - a.no));
             return list.map(sanitizeSongItem);
           } else {
             localStorage.removeItem('dzikron_cached_songs');
@@ -94,6 +95,7 @@ export default function App() {
             (s) => s.title === 'Cinta Dalam Doa' || s.title === 'Melodi Sunyi' || s.id === 'song-1'
           );
           if (!hasOldDummy && list.length > 0) {
+            list.sort((a, b) => (b.order - a.order) || (b.no - a.no));
             return sanitizeSongItem(list[0]);
           }
         }

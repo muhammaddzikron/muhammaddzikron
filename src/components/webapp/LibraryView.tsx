@@ -78,9 +78,9 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
       })
       .sort((a, b) => {
         if (sortBy === 'title') return a.title.localeCompare(b.title);
-        if (sortBy === 'year') return Number(b.year) - Number(a.year);
+        if (sortBy === 'year') return (Number(b.year) - Number(a.year)) || (b.order - a.order) || (b.no - a.no);
         if (sortBy === 'duration') return b.duration.localeCompare(a.duration);
-        return a.order - b.order;
+        return (b.order - a.order) || (b.no - a.no);
       });
   }, [songs, searchQuery, selectedGenre, sortBy, favorites]);
 
@@ -196,7 +196,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
               onChange={(e) => setSortBy(e.target.value as any)}
               className="px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800 text-white text-xs focus:outline-none focus:border-[#00ffc8]"
             >
-              <option value="order">Urutan Rekomendasi (#1, #2...)</option>
+              <option value="order">Rilis / Tambahan Terbaru (Default)</option>
               <option value="title">Judul Lagu (A - Z)</option>
               <option value="year">Tahun Rilis Terbaru</option>
               <option value="duration">Durasi Lagu</option>

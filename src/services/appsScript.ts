@@ -410,11 +410,13 @@ export async function fetchSongsFromGoogleSheet(
         rawLyrics = item['lyrics'] || item['Lirik Lagu'];
       }
 
+      // Match with INITIAL_SONGS by title if available for lyrics/duration fallbacks
+      const matchedInitial = INITIAL_SONGS.find(
+        (s) => s.title.toLowerCase().trim() === String(title).toLowerCase().trim()
+      );
+
       // If lyrics still empty, match with INITIAL_SONGS by title if available
       if (!rawLyrics || rawLyrics.length < 10) {
-        const matchedInitial = INITIAL_SONGS.find(
-          (s) => s.title.toLowerCase().trim() === String(title).toLowerCase().trim()
-        );
         if (matchedInitial && matchedInitial.lyrics) {
           rawLyrics = matchedInitial.lyrics;
         }
@@ -427,7 +429,18 @@ export async function fetchSongsFromGoogleSheet(
       if (isLikelyDateOrTime(item['Lirik'])) {
         rawDuration = item['Lirik'];
       }
-      const duration = formatSongDuration(rawDuration);
+      let duration = formatSongDuration(rawDuration);
+      if (
+        duration === '52:48' ||
+        duration.startsWith('52:') ||
+        duration.startsWith('53:') ||
+        duration.startsWith('51:') ||
+        parseInt(duration.split(':')[0], 10) >= 20
+      ) {
+        if (matchedInitial && matchedInitial.duration) {
+          duration = matchedInitial.duration;
+        }
+      }
 
       // 3. Strict Status Sanitization (status must NEVER contain lyrics, defaults to 'Publish')
       let status = 'Publish';
@@ -487,7 +500,12 @@ export async function fetchSongsFromGoogleSheet(
       };
     }).filter((s) => s.status !== 'Draft');
 
-    parsedSongs.sort((a, b) => a.order - b.order);
+    // Urutan lagu: yang paling terbaru muncul di atas (order / no tertinggi lebih dulu)
+    parsedSongs.sort((a, b) => {
+      if (b.order !== a.order) return b.order - a.order;
+      if (b.no !== a.no) return b.no - a.no;
+      return 0;
+    });
 
     if (typeof window !== 'undefined' && parsedSongs.length > 0) {
       localStorage.setItem(LOCAL_STORAGE_CACHE_KEY, JSON.stringify(parsedSongs));
@@ -574,7 +592,7 @@ function getCachedSongs(): Song[] {
       localStorage.removeItem(LOCAL_STORAGE_CACHE_KEY);
       return [];
     }
-    return list;
+    return list.sort((a, b) => (b.order - a.order) || (b.no - a.no));
   } catch {
     return [];
   }

@@ -137,7 +137,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
         return s;
       });
 
-      updated.sort((a, b) => a.order - b.order);
+      updated.sort((a, b) => (b.order - a.order) || (b.no - a.no));
       onUpdateSongs(updated);
       showNotification(`Lagu "${formData.title}" berhasil diperbarui!`);
     } else {
@@ -159,7 +159,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
       };
 
       const updated = [...songs, newSong];
-      updated.sort((a, b) => a.order - b.order);
+      updated.sort((a, b) => (b.order - a.order) || (b.no - a.no));
       onUpdateSongs(updated);
       showNotification(`Lagu "${formData.title}" berhasil ditambahkan ke playlist!`);
     }

@@ -52,8 +52,8 @@ export const PlaylistSection: React.FC<PlaylistSectionProps> = ({
       })
       .sort((a, b) => {
         if (sortBy === 'title') return a.title.localeCompare(b.title);
-        if (sortBy === 'year') return Number(b.year) - Number(a.year);
-        return a.order - b.order;
+        if (sortBy === 'year') return (Number(b.year) - Number(a.year)) || (b.order - a.order) || (b.no - a.no);
+        return (b.order - a.order) || (b.no - a.no);
       });
   }, [songs, searchTerm, selectedGenre, sortBy, favorites]);
 
@@ -114,7 +114,7 @@ export const PlaylistSection: React.FC<PlaylistSectionProps> = ({
                 onChange={(e: any) => setSortBy(e.target.value)}
                 className="px-4 py-3 rounded-2xl bg-slate-900/90 border border-slate-800 text-xs text-slate-200 focus:outline-none focus:border-[#00ffc8]"
               >
-                <option value="order">Urutan Asli (Spreadsheet)</option>
+                <option value="order">Rilis / Tambahan Terbaru (Default)</option>
                 <option value="title">Judul (A - Z)</option>
                 <option value="year">Tahun Rilis (Terbaru)</option>
               </select>

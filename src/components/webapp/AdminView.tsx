@@ -290,7 +290,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
         return s;
       });
 
-      updated.sort((a, b) => a.order - b.order);
+      updated.sort((a, b) => (b.order - a.order) || (b.no - a.no));
       onUpdateSongs(updated);
       showNotification(`Lagu "${formData.title}" diperbarui & dikirim ke Spreadsheet!`);
     } else {
@@ -313,7 +313,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
 
       targetSongToSync = newSong;
       const updated = [...songs, newSong];
-      updated.sort((a, b) => a.order - b.order);
+      updated.sort((a, b) => (b.order - a.order) || (b.no - a.no));
       onUpdateSongs(updated);
       showNotification(`Lagu "${formData.title}" ditambahkan & disimpan ke Spreadsheet!`);
     }

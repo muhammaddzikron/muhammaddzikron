@@ -366,7 +366,7 @@ export default function App() {
                         Muhammad Dzikron
                       </h2>
                       <p className="text-[10px] text-slate-400 mt-0.5">
-                        Jarak Yang Tak Berujung
+                        Karya Tanpa Batas
                       </p>
                     </div>
                   </div>
@@ -543,7 +543,10 @@ export default function App() {
               )}
 
               {activeTab === 'download' && (
-                <DownloadView />
+                <DownloadView
+                  isAdminLoggedIn={isAdminLoggedIn}
+                  onNavigateToAdmin={() => setActiveTab('admin')}
+                />
               )}
 
               {activeTab === 'about' && (

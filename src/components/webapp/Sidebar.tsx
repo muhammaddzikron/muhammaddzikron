@@ -73,7 +73,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#00ffc8] animate-pulse shrink-0"></span>
               <span className="text-[11px] font-medium tracking-normal text-slate-400 truncate">
-                Jarak Yang Tak Berujung
+                Karya Tanpa Batas
               </span>
             </div>
           </div>

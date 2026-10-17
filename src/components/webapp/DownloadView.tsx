@@ -15,7 +15,11 @@ import {
   FileDown,
   Info,
   Check,
-  HardDrive
+  HardDrive,
+  Edit2,
+  Trash2,
+  ShieldCheck,
+  Settings
 } from 'lucide-react';
 import { DownloadItem } from '../../types/song';
 import {
@@ -24,13 +28,26 @@ import {
   setInstagramFollowStatus,
   incrementDownloadCount,
   resolveDownloadUrl,
+  deleteDownloadItem,
+  getDownloadBannerConfig,
+  DownloadBannerConfig,
   INSTAGRAM_PROFILE_URL,
   INSTAGRAM_USERNAME
 } from '../../services/downloadService';
 
-export const DownloadView: React.FC = () => {
+interface DownloadViewProps {
+  isAdminLoggedIn?: boolean;
+  onNavigateToAdmin?: () => void;
+}
+
+export const DownloadView: React.FC<DownloadViewProps> = ({
+  isAdminLoggedIn = false,
+  onNavigateToAdmin
+}) => {
   const [downloadItems, setDownloadItems] = useState<DownloadItem[]>([]);
   const [isFollowed, setIsFollowed] = useState<boolean>(false);
+  const [bannerConfig, setBannerConfig] = useState<DownloadBannerConfig>(getDownloadBannerConfig());
+  const [itemToDelete, setItemToDelete] = useState<DownloadItem | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [showFollowModal, setShowFollowModal] = useState<boolean>(false);
@@ -41,6 +58,7 @@ export const DownloadView: React.FC = () => {
   useEffect(() => {
     setDownloadItems(getDownloadItems());
     setIsFollowed(getInstagramFollowStatus());
+    setBannerConfig(getDownloadBannerConfig());
 
     const handleDownloadsUpdated = () => {
       setDownloadItems(getDownloadItems());
@@ -50,12 +68,18 @@ export const DownloadView: React.FC = () => {
       setIsFollowed(getInstagramFollowStatus());
     };
 
+    const handleBannerUpdated = () => {
+      setBannerConfig(getDownloadBannerConfig());
+    };
+
     window.addEventListener('dzikron_downloads_updated', handleDownloadsUpdated);
     window.addEventListener('dzikron_ig_follow_updated', handleFollowUpdated);
+    window.addEventListener('dzikron_download_banner_updated', handleBannerUpdated);
 
     return () => {
       window.removeEventListener('dzikron_downloads_updated', handleDownloadsUpdated);
       window.removeEventListener('dzikron_ig_follow_updated', handleFollowUpdated);
+      window.removeEventListener('dzikron_download_banner_updated', handleBannerUpdated);
     };
   }, []);
 
@@ -107,6 +131,15 @@ export const DownloadView: React.FC = () => {
     executeDownload(item);
   };
 
+  const confirmDeleteInView = () => {
+    if (!itemToDelete) return;
+    const targetName = itemToDelete.fileName;
+    deleteDownloadItem(itemToDelete.id);
+    setDownloadItems(getDownloadItems());
+    setItemToDelete(null);
+    showToast(`File "${targetName}" berhasil dihapus dari Akses Unduhan Terbuka.`);
+  };
+
   const categories = ['all', ...Array.from(new Set(downloadItems.map((d) => d.category)))];
 
   const filteredItems = downloadItems.filter((item) => {
@@ -141,6 +174,27 @@ export const DownloadView: React.FC = () => {
         </div>
       )}
 
+      {/* Admin Mode Quick Action Bar */}
+      {isAdminLoggedIn && (
+        <div className="p-4 rounded-2xl bg-[#00ffc8]/10 border border-[#00ffc8]/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-slate-200">
+          <div className="flex items-center gap-2.5">
+            <ShieldCheck className="w-5 h-5 text-[#00ffc8] shrink-0" />
+            <span>
+              <strong>Mode Admin Aktif:</strong> Anda dapat menambah, mengedit link Google Drive, atau menghapus isi file Akses Unduhan Terbuka dari Dasbor Admin.
+            </span>
+          </div>
+          {onNavigateToAdmin && (
+            <button
+              onClick={onNavigateToAdmin}
+              className="px-4 py-2 rounded-xl bg-[#00ffc8] text-slate-950 font-bold text-xs flex items-center gap-1.5 shadow-[0_0_12px_rgba(0,255,200,0.3)] hover:brightness-110 transition cursor-pointer shrink-0"
+            >
+              <Settings className="w-3.5 h-3.5" />
+              <span>Buka Dasbor Admin</span>
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Header Banner */}
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 via-[#0a1220] to-slate-900 border border-slate-800/80 p-6 sm:p-10 shadow-2xl">
         <div className="absolute -right-16 -top-16 w-80 h-80 bg-[#00ffc8]/10 rounded-full blur-3xl pointer-events-none" />
@@ -149,16 +203,15 @@ export const DownloadView: React.FC = () => {
         <div className="relative z-10 max-w-3xl space-y-4">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-800/80 border border-slate-700/60 text-[11px] font-semibold text-[#00ffc8]">
             <Download className="w-3.5 h-3.5 text-[#00ffc8]" />
-            <span>Pusat Unduhan Resmi • Muhammad Dzikron</span>
+            <span>{bannerConfig.pageHeaderBadge}</span>
           </div>
 
           <h1 className="text-2xl sm:text-4xl font-serif font-extrabold text-white tracking-tight">
-            Unduh Master Audio & Materi Musik
+            {bannerConfig.pageHeaderTitle}
           </h1>
 
           <p className="text-slate-300 text-xs sm:text-sm leading-relaxed">
-            Dapatkan master audio original kualitas studio (WAV / MP3 320kbps), buku chord & notasi partitur resmi,
-            panduan lirik, serta paket instrumentalia langsung dari tautan aman Google Drive.
+            {bannerConfig.pageHeaderDesc}
           </p>
         </div>
       </div>
@@ -175,24 +228,24 @@ export const DownloadView: React.FC = () => {
               <div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-bold uppercase tracking-widest text-emerald-400">
-                    Akses Unduhan Terbuka
+                    {bannerConfig.badgeTitle}
                   </span>
                   <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-bold">
-                    Terverifikasi
+                    {bannerConfig.verifiedBadge}
                   </span>
                 </div>
                 <h3 className="text-base font-bold text-white mt-0.5">
-                  Terima kasih telah mengikuti Instagram {INSTAGRAM_USERNAME}
+                  {bannerConfig.thankYouTitle}
                 </h3>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  Semua tombol download file di bawah ini telah aktif dan dapat langsung Anda unduh secara gratis.
+                  {bannerConfig.description}
                 </p>
               </div>
             </div>
 
             <div className="flex items-center gap-2.5 w-full md:w-auto">
               <a
-                href={INSTAGRAM_PROFILE_URL}
+                href={bannerConfig.instagramUrl || INSTAGRAM_PROFILE_URL}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-200 hover:text-white flex items-center gap-2 transition cursor-pointer"
@@ -229,11 +282,11 @@ export const DownloadView: React.FC = () => {
                     </span>
                   </div>
                   <h3 className="text-base sm:text-lg font-bold text-white">
-                    Follow Instagram {INSTAGRAM_USERNAME} untuk Membuka Tombol Download
+                    Follow Instagram {bannerConfig.instagramUsername || INSTAGRAM_USERNAME} untuk Membuka Tombol Download
                   </h3>
                   <p className="text-xs text-slate-300 leading-relaxed max-w-2xl">
                     Sebagai bentuk apresiasi bagi karya seni komposer, ikuti akun Instagram resmi{' '}
-                    <strong className="text-white">{INSTAGRAM_USERNAME}</strong>. Setelah follow, klik tombol verifikasi di samping untuk membuka kunci seluruh file.
+                    <strong className="text-white">{bannerConfig.instagramUsername || INSTAGRAM_USERNAME}</strong>. Setelah follow, klik tombol verifikasi di samping untuk membuka kunci seluruh file.
                   </p>
                 </div>
               </div>

@@ -156,6 +156,70 @@ export function setInstagramFollowStatus(followed: boolean): void {
   }
 }
 
+const BANNER_CONFIG_STORAGE_KEY = 'dzikron_download_banner_config_v1';
+
+export interface DownloadBannerConfig {
+  badgeTitle: string; // e.g. "Akses Unduhan Terbuka"
+  verifiedBadge: string; // e.g. "Terverifikasi"
+  thankYouTitle: string; // e.g. "Terima kasih telah mengikuti Instagram @muhammaddzikron"
+  description: string; // e.g. "Semua tombol download file di bawah ini telah aktif dan dapat langsung Anda unduh secara gratis."
+  instagramUsername: string; // e.g. "@muhammaddzikron"
+  instagramUrl: string; // e.g. "https://www.instagram.com/muhammaddzikron"
+  pageHeaderBadge: string; // e.g. "Pusat Unduhan Resmi • Muhammad Dzikron"
+  pageHeaderTitle: string; // e.g. "Unduh Master Audio & Materi Musik"
+  pageHeaderDesc: string; // e.g. "Dapatkan master audio original kualitas studio..."
+}
+
+export const DEFAULT_DOWNLOAD_BANNER_CONFIG: DownloadBannerConfig = {
+  badgeTitle: 'Akses Unduhan Terbuka',
+  verifiedBadge: 'Terverifikasi',
+  thankYouTitle: 'Terima kasih telah mengikuti Instagram @muhammaddzikron',
+  description: 'Semua tombol download file di bawah ini telah aktif dan dapat langsung Anda unduh secara gratis.',
+  instagramUsername: '@muhammaddzikron',
+  instagramUrl: 'https://www.instagram.com/muhammaddzikron',
+  pageHeaderBadge: 'Pusat Unduhan Resmi • Muhammad Dzikron',
+  pageHeaderTitle: 'Unduh Master Audio & Materi Musik',
+  pageHeaderDesc: 'Dapatkan master audio original kualitas studio (WAV / MP3 320kbps), buku chord & notasi partitur resmi, panduan lirik, serta paket instrumentalia langsung dari tautan aman Google Drive.'
+};
+
+export function getDownloadBannerConfig(): DownloadBannerConfig {
+  if (typeof window === 'undefined') return DEFAULT_DOWNLOAD_BANNER_CONFIG;
+  try {
+    const raw = localStorage.getItem(BANNER_CONFIG_STORAGE_KEY);
+    if (!raw) return DEFAULT_DOWNLOAD_BANNER_CONFIG;
+    const parsed = JSON.parse(raw);
+    return { ...DEFAULT_DOWNLOAD_BANNER_CONFIG, ...parsed };
+  } catch {
+    return DEFAULT_DOWNLOAD_BANNER_CONFIG;
+  }
+}
+
+export function saveDownloadBannerConfig(updates: Partial<DownloadBannerConfig>): DownloadBannerConfig {
+  const current = getDownloadBannerConfig();
+  const merged: DownloadBannerConfig = { ...current, ...updates };
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem(BANNER_CONFIG_STORAGE_KEY, JSON.stringify(merged));
+      window.dispatchEvent(new Event('dzikron_download_banner_updated'));
+    } catch (err) {
+      console.warn('Failed to save download banner config:', err);
+    }
+  }
+  return merged;
+}
+
+export function resetDownloadBannerConfig(): DownloadBannerConfig {
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.removeItem(BANNER_CONFIG_STORAGE_KEY);
+      window.dispatchEvent(new Event('dzikron_download_banner_updated'));
+    } catch (err) {
+      console.warn('Failed to reset download banner config:', err);
+    }
+  }
+  return DEFAULT_DOWNLOAD_BANNER_CONFIG;
+}
+
 /**
  * Resolve direct download link (supports Google Drive file URLs and direct files)
  */

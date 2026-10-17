@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Lock, ShieldCheck, User, KeyRound, AlertCircle, Sparkles } from 'lucide-react';
+import { X, Lock, ShieldCheck, User, KeyRound, AlertCircle } from 'lucide-react';
 
 interface AdminLoginModalProps {
   isOpen: boolean;
@@ -35,7 +35,7 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
         setPassword('');
       } else {
         setIsLoading(false);
-        setErrorMsg('Username atau Password salah! (Gunakan admin / adminn)');
+        setErrorMsg('Username atau Password salah!');
       }
     }, 400);
   };
@@ -120,14 +120,6 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
             </button>
           </div>
         </form>
-
-        {/* Demo Credentials Hint */}
-        <div className="mt-6 pt-4 border-t border-slate-800/80 text-center text-[11px] text-slate-400">
-          <p className="flex items-center justify-center gap-1">
-            <Sparkles className="w-3 h-3 text-[#00ffc8]" />
-            Akses Akselerasi Admin: <code className="text-[#00ffc8] font-mono bg-slate-900 px-1.5 py-0.5 rounded">admin</code> / <code className="text-[#00ffc8] font-mono bg-slate-900 px-1.5 py-0.5 rounded">adminn</code>
-          </p>
-        </div>
       </div>
     </div>
   );

@@ -37,7 +37,11 @@ import {
   Youtube,
   Instagram,
   FileDown,
-  HardDrive
+  HardDrive,
+  X,
+  Settings,
+  Unlock,
+  SlidersHorizontal
 } from 'lucide-react';
 import { getGoogleDriveAudioUrl, getGoogleDriveImageUrl, extractDriveId, getGoogleDriveDownloadUrl } from '../../services/googleDrive';
 import { extractYouTubeId } from '../../utils/youtube';
@@ -59,7 +63,11 @@ import {
   resetDownloadItemsToDefault,
   resolveDownloadUrl,
   INSTAGRAM_PROFILE_URL,
-  INSTAGRAM_USERNAME
+  INSTAGRAM_USERNAME,
+  getDownloadBannerConfig,
+  saveDownloadBannerConfig,
+  resetDownloadBannerConfig,
+  DownloadBannerConfig
 } from '../../services/downloadService';
 import { formatSongDuration, formatSecondsToMinutes } from '../../utils/duration';
 
@@ -109,6 +117,12 @@ export const AdminView: React.FC<AdminViewProps> = ({
   const [downloadList, setDownloadList] = useState<DownloadItem[]>([]);
   const [editingDownloadId, setEditingDownloadId] = useState<string | null>(null);
   const [showDownloadForm, setShowDownloadForm] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<DownloadItem | null>(null);
+  const [showResetDownloadsModal, setShowResetDownloadsModal] = useState(false);
+  const [showBannerConfigModal, setShowBannerConfigModal] = useState(false);
+  const [bannerConfig, setBannerConfig] = useState<DownloadBannerConfig>(getDownloadBannerConfig());
+  const [bannerFormData, setBannerFormData] = useState<DownloadBannerConfig>(getDownloadBannerConfig());
+
   const [downloadFormData, setDownloadFormData] = useState({
     fileName: '',
     description: '',
@@ -135,6 +149,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
     if (isAdminLoggedIn) {
       loadOrders();
       setDownloadList(getDownloadItems());
+      setBannerConfig(getDownloadBannerConfig());
     }
   }, [isAdminLoggedIn]);
 
@@ -194,7 +209,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
         status: downloadFormData.status
       });
       setDownloadList(getDownloadItems());
-      showNotification(`File "${added.fileName}" berhasil ditambahkan ke area unduhan!`);
+      showNotification(`File "${added.fileName}" berhasil ditambahkan ke Akses Unduhan Terbuka!`);
     }
 
     handleResetDownloadForm();
@@ -212,14 +227,28 @@ export const AdminView: React.FC<AdminViewProps> = ({
       status: item.status
     });
     setShowDownloadForm(true);
+    // Smooth scroll to top of download tab so user immediately sees the edit form
+    window.scrollTo({ top: 300, behavior: 'smooth' });
   };
 
-  const handleDeleteDownload = (item: DownloadItem) => {
-    if (window.confirm(`Yakin ingin menghapus file "${item.fileName}" dari area download?`)) {
-      const updated = deleteDownloadItem(item.id);
-      setDownloadList(updated);
-      showNotification(`File "${item.fileName}" telah dihapus.`);
+  const confirmDeleteDownload = () => {
+    if (!itemToDelete) return;
+    const targetName = itemToDelete.fileName;
+    const targetId = itemToDelete.id;
+    const updated = deleteDownloadItem(targetId);
+    setDownloadList(updated);
+    if (editingDownloadId === targetId) {
+      handleResetDownloadForm();
     }
+    setItemToDelete(null);
+    showNotification(`File "${targetName}" berhasil dihapus dari Akses Unduhan Terbuka.`);
+  };
+
+  const confirmResetDownloads = () => {
+    const res = resetDownloadItemsToDefault();
+    setDownloadList(res);
+    setShowResetDownloadsModal(false);
+    showNotification('Daftar file Akses Unduhan Terbuka berhasil dikembalikan ke bawaan.');
   };
 
   const handleToggleDownloadStatus = (item: DownloadItem) => {
@@ -229,12 +258,19 @@ export const AdminView: React.FC<AdminViewProps> = ({
     showNotification(`Status file diubah menjadi ${newStatus === 'active' ? 'Tampil' : 'Disembunyikan'}.`);
   };
 
-  const handleResetDownloadsToDefault = () => {
-    if (window.confirm('Reset daftar file download ke daftar bawaan awal?')) {
-      const res = resetDownloadItemsToDefault();
-      setDownloadList(res);
-      showNotification('Daftar file download direset ke bawaan.');
-    }
+  const handleSaveBannerConfig = (e: React.FormEvent) => {
+    e.preventDefault();
+    const updated = saveDownloadBannerConfig(bannerFormData);
+    setBannerConfig(updated);
+    setShowBannerConfigModal(false);
+    showNotification('Pengaturan teks Akses Unduhan Terbuka berhasil disimpan!');
+  };
+
+  const handleResetBannerConfig = () => {
+    const res = resetDownloadBannerConfig();
+    setBannerConfig(res);
+    setBannerFormData(res);
+    showNotification('Teks Akses Unduhan Terbuka dikembalikan ke pengaturan awal.');
   };
 
   const handleTestDriveAudio = () => {
@@ -585,8 +621,8 @@ export const AdminView: React.FC<AdminViewProps> = ({
                 : 'bg-slate-900 text-slate-300 hover:text-white'
             }`}
           >
-            <HardDrive className="w-4 h-4" />
-            <span>Kelola Download ({downloadList.length})</span>
+            <Unlock className="w-4 h-4 text-emerald-400" />
+            <span>Akses Unduhan Terbuka ({downloadList.length})</span>
           </button>
 
           <button
@@ -1169,7 +1205,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
         </div>
       )}
 
-      {/* Sub Tab: Download Management */}
+      {/* Sub Tab: Download Management (Akses Unduhan Terbuka) */}
       {activeSubTab === 'downloads' && (
         <div className="space-y-6">
           {/* Header Info & Instagram Gate Notice */}
@@ -1177,15 +1213,15 @@ export const AdminView: React.FC<AdminViewProps> = ({
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
                 <h3 className="text-base font-bold text-white flex items-center gap-2">
-                  <HardDrive className="w-5 h-5 text-[#00ffc8]" />
-                  <span>Manajemen File Area Unduhan</span>
+                  <Unlock className="w-5 h-5 text-emerald-400" />
+                  <span>Kelola Isi & File Akses Unduhan Terbuka</span>
                 </h3>
                 <p className="text-xs text-slate-400 mt-1">
-                  Kelola file audio master (WAV/MP3), partitur chord, lirik, atau bundle yang dapat diunduh pengunjung. Mendukung link Google Drive secara otomatis.
+                  Kelola, edit, dan hapus seluruh isi file yang dapat diunduh (Audio Master WAV/MP3, Partitur Chord PDF, Lirik Panduan, dsb). Mendukung tautan Google Drive langsung.
                 </p>
               </div>
 
-              <div className="flex items-center gap-2.5">
+              <div className="flex flex-wrap items-center gap-2.5">
                 <button
                   onClick={() => {
                     handleResetDownloadForm();
@@ -1198,9 +1234,21 @@ export const AdminView: React.FC<AdminViewProps> = ({
                 </button>
 
                 <button
-                  onClick={handleResetDownloadsToDefault}
+                  onClick={() => {
+                    setBannerFormData(bannerConfig);
+                    setShowBannerConfigModal(true);
+                  }}
+                  className="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+                  title="Edit Teks Kartu Akses Unduhan Terbuka"
+                >
+                  <SlidersHorizontal className="w-3.5 h-3.5 text-pink-400" />
+                  <span>Edit Teks Kartu</span>
+                </button>
+
+                <button
+                  onClick={() => setShowResetDownloadsModal(true)}
                   className="px-3 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition cursor-pointer"
-                  title="Kembalikan file ke daftar bawaan"
+                  title="Kembalikan file ke daftar bawaan awal"
                 >
                   Reset Bawaan
                 </button>
@@ -1208,39 +1256,61 @@ export const AdminView: React.FC<AdminViewProps> = ({
             </div>
 
             {/* Instagram Follow Requirement Information */}
-            <div className="p-3.5 rounded-2xl bg-gradient-to-r from-pink-950/20 via-slate-950 to-slate-950 border border-pink-500/20 flex items-center justify-between gap-3 text-xs">
+            <div className="p-3.5 rounded-2xl bg-gradient-to-r from-pink-950/20 via-slate-950 to-slate-950 border border-pink-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
               <div className="flex items-center gap-2.5 text-slate-300">
                 <Instagram className="w-4 h-4 text-pink-400 shrink-0" />
                 <span>
-                  <strong>Syarat Pengunjung:</strong> Tombol unduh terkunci hingga pengunjung follow Instagram{' '}
-                  <span className="text-[#00ffc8] font-bold">{INSTAGRAM_USERNAME}</span>.
+                  <strong>Syarat Pengunjung:</strong> Tombol unduh terbuka setelah follow Instagram{' '}
+                  <span className="text-[#00ffc8] font-bold">{bannerConfig.instagramUsername || INSTAGRAM_USERNAME}</span>.
                 </span>
               </div>
-              <a
-                href={INSTAGRAM_PROFILE_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[11px] text-pink-400 hover:text-pink-300 underline shrink-0 flex items-center gap-1"
-              >
-                <span>Buka Instagram</span>
-                <ExternalLink className="w-3 h-3" />
-              </a>
+              <div className="flex items-center gap-3 shrink-0">
+                <button
+                  onClick={() => {
+                    setBannerFormData(bannerConfig);
+                    setShowBannerConfigModal(true);
+                  }}
+                  className="text-[11px] text-pink-400 hover:text-pink-300 underline flex items-center gap-1 cursor-pointer"
+                >
+                  <span>Ubah Target IG</span>
+                  <Settings className="w-3 h-3" />
+                </button>
+                <a
+                  href={bannerConfig.instagramUrl || INSTAGRAM_PROFILE_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[11px] text-slate-400 hover:text-white flex items-center gap-1"
+                >
+                  <span>Buka Profil</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              </div>
             </div>
           </div>
 
-          {/* Add / Edit Download Item Form Modal or Card */}
+          {/* Add / Edit Download Item Form Card */}
           {showDownloadForm && (
             <div className="p-6 rounded-3xl bg-slate-900 border border-[#00ffc8]/30 shadow-2xl space-y-5 animate-fade-in">
               <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                <h4 className="text-sm font-bold text-white flex items-center gap-2">
-                  <FileDown className="w-4 h-4 text-[#00ffc8]" />
-                  <span>{editingDownloadId ? 'Edit File Unduhan' : 'Tambah File Unduhan Baru'}</span>
-                </h4>
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-[#00ffc8]/10 border border-[#00ffc8]/30 flex items-center justify-center">
+                    {editingDownloadId ? <Edit2 className="w-4 h-4 text-[#00ffc8]" /> : <Plus className="w-4 h-4 text-[#00ffc8]" />}
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-white">
+                      {editingDownloadId ? 'Edit File Akses Unduhan Terbuka' : 'Tambah File Unduhan Baru'}
+                    </h4>
+                    <p className="text-[11px] text-slate-400">
+                      {editingDownloadId ? 'Perbarui nama, link Google Drive, atau deskripsi file ini' : 'Tambahkan materi audio atau dokumen baru ke area unduh'}
+                    </p>
+                  </div>
+                </div>
                 <button
                   onClick={handleResetDownloadForm}
-                  className="text-xs text-slate-400 hover:text-white"
+                  className="p-1.5 rounded-lg bg-slate-800 text-slate-400 hover:text-white transition cursor-pointer"
+                  title="Tutup Form"
                 >
-                  Tutup Form
+                  <X className="w-4 h-4" />
                 </button>
               </div>
 
@@ -1355,7 +1425,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
                       onChange={(e) => setDownloadFormData({ ...downloadFormData, status: e.target.value as 'active' | 'hidden' })}
                       className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-[#00ffc8]"
                     >
-                      <option value="active">Aktif (Tampilkan di Halaman Download)</option>
+                      <option value="active">Aktif (Tampilkan di Akses Unduhan Terbuka)</option>
                       <option value="hidden">Disembunyikan (Hanya Draft Admin)</option>
                     </select>
                   </div>
@@ -1375,22 +1445,38 @@ export const AdminView: React.FC<AdminViewProps> = ({
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 pt-2">
-                  <button
-                    type="submit"
-                    className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#0099ff] to-[#00ffc8] text-slate-950 font-bold text-xs flex items-center gap-2 shadow-[0_0_15px_rgba(0,255,200,0.3)] hover:brightness-110 transition cursor-pointer"
-                  >
-                    <Save className="w-4 h-4" />
-                    <span>{editingDownloadId ? 'Simpan Perubahan' : 'Tambahkan File'}</span>
-                  </button>
+                <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="submit"
+                      className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#0099ff] to-[#00ffc8] text-slate-950 font-bold text-xs flex items-center gap-2 shadow-[0_0_15px_rgba(0,255,200,0.3)] hover:brightness-110 transition cursor-pointer"
+                    >
+                      <Save className="w-4 h-4" />
+                      <span>{editingDownloadId ? 'Simpan Perubahan' : 'Tambahkan File'}</span>
+                    </button>
 
-                  <button
-                    type="button"
-                    onClick={handleResetDownloadForm}
-                    className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition cursor-pointer"
-                  >
-                    Batal
-                  </button>
+                    <button
+                      type="button"
+                      onClick={handleResetDownloadForm}
+                      className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition cursor-pointer"
+                    >
+                      Batal
+                    </button>
+                  </div>
+
+                  {editingDownloadId && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const target = downloadList.find(d => d.id === editingDownloadId);
+                        if (target) setItemToDelete(target);
+                      }}
+                      className="px-4 py-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      <span>Hapus File Ini</span>
+                    </button>
+                  )}
                 </div>
               </form>
             </div>
@@ -1408,21 +1494,25 @@ export const AdminView: React.FC<AdminViewProps> = ({
                   <th className="py-3.5 px-4 text-center">Unduhan</th>
                   <th className="py-3.5 px-4">Sumber Link</th>
                   <th className="py-3.5 px-4 text-center">Status</th>
-                  <th className="py-3.5 px-4 text-center">Aksi</th>
+                  <th className="py-3.5 px-4 text-center min-w-[140px]">Aksi Edit & Hapus</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60">
                 {downloadList.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="py-8 text-center text-slate-400">
-                      Belum ada file download. Klik "Tambah File Baru" di atas untuk menambahkan.
+                      Belum ada file di Akses Unduhan Terbuka. Klik "Tambah File Baru" di atas untuk menambahkan.
                     </td>
                   </tr>
                 ) : (
                   downloadList.map((item, idx) => {
                     const isDrive = Boolean(extractDriveId(item.fileUrl));
+                    const isEditingThis = editingDownloadId === item.id;
                     return (
-                      <tr key={item.id} className="hover:bg-slate-800/40 transition">
+                      <tr
+                        key={item.id}
+                        className={`transition ${isEditingThis ? 'bg-cyan-950/30 border-l-4 border-l-[#00ffc8]' : 'hover:bg-slate-800/40'}`}
+                      >
                         <td className="py-3 px-4 text-center text-slate-400 font-mono">{idx + 1}</td>
                         <td className="py-3 px-4 max-w-xs">
                           <div className="font-bold text-white text-xs">{item.fileName}</div>
@@ -1468,30 +1558,37 @@ export const AdminView: React.FC<AdminViewProps> = ({
                           </button>
                         </td>
                         <td className="py-3 px-4 text-center whitespace-nowrap">
-                          <div className="flex items-center justify-center gap-1.5">
+                          <div className="flex items-center justify-center gap-2">
+                            {/* Tombol Edit */}
+                            <button
+                              onClick={() => handleEditDownload(item)}
+                              className="px-2.5 py-1.5 rounded-lg bg-cyan-500/15 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-sm"
+                              title="Edit isi file ini"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                              <span>Edit</span>
+                            </button>
+
+                            {/* Tombol Hapus */}
+                            <button
+                              onClick={() => setItemToDelete(item)}
+                              className="px-2.5 py-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-sm"
+                              title="Hapus file ini dari Akses Unduhan Terbuka"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              <span>Hapus</span>
+                            </button>
+
+                            {/* Uji Download */}
                             <a
                               href={resolveDownloadUrl(item.fileUrl)}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition"
-                              title="Uji download"
+                              title="Uji buka link download"
                             >
                               <Download className="w-3.5 h-3.5" />
                             </a>
-                            <button
-                              onClick={() => handleEditDownload(item)}
-                              className="p-1.5 rounded-lg bg-slate-800 hover:bg-[#00ffc8]/20 text-slate-300 hover:text-[#00ffc8] transition cursor-pointer"
-                              title="Edit file"
-                            >
-                              <Edit2 className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteDownload(item)}
-                              className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 transition cursor-pointer"
-                              title="Hapus file"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
                           </div>
                         </td>
                       </tr>
@@ -1533,6 +1630,248 @@ export const AdminView: React.FC<AdminViewProps> = ({
             value={getBackupJSONData()}
             className="w-full p-4 rounded-2xl bg-slate-950 border border-slate-800 font-mono text-[11px] text-[#00ffc8] leading-relaxed focus:outline-none"
           />
+        </div>
+      )}
+
+      {/* Modal: Konfirmasi Hapus File dari Akses Unduhan Terbuka */}
+      {itemToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-slate-900 border border-rose-500/40 rounded-3xl p-6 shadow-2xl space-y-4 text-left">
+            <div className="flex items-start gap-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center shrink-0">
+                <Trash2 className="w-6 h-6 text-rose-400" />
+              </div>
+              <div className="space-y-1">
+                <h4 className="text-base font-bold text-white">Hapus File dari Unduhan?</h4>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Apakah Anda yakin ingin menghapus file berikut dari <strong>Akses Unduhan Terbuka</strong>?
+                </p>
+              </div>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 space-y-1.5 text-xs">
+              <p className="font-bold text-white leading-snug">{itemToDelete.fileName}</p>
+              <div className="flex flex-wrap gap-2 text-[11px] text-slate-400 pt-1">
+                <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-medium">
+                  {itemToDelete.category}
+                </span>
+                <span className="px-2 py-0.5 rounded bg-slate-800 text-[#00ffc8] font-mono">
+                  {itemToDelete.format}
+                </span>
+                {itemToDelete.fileSize && (
+                  <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-400 font-mono">
+                    {itemToDelete.fileSize}
+                  </span>
+                )}
+              </div>
+              {itemToDelete.description && (
+                <p className="text-[11px] text-slate-400 italic line-clamp-2 pt-1 border-t border-slate-900">
+                  "{itemToDelete.description}"
+                </p>
+              )}
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setItemToDelete(null)}
+                className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeleteDownload}
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-rose-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-[0_0_15px_rgba(244,63,94,0.3)] hover:brightness-110 transition cursor-pointer"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>Ya, Hapus File Ini</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Konfirmasi Reset File ke Bawaan */}
+      {showResetDownloadsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-slate-900 border border-amber-500/40 rounded-3xl p-6 shadow-2xl space-y-4 text-left">
+            <div className="flex items-start gap-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center shrink-0">
+                <RefreshCw className="w-6 h-6 text-amber-400" />
+              </div>
+              <div className="space-y-1">
+                <h4 className="text-base font-bold text-white">Reset File Unduhan ke Bawaan?</h4>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Semua file di Akses Unduhan Terbuka akan dikembalikan ke daftar 4 materi bawaan awal (Audio Master HQ WAV/MP3, Buku Partitur PDF, Lirik Panduan, dan Multi-Track Stems).
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowResetDownloadsModal(false)}
+                className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={confirmResetDownloads}
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-bold text-xs flex items-center gap-1.5 hover:brightness-110 transition cursor-pointer"
+              >
+                <RefreshCw className="w-4 h-4" />
+                <span>Ya, Reset ke Bawaan</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Pengaturan Teks & Kartu Akses Unduhan Terbuka */}
+      {showBannerConfigModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="w-full max-w-lg bg-slate-900 border border-slate-700 rounded-3xl p-6 shadow-2xl space-y-5 text-left max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                  <Unlock className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-white">Edit Teks Akses Unduhan Terbuka</h4>
+                  <p className="text-[11px] text-slate-400">Ubah teks kartu verifikasi dan informasi pada halaman unduhan</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowBannerConfigModal(false)}
+                className="p-1.5 rounded-lg bg-slate-800 text-slate-400 hover:text-white transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveBannerConfig} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Judul Lencana Kartu
+                </label>
+                <input
+                  type="text"
+                  value={bannerFormData.badgeTitle}
+                  onChange={(e) => setBannerFormData({ ...bannerFormData, badgeTitle: e.target.value })}
+                  className="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-[#00ffc8]"
+                  placeholder="Akses Unduhan Terbuka"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Pesan Ucapan / Terima Kasih Setelah Follow
+                </label>
+                <input
+                  type="text"
+                  value={bannerFormData.thankYouTitle}
+                  onChange={(e) => setBannerFormData({ ...bannerFormData, thankYouTitle: e.target.value })}
+                  className="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-[#00ffc8]"
+                  placeholder="Terima kasih telah mengikuti Instagram @muhammaddzikron"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Keterangan Akses Terbuka
+                </label>
+                <textarea
+                  rows={2}
+                  value={bannerFormData.description}
+                  onChange={(e) => setBannerFormData({ ...bannerFormData, description: e.target.value })}
+                  className="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-[#00ffc8]"
+                  placeholder="Semua tombol download file di bawah ini telah aktif..."
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Username Instagram
+                  </label>
+                  <input
+                    type="text"
+                    value={bannerFormData.instagramUsername}
+                    onChange={(e) => setBannerFormData({ ...bannerFormData, instagramUsername: e.target.value })}
+                    className="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-[#00ffc8]"
+                    placeholder="@muhammaddzikron"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Tautan Profil Instagram
+                  </label>
+                  <input
+                    type="text"
+                    value={bannerFormData.instagramUrl}
+                    onChange={(e) => setBannerFormData({ ...bannerFormData, instagramUrl: e.target.value })}
+                    className="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-[#00ffc8]"
+                    placeholder="https://www.instagram.com/muhammaddzikron"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Judul Utama Halaman Unduhan
+                </label>
+                <input
+                  type="text"
+                  value={bannerFormData.pageHeaderTitle}
+                  onChange={(e) => setBannerFormData({ ...bannerFormData, pageHeaderTitle: e.target.value })}
+                  className="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-[#00ffc8]"
+                  placeholder="Unduh Master Audio & Materi Musik"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Deskripsi Pengantar Halaman
+                </label>
+                <textarea
+                  rows={2}
+                  value={bannerFormData.pageHeaderDesc}
+                  onChange={(e) => setBannerFormData({ ...bannerFormData, pageHeaderDesc: e.target.value })}
+                  className="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-[#00ffc8]"
+                  placeholder="Dapatkan master audio original kualitas studio..."
+                />
+              </div>
+
+              <div className="flex items-center justify-between pt-3 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={handleResetBannerConfig}
+                  className="text-xs text-slate-400 hover:text-slate-300 underline cursor-pointer"
+                >
+                  Kembalikan Teks Bawaan
+                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowBannerConfigModal(false)}
+                    className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition cursor-pointer"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 rounded-xl bg-gradient-to-r from-[#0099ff] to-[#00ffc8] text-slate-950 font-bold text-xs flex items-center gap-1.5 shadow-[0_0_15px_rgba(0,255,200,0.3)] hover:brightness-110 transition cursor-pointer"
+                  >
+                    <Save className="w-3.5 h-3.5" />
+                    <span>Simpan Pengaturan</span>
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 

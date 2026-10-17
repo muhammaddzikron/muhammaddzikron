@@ -1,5 +1,6 @@
-import { Song, Order, ComposerProfile } from '../types/song';
+import { Song, Order, ComposerProfile, DownloadItem } from '../types/song';
 import { INITIAL_SONGS, INITIAL_COMPOSER_PROFILE } from '../data/initialData';
+import { getDownloadItems, saveDownloadItems, INITIAL_DOWNLOAD_ITEMS } from './downloadService';
 import { getGoogleDriveAudioUrl, getGoogleDriveImageUrl } from './googleDrive';
 import { formatSongDuration } from '../utils/duration';
 
@@ -703,13 +704,227 @@ export async function syncAllSongsToGoogleSheet(songs: Song[]): Promise<{ succes
   }
 }
 
+// ==========================================
+// 4. UNDUHAN / AKSES UNDUHAN TERBUKA SPREADSHEET SYNC
+// ==========================================
+
+export async function fetchDownloadsFromGoogleSheet(
+  customUrl?: string
+): Promise<{ downloads: DownloadItem[]; isLive: boolean; error?: string }> {
+  const endpoint = customUrl || getStoredAppsScriptUrl();
+  const cached = getDownloadItems();
+
+  if (!endpoint) {
+    return { downloads: cached, isLive: false };
+  }
+
+  try {
+    const separator = endpoint.includes('?') ? '&' : '?';
+    const fetchUrl = `${endpoint}${separator}type=downloads&_t=${Date.now()}`;
+    const res = await fetch(fetchUrl, { method: 'GET', mode: 'cors' });
+    if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+
+    const json = await res.json();
+    let rawList: any[] = [];
+    if (Array.isArray(json)) {
+      rawList = json;
+    } else if (json && json.data && Array.isArray(json.data.downloads)) {
+      rawList = json.data.downloads;
+    } else if (json && Array.isArray(json.downloads)) {
+      rawList = json.downloads;
+    } else if (json && Array.isArray(json.data)) {
+      rawList = json.data;
+    }
+
+    if (rawList.length === 0) {
+      return { downloads: cached, isLive: true };
+    }
+
+    const parsed: DownloadItem[] = rawList.map((item: any, idx: number) => {
+      const fileName =
+        item['Nama File'] ||
+        item['nama_file'] ||
+        item['fileName'] ||
+        item['Judul'] ||
+        item['File'] ||
+        item['Nama'] ||
+        `File Unduhan #${idx + 1}`;
+      const category = item['Kategori'] || item['category'] || 'Master Audio HQ';
+      const format = item['Format'] || item['format'] || 'File';
+      const fileSize = item['Ukuran'] || item['fileSize'] || item['size'] || '';
+      const fileUrl =
+        item['Link Download'] ||
+        item['Link Google Drive'] ||
+        item['Link'] ||
+        item['URL'] ||
+        item['fileUrl'] ||
+        item['Link File'] ||
+        '';
+      const description =
+        item['Deskripsi'] || item['description'] || item['Keterangan'] || '';
+      const rawCount = item['Jumlah Unduhan'] || item['Unduhan'] || item['downloadCount'] || 0;
+      const downloadCount = typeof rawCount === 'number' ? rawCount : parseInt(String(rawCount), 10) || 0;
+      const rawStatus = String(item['Status'] || item['status'] || 'active').trim().toLowerCase();
+      const status: 'active' | 'hidden' =
+        rawStatus === 'hidden' || rawStatus === 'draft' || rawStatus === 'disembunyikan'
+          ? 'hidden'
+          : 'active';
+      const id =
+        item['ID'] || item['id'] || `dl-sheet-${idx + 1}-${encodeURIComponent(fileName).slice(0, 10)}`;
+
+      return {
+        id,
+        fileName,
+        category,
+        format,
+        fileSize: fileSize || undefined,
+        fileUrl,
+        description,
+        downloadCount,
+        status,
+        createdAt: item['createdAt'] || new Date().toISOString().split('T')[0]
+      };
+    });
+
+    if (parsed.length > 0) {
+      saveDownloadItems(parsed);
+      return { downloads: parsed, isLive: true };
+    }
+
+    return { downloads: cached, isLive: true };
+  } catch (err: any) {
+    console.warn('Gagal memuat unduhan dari Apps Script:', err.message);
+    return { downloads: cached, isLive: false, error: err.message };
+  }
+}
+
+export async function saveDownloadToGoogleSheet(
+  item: DownloadItem,
+  customUrl?: string
+): Promise<{ success: boolean; message: string }> {
+  const endpoint = customUrl || getStoredAppsScriptUrl();
+
+  if (!endpoint) {
+    return { success: true, message: 'Tersimpan secara lokal di browser.' };
+  }
+
+  try {
+    const payload = {
+      action: 'save_download',
+      id: item.id,
+      fileName: item.fileName,
+      category: item.category,
+      format: item.format,
+      fileSize: item.fileSize || '-',
+      fileUrl: item.fileUrl,
+      description: item.description,
+      downloadCount: item.downloadCount || 0,
+      status: item.status === 'active' ? 'Publish' : 'Hidden'
+    };
+
+    await fetch(endpoint, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    return {
+      success: true,
+      message: `File "${item.fileName}" berhasil dikirim & disimpan ke Google Spreadsheet (Tab "Unduhan")!`
+    };
+  } catch (err: any) {
+    console.error('Error saving download to Apps Script:', err);
+    return {
+      success: false,
+      message: `Tersimpan secara lokal, namun gagal sinkron ke Spreadsheet: ${err.message}`
+    };
+  }
+}
+
+export async function deleteDownloadFromGoogleSheet(
+  fileName: string,
+  id?: string
+): Promise<{ success: boolean; message: string }> {
+  const endpoint = getStoredAppsScriptUrl();
+  if (!endpoint) {
+    return { success: true, message: 'Dihapus dari penyimpanan lokal browser.' };
+  }
+
+  try {
+    await fetch(endpoint, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'delete_download',
+        fileName,
+        title: fileName,
+        id
+      })
+    });
+
+    return {
+      success: true,
+      message: `File "${fileName}" dihapus dari Google Spreadsheet (Tab "Unduhan")!`
+    };
+  } catch (err: any) {
+    console.error('Error deleting download from Apps Script:', err);
+    return {
+      success: false,
+      message: `Dihapus lokal, namun gagal hapus di Spreadsheet: ${err.message}`
+    };
+  }
+}
+
+export async function syncAllDownloadsToGoogleSheet(
+  downloads: DownloadItem[]
+): Promise<{ success: boolean; message: string }> {
+  const endpoint = getStoredAppsScriptUrl();
+  if (!endpoint) {
+    return { success: false, message: 'URL Apps Script belum dikonfigurasi.' };
+  }
+
+  try {
+    await fetch(endpoint, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'sync_downloads',
+        downloads: downloads.map((d, idx) => ({
+          no: idx + 1,
+          id: d.id,
+          fileName: d.fileName,
+          category: d.category,
+          format: d.format,
+          fileSize: d.fileSize || '-',
+          fileUrl: d.fileUrl,
+          description: d.description,
+          downloadCount: d.downloadCount || 0,
+          status: d.status === 'active' ? 'Publish' : 'Hidden'
+        }))
+      })
+    });
+
+    return {
+      success: true,
+      message: `Semua (${downloads.length}) file unduhan berhasil disinkronkan ke Google Spreadsheet (Tab "Unduhan")!`
+    };
+  } catch (err: any) {
+    console.error('Error syncing all downloads to Apps Script:', err);
+    return { success: false, message: `Gagal menyinkronkan unduhan: ${err.message}` };
+  }
+}
+
 export const APPS_SCRIPT_CODE_SAMPLE = `/**
  * =========================================================================
  * GOOGLE APPS SCRIPT DATABASE - MUHAMMAD DZIKRON
- * Menampung 3 Tab:
+ * Menampung 4 Tab:
  * 1. Tab "Lagu"     : Katalog Lagu, Google Drive ID, Link YouTube, Durasi, Cover, Lirik
  * 2. Tab "Profil"   : Identitas, Foto Profil, Bio, dan Statistik Komposer
  * 3. Tab "Pesanan"  : Pesanan Kolaborasi / Kontak Klien Masuk
+ * 4. Tab "Unduhan"  : Isi & File Akses Unduhan Terbuka (Google Drive, Audio, Partitur)
  * =========================================================================
  */
 
@@ -755,7 +970,26 @@ function inisialisasiTabProfilDanLagu() {
     'Jenis Layanan', 'Genre Musik', 'Estimasi Budget', 'Deskripsi Proyek', 'Status Pesanan'
   ]);
   
-  Logger.log('Semua tab berhasil diinisialisasi!');
+  // 4. Tab Unduhan (Akses Unduhan Terbuka)
+  var sheetUnduhan = getOrCreateSheet(ss, 'Unduhan', [
+    'No', 'Nama File', 'Kategori', 'Format', 'Ukuran', 'Link Download', 'Deskripsi', 'Jumlah Unduhan', 'Status'
+  ]);
+  if (sheetUnduhan.getLastRow() <= 1) {
+    sheetUnduhan.clearContents();
+    sheetUnduhan.appendRow(['No', 'Nama File', 'Kategori', 'Format', 'Ukuran', 'Link Download', 'Deskripsi', 'Jumlah Unduhan', 'Status']);
+    sheetUnduhan.getRange(1, 1, 1, 9).setFontWeight('bold').setBackground('#ecfdf5');
+    var defaultDownloads = [
+      [1, 'The Miracle of Rain - Master Audio HQ (24-bit WAV & MP3 320kbps)', 'Master Audio HQ', 'WAV + MP3', '48.5 MB', 'https://drive.google.com/file/d/1A2b3C4d5E6f7G8h9I0j1K2l3M4n5O6p/view?usp=sharing', 'File audio kualitas master studio tertinggi untuk audiophile & pemutaran acara.', 382, 'Publish'],
+      [2, 'Buku Notasi & Partitur Chord - Koleksi Karya Muhammad Dzikron (Vol. 1)', 'Partitur & Chord PDF', 'PDF Digital Book', '12.8 MB', 'https://drive.google.com/file/d/1B2c3D4e5F6g7H8i9J0k1L2m3N4o5P6q/view?usp=sharing', 'Partitur lengkap, chord progresi, melodi vokal untuk musisi & pengiring musik.', 247, 'Publish'],
+      [3, 'Lirik & Panduan Makna Lagu - Anthology Muhammad Dzikron', 'Lirik & Panduan', 'PDF Booklet', '5.2 MB', 'https://drive.google.com/file/d/1C3d4E5f6G7h8I9j0K1l2M3n4O5p6Q7r/view?usp=sharing', 'Dokumen lirik resmi lengkap dengan anotasi pesan moral dan makna lagu.', 195, 'Publish'],
+      [4, 'Multi-Track Stems & Backing Track Instrumentalia (Pop Religi & Indie)', 'Backing Track / Stems', 'ZIP Archive', '112.0 MB', 'https://drive.google.com/file/d/1D4e5F6g7H8i9J0k1L2m3N4o5P6q7R8s/view?usp=sharing', 'Audio backing track tanpa vokal untuk penampilan live, ibadah, festival.', 164, 'Publish']
+    ];
+    for (var d = 0; d < defaultDownloads.length; d++) {
+      sheetUnduhan.appendRow(defaultDownloads[d]);
+    }
+  }
+  
+  Logger.log('Semua tab (Lagu, Profil, Pesanan, Unduhan) berhasil diinisialisasi!');
 }
 
 function doGet(e) {
@@ -829,6 +1063,25 @@ function doGet(e) {
         orders.push(obj);
       }
       return ContentService.createTextOutput(JSON.stringify(orders)).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // 3. Ambil Unduhan (Akses Unduhan Terbuka)
+    if (type === 'downloads' || type === 'unduhan' || type === 'download') {
+      var sheet = ss.getSheetByName('Unduhan') || ss.getSheetByName('Download') || ss.getSheetByName('Downloads');
+      if (!sheet) return ContentService.createTextOutput(JSON.stringify([])).setMimeType(ContentService.MimeType.JSON);
+      var data = sheet.getDataRange().getValues();
+      if (data.length <= 1) return ContentService.createTextOutput(JSON.stringify([])).setMimeType(ContentService.MimeType.JSON);
+      var headers = data[0].map(function(h) { return String(h).trim(); });
+      var downloads = [];
+      for (var i = 1; i < data.length; i++) {
+        var row = data[i];
+        var obj = {};
+        for (var j = 0; j < headers.length; j++) {
+          obj[headers[j]] = row[j];
+        }
+        downloads.push(obj);
+      }
+      return ContentService.createTextOutput(JSON.stringify(downloads)).setMimeType(ContentService.MimeType.JSON);
     }
     
     // 3. Default: Ambil Seluruh Data Katalog Lagu
@@ -1045,6 +1298,83 @@ function doPost(e) {
         sheet.getRange(1, 1, 1, 9).setFontWeight('bold').setBackground('#f3f4f6');
       }
       return ContentService.createTextOutput(JSON.stringify({ status: 'success', message: 'Semua pesanan dibersihkan' })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // 8. Simpan / Update File Unduhan (Akses Unduhan Terbuka)
+    if (action === 'save_download' || action === 'update_download' || action === 'tambah_unduhan' || action === 'save_unduhan') {
+      var sheet = getOrCreateSheet(ss, 'Unduhan', [
+        'No', 'Nama File', 'Kategori', 'Format', 'Ukuran', 'Link Download', 'Deskripsi', 'Jumlah Unduhan', 'Status'
+      ]);
+      var data = sheet.getDataRange().getValues();
+      var rowIndex = -1;
+      var fileName = String(body.fileName || body.nama_file || body.title || '').trim();
+      for (var i = 1; i < data.length; i++) {
+        if (String(data[i][1]).trim().toLowerCase() === fileName.toLowerCase()) {
+          rowIndex = i + 1;
+          break;
+        }
+      }
+      var rowData = [
+        body.no || (rowIndex > 0 ? data[rowIndex-1][0] : data.length),
+        fileName,
+        body.category || body.kategori || 'Master Audio HQ',
+        body.format || 'File',
+        body.fileSize || body.ukuran || '-',
+        body.fileUrl || body.link || '',
+        body.description || body.deskripsi || '-',
+        body.downloadCount || (rowIndex > 0 ? data[rowIndex-1][7] : 0),
+        body.status || 'Publish'
+      ];
+      if (rowIndex > 0) {
+        sheet.getRange(rowIndex, 1, 1, rowData.length).setValues([rowData]);
+      } else {
+        sheet.appendRow(rowData);
+      }
+      return ContentService.createTextOutput(JSON.stringify({ status: 'success', message: 'File unduhan tersimpan di Spreadsheet' }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // 9. Hapus File Unduhan dari Spreadsheet
+    if (action === 'delete_download' || action === 'hapus_unduhan') {
+      var sheet = ss.getSheetByName('Unduhan') || ss.getSheetByName('Download') || ss.getSheetByName('Downloads');
+      if (sheet) {
+        var data = sheet.getDataRange().getValues();
+        var targetName = String(body.fileName || body.title || '').trim().toLowerCase();
+        for (var i = 1; i < data.length; i++) {
+          if (String(data[i][1]).trim().toLowerCase() === targetName) {
+            sheet.deleteRow(i + 1);
+            break;
+          }
+        }
+      }
+      return ContentService.createTextOutput(JSON.stringify({ status: 'success', message: 'File unduhan terhapus dari Spreadsheet' }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // 10. Sinkronkan Semua File Unduhan Sekaligus
+    if ((action === 'sync_downloads' || action === 'sinkron_unduhan') && Array.isArray(body.downloads)) {
+      var sheet = getOrCreateSheet(ss, 'Unduhan', [
+        'No', 'Nama File', 'Kategori', 'Format', 'Ukuran', 'Link Download', 'Deskripsi', 'Jumlah Unduhan', 'Status'
+      ]);
+      sheet.clearContents();
+      sheet.appendRow(['No', 'Nama File', 'Kategori', 'Format', 'Ukuran', 'Link Download', 'Deskripsi', 'Jumlah Unduhan', 'Status']);
+      sheet.getRange(1, 1, 1, 9).setFontWeight('bold').setBackground('#ecfdf5');
+      for (var d = 0; d < body.downloads.length; d++) {
+        var dl = body.downloads[d];
+        sheet.appendRow([
+          dl.no || d + 1,
+          dl.fileName || '',
+          dl.category || 'Master Audio HQ',
+          dl.format || 'File',
+          dl.fileSize || '-',
+          dl.fileUrl || '',
+          dl.description || '-',
+          dl.downloadCount || 0,
+          dl.status || 'Publish'
+        ]);
+      }
+      return ContentService.createTextOutput(JSON.stringify({ status: 'success', message: 'Semua file unduhan tersinkron di Spreadsheet' }))
+        .setMimeType(ContentService.MimeType.JSON);
     }
     
     return ContentService.createTextOutput(JSON.stringify({ status: 'ok' })).setMimeType(ContentService.MimeType.JSON);

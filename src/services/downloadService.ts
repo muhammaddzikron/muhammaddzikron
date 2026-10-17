@@ -67,7 +67,7 @@ export function getDownloadItems(): DownloadItem[] {
       return INITIAL_DOWNLOAD_ITEMS;
     }
     const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed) && parsed.length > 0) {
+    if (Array.isArray(parsed)) {
       return parsed;
     }
     return INITIAL_DOWNLOAD_ITEMS;
@@ -91,7 +91,7 @@ export function addDownloadItem(newItem: Omit<DownloadItem, 'id' | 'downloadCoun
   const items = getDownloadItems();
   const item: DownloadItem = {
     ...newItem,
-    id: 'dl-' + Date.now(),
+    id: 'dl-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
     downloadCount: 0,
     createdAt: new Date().toISOString().split('T')[0]
   };
@@ -102,16 +102,36 @@ export function addDownloadItem(newItem: Omit<DownloadItem, 'id' | 'downloadCoun
 
 export function updateDownloadItem(id: string, updates: Partial<DownloadItem>): DownloadItem[] {
   const items = getDownloadItems();
-  const updated = items.map((item) => (item.id === id ? { ...item, ...updates } : item));
+  const updated = items.map((item) => (item.id === id || item.fileName === id ? { ...item, ...updates } : item));
   saveDownloadItems(updated);
   return updated;
 }
 
-export function deleteDownloadItem(id: string): DownloadItem[] {
+export function deleteDownloadItem(idOrName: string): DownloadItem[] {
   const items = getDownloadItems();
-  const updated = items.filter((item) => item.id !== id);
+  const target = String(idOrName).trim();
+  const updated = items.filter((item) => item.id !== target && item.fileName !== target);
   saveDownloadItems(updated);
   return updated;
+}
+
+/**
+ * Format download items as TSV for direct copy-paste to Google Spreadsheet Tab "Unduhan"
+ */
+export function getDownloadsSpreadsheetTSVData(items: DownloadItem[]): string {
+  const headers = ['No', 'Nama File', 'Kategori', 'Format', 'Ukuran', 'Link Download', 'Deskripsi', 'Jumlah Unduhan', 'Status'];
+  const rows = items.map((item, idx) => [
+    idx + 1,
+    item.fileName,
+    item.category,
+    item.format,
+    item.fileSize || '-',
+    item.fileUrl,
+    item.description || '-',
+    item.downloadCount || 0,
+    item.status === 'active' ? 'Publish' : 'Hidden'
+  ]);
+  return [headers.join('\t'), ...rows.map(r => r.join('\t'))].join('\n');
 }
 
 export function incrementDownloadCount(id: string): void {

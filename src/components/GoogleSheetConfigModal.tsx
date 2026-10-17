@@ -175,6 +175,12 @@ export const GoogleSheetConfigModal: React.FC<GoogleSheetConfigModalProps> = ({
                     Timestamp | Nama Klien | Nomor WhatsApp | Email | Jenis Layanan | Genre Musik | Estimasi Budget | Deskripsi Proyek | Status Pesanan
                   </code>
                 </div>
+                <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
+                  <span className="text-[11px] font-bold text-emerald-400">Tab 4: "Unduhan" (Akses Unduhan Terbuka & Link Google Drive):</span>
+                  <code className="text-slate-300 block text-[10px] mt-1 font-mono">
+                    No | Nama File | Kategori | Format | Ukuran | Link Download | Deskripsi | Jumlah Unduhan | Status
+                  </code>
+                </div>
               </div>
             </li>
             <li>

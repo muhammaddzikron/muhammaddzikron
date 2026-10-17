@@ -7,7 +7,8 @@ import {
   getStoredAppsScriptUrl,
   fetchProfileFromGoogleSheet,
   saveProfileToGoogleSheet,
-  getStoredProfile
+  getStoredProfile,
+  fetchDownloadsFromGoogleSheet
 } from './services/appsScript';
 
 import { BackgroundAurora } from './components/BackgroundAurora';
@@ -184,10 +185,16 @@ export default function App() {
     setProfile(res.profile);
   }, []);
 
+  // Load downloads from Google Sheet on start
+  const loadDownloads = useCallback(async () => {
+    await fetchDownloadsFromGoogleSheet();
+  }, []);
+
   useEffect(() => {
     loadSongs();
     loadProfile();
-  }, [loadSongs, loadProfile]);
+    loadDownloads();
+  }, [loadSongs, loadProfile, loadDownloads]);
 
   const handleSaveProfile = async (newProfile: ComposerProfile) => {
     setProfile(newProfile);

@@ -52,7 +52,11 @@ import {
   fetchOrdersFromGoogleSheet,
   deleteOrderFromLocalAndSheet,
   clearAllOrdersFromLocal,
-  INITIAL_SAMPLE_ORDERS
+  INITIAL_SAMPLE_ORDERS,
+  fetchDownloadsFromGoogleSheet,
+  saveDownloadToGoogleSheet,
+  deleteDownloadFromGoogleSheet,
+  syncAllDownloadsToGoogleSheet
 } from '../../services/appsScript';
 import {
   getDownloadItems,
@@ -67,7 +71,8 @@ import {
   getDownloadBannerConfig,
   saveDownloadBannerConfig,
   resetDownloadBannerConfig,
-  DownloadBannerConfig
+  DownloadBannerConfig,
+  getDownloadsSpreadsheetTSVData
 } from '../../services/downloadService';
 import { formatSongDuration, formatSecondsToMinutes } from '../../utils/duration';
 
@@ -116,10 +121,14 @@ export const AdminView: React.FC<AdminViewProps> = ({
   // Download Management State
   const [downloadList, setDownloadList] = useState<DownloadItem[]>([]);
   const [editingDownloadId, setEditingDownloadId] = useState<string | null>(null);
+  const [editingItemModal, setEditingItemModal] = useState<DownloadItem | null>(null);
   const [showDownloadForm, setShowDownloadForm] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<DownloadItem | null>(null);
   const [showResetDownloadsModal, setShowResetDownloadsModal] = useState(false);
   const [showBannerConfigModal, setShowBannerConfigModal] = useState(false);
+  const [isSyncingDownloadsSheet, setIsSyncingDownloadsSheet] = useState(false);
+  const [isLoadingDownloadsSheet, setIsLoadingDownloadsSheet] = useState(false);
+  const [copiedDownloadsTSV, setCopiedDownloadsTSV] = useState(false);
   const [bannerConfig, setBannerConfig] = useState<DownloadBannerConfig>(getDownloadBannerConfig());
   const [bannerFormData, setBannerFormData] = useState<DownloadBannerConfig>(getDownloadBannerConfig());
 
@@ -187,7 +196,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
     }
 
     if (editingDownloadId) {
-      const updated = updateDownloadItem(editingDownloadId, {
+      const updatedItem: Partial<DownloadItem> = {
         fileName: downloadFormData.fileName.trim(),
         description: downloadFormData.description.trim(),
         fileUrl: downloadFormData.fileUrl.trim(),
@@ -195,9 +204,19 @@ export const AdminView: React.FC<AdminViewProps> = ({
         category: downloadFormData.category,
         format: downloadFormData.format.trim() || 'File',
         status: downloadFormData.status
-      });
+      };
+      const updated = updateDownloadItem(editingDownloadId, updatedItem);
       setDownloadList(updated);
-      showNotification(`File "${downloadFormData.fileName}" berhasil diperbarui!`);
+      showNotification(`File "${downloadFormData.fileName}" berhasil diperbarui di website! Menyinkronkan ke Spreadsheet...`);
+
+      const targetFullItem = updated.find(d => d.id === editingDownloadId);
+      if (targetFullItem) {
+        saveDownloadToGoogleSheet(targetFullItem).then((res) => {
+          if (res.success) {
+            showNotification(`File "${targetFullItem.fileName}" tersinkron ke Google Spreadsheet!`);
+          }
+        });
+      }
     } else {
       const added = addDownloadItem({
         fileName: downloadFormData.fileName.trim(),
@@ -209,26 +228,55 @@ export const AdminView: React.FC<AdminViewProps> = ({
         status: downloadFormData.status
       });
       setDownloadList(getDownloadItems());
-      showNotification(`File "${added.fileName}" berhasil ditambahkan ke Akses Unduhan Terbuka!`);
+      showNotification(`File "${added.fileName}" ditambahkan ke Website! Menyimpan ke Spreadsheet...`);
+
+      saveDownloadToGoogleSheet(added).then((res) => {
+        if (res.success) {
+          showNotification(`File "${added.fileName}" tersimpan di Google Spreadsheet (Tab "Unduhan")!`);
+        }
+      });
     }
 
     handleResetDownloadForm();
   };
 
-  const handleEditDownload = (item: DownloadItem) => {
-    setEditingDownloadId(item.id);
-    setDownloadFormData({
-      fileName: item.fileName,
-      description: item.description,
-      fileUrl: item.fileUrl,
-      fileSize: item.fileSize || '',
-      category: item.category,
-      format: item.format,
-      status: item.status
+  const handleSaveEditModal = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingItemModal) return;
+    if (!editingItemModal.fileName.trim()) {
+      showNotification('Harap masukkan nama file yang valid.');
+      return;
+    }
+    if (!editingItemModal.fileUrl.trim()) {
+      showNotification('Harap masukkan link URL atau Google Drive file.');
+      return;
+    }
+
+    const updatedItem: DownloadItem = {
+      ...editingItemModal,
+      fileName: editingItemModal.fileName.trim(),
+      description: editingItemModal.description.trim(),
+      fileUrl: editingItemModal.fileUrl.trim(),
+      fileSize: editingItemModal.fileSize?.trim() || undefined,
+      category: editingItemModal.category,
+      format: editingItemModal.format.trim() || 'File',
+      status: editingItemModal.status
+    };
+
+    const updated = updateDownloadItem(editingItemModal.id, updatedItem);
+    setDownloadList(updated);
+    setEditingItemModal(null);
+    showNotification(`Perubahan file "${updatedItem.fileName}" berhasil disimpan! Menyinkronkan ke Spreadsheet...`);
+
+    saveDownloadToGoogleSheet(updatedItem).then((res) => {
+      if (res.success) {
+        showNotification(`File "${updatedItem.fileName}" tersimpan di Google Spreadsheet (Tab "Unduhan")!`);
+      }
     });
-    setShowDownloadForm(true);
-    // Smooth scroll to top of download tab so user immediately sees the edit form
-    window.scrollTo({ top: 300, behavior: 'smooth' });
+  };
+
+  const handleEditDownload = (item: DownloadItem) => {
+    setEditingItemModal({ ...item });
   };
 
   const confirmDeleteDownload = () => {
@@ -240,8 +288,17 @@ export const AdminView: React.FC<AdminViewProps> = ({
     if (editingDownloadId === targetId) {
       handleResetDownloadForm();
     }
+    if (editingItemModal?.id === targetId) {
+      setEditingItemModal(null);
+    }
     setItemToDelete(null);
-    showNotification(`File "${targetName}" berhasil dihapus dari Akses Unduhan Terbuka.`);
+    showNotification(`File "${targetName}" berhasil dihapus dari website. Menghapus dari Spreadsheet...`);
+
+    deleteDownloadFromGoogleSheet(targetName, targetId).then((res) => {
+      if (res.success) {
+        showNotification(`File "${targetName}" berhasil dihapus dari Google Spreadsheet (Tab "Unduhan")!`);
+      }
+    });
   };
 
   const confirmResetDownloads = () => {
@@ -251,11 +308,42 @@ export const AdminView: React.FC<AdminViewProps> = ({
     showNotification('Daftar file Akses Unduhan Terbuka berhasil dikembalikan ke bawaan.');
   };
 
+  const handleSyncDownloadsToSheet = async () => {
+    setIsSyncingDownloadsSheet(true);
+    const res = await syncAllDownloadsToGoogleSheet(downloadList);
+    setIsSyncingDownloadsSheet(false);
+    showNotification(res.message);
+  };
+
+  const handleFetchDownloadsFromSheet = async () => {
+    setIsLoadingDownloadsSheet(true);
+    const res = await fetchDownloadsFromGoogleSheet();
+    setDownloadList(res.downloads);
+    setIsLoadingDownloadsSheet(false);
+    showNotification(
+      res.isLive
+        ? `Berhasil mengambil (${res.downloads.length}) file unduhan dari Google Spreadsheet!`
+        : `Gagal memuat dari Spreadsheet: ${res.error || 'Menggunakan data lokal'}`
+    );
+  };
+
+  const handleCopyDownloadsTSV = () => {
+    const tsv = getDownloadsSpreadsheetTSVData(downloadList);
+    navigator.clipboard.writeText(tsv);
+    setCopiedDownloadsTSV(true);
+    setTimeout(() => setCopiedDownloadsTSV(false), 2500);
+    showNotification('Format tabel Unduhan (TSV) tersalin ke clipboard! Siap paste ke Google Sheet.');
+  };
+
   const handleToggleDownloadStatus = (item: DownloadItem) => {
     const newStatus = item.status === 'active' ? 'hidden' : 'active';
     const updated = updateDownloadItem(item.id, { status: newStatus });
     setDownloadList(updated);
     showNotification(`Status file diubah menjadi ${newStatus === 'active' ? 'Tampil' : 'Disembunyikan'}.`);
+    const target = updated.find(d => d.id === item.id);
+    if (target) {
+      saveDownloadToGoogleSheet(target);
+    }
   };
 
   const handleSaveBannerConfig = (e: React.FormEvent) => {
@@ -1234,11 +1322,40 @@ export const AdminView: React.FC<AdminViewProps> = ({
                 </button>
 
                 <button
+                  onClick={handleSyncDownloadsToSheet}
+                  disabled={isSyncingDownloadsSheet}
+                  className="px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-[#00ffc8] text-slate-950 font-bold text-xs flex items-center gap-1.5 transition cursor-pointer shadow-[0_0_15px_rgba(0,255,200,0.25)] hover:brightness-110 disabled:opacity-60"
+                  title="Kirim dan sinkronkan seluruh file unduhan ke Google Spreadsheet (Tab Unduhan)"
+                >
+                  {isSyncingDownloadsSheet ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <FileSpreadsheet className="w-3.5 h-3.5" />}
+                  <span>{isSyncingDownloadsSheet ? 'Menyinkronkan...' : 'Sinkron ke Spreadsheet'}</span>
+                </button>
+
+                <button
+                  onClick={handleFetchDownloadsFromSheet}
+                  disabled={isLoadingDownloadsSheet}
+                  className="px-3 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer disabled:opacity-60"
+                  title="Perbarui daftar unduhan dari Google Spreadsheet"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 text-[#00ffc8] ${isLoadingDownloadsSheet ? 'animate-spin' : ''}`} />
+                  <span>Tarik dari Sheet</span>
+                </button>
+
+                <button
+                  onClick={handleCopyDownloadsTSV}
+                  className="px-3 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-semibold transition cursor-pointer flex items-center gap-1.5"
+                  title="Salin data tabel Unduhan untuk ditempelkan ke Google Sheet"
+                >
+                  {copiedDownloadsTSV ? <Check className="w-3.5 h-3.5 text-[#00ffc8]" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{copiedDownloadsTSV ? 'Tersalin!' : 'Salin TSV'}</span>
+                </button>
+
+                <button
                   onClick={() => {
                     setBannerFormData(bannerConfig);
                     setShowBannerConfigModal(true);
                   }}
-                  className="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+                  className="px-3 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
                   title="Edit Teks Kartu Akses Unduhan Terbuka"
                 >
                   <SlidersHorizontal className="w-3.5 h-3.5 text-pink-400" />
@@ -1247,7 +1364,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
 
                 <button
                   onClick={() => setShowResetDownloadsModal(true)}
-                  className="px-3 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition cursor-pointer"
+                  className="px-3 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 text-xs font-semibold transition cursor-pointer"
                   title="Kembalikan file ke daftar bawaan awal"
                 >
                   Reset Bawaan
@@ -1630,6 +1747,178 @@ export const AdminView: React.FC<AdminViewProps> = ({
             value={getBackupJSONData()}
             className="w-full p-4 rounded-2xl bg-slate-950 border border-slate-800 font-mono text-[11px] text-[#00ffc8] leading-relaxed focus:outline-none"
           />
+        </div>
+      )}
+
+      {/* Modal: Edit File Akses Unduhan Terbuka */}
+      {editingItemModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="w-full max-w-lg bg-slate-900 border border-[#00ffc8]/40 rounded-3xl p-6 shadow-2xl space-y-5 text-left max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-[#00ffc8]/10 border border-[#00ffc8]/30 flex items-center justify-center text-[#00ffc8]">
+                  <Edit2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-base font-bold text-white">Edit File Unduhan</h4>
+                  <p className="text-[11px] text-slate-400">
+                    Perubahan disimpan di Website & otomatis tersinkron ke Google Spreadsheet (Tab Unduhan)
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setEditingItemModal(null)}
+                className="p-1.5 rounded-lg bg-slate-800 text-slate-400 hover:text-white transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditModal} className="space-y-4">
+              {/* Nama File */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                  Nama File / Judul Karya <span className="text-rose-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editingItemModal.fileName}
+                  onChange={(e) => setEditingItemModal({ ...editingItemModal, fileName: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-[#00ffc8]"
+                  placeholder="Contoh: The Miracle of Rain - Master Audio HQ"
+                />
+              </div>
+
+              {/* Link URL / Google Drive */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center justify-between">
+                  <span>Link URL File / Google Drive <span className="text-rose-400">*</span></span>
+                  {editingItemModal.fileUrl && extractDriveId(editingItemModal.fileUrl) && (
+                    <span className="text-[10px] text-emerald-400 font-mono flex items-center gap-1">
+                      <Check className="w-3 h-3" /> Link Google Drive Valid
+                    </span>
+                  )}
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editingItemModal.fileUrl}
+                  onChange={(e) => setEditingItemModal({ ...editingItemModal, fileUrl: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-[#00ffc8]"
+                  placeholder="https://drive.google.com/file/d/.../view"
+                />
+              </div>
+
+              {/* Kategori, Format, Ukuran */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Kategori File
+                  </label>
+                  <select
+                    value={editingItemModal.category}
+                    onChange={(e) => setEditingItemModal({ ...editingItemModal, category: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-[#00ffc8]"
+                  >
+                    <option value="Master Audio HQ">Master Audio HQ</option>
+                    <option value="Partitur & Chord PDF">Partitur & Chord PDF</option>
+                    <option value="Lirik & Panduan">Lirik & Panduan</option>
+                    <option value="Backing Track / Stems">Backing Track / Stems</option>
+                    <option value="Dokumen / Karya Lain">Dokumen / Karya Lain</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Format File
+                  </label>
+                  <input
+                    type="text"
+                    value={editingItemModal.format}
+                    onChange={(e) => setEditingItemModal({ ...editingItemModal, format: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-[#00ffc8]"
+                    placeholder="WAV + MP3 / PDF"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Ukuran File
+                  </label>
+                  <input
+                    type="text"
+                    value={editingItemModal.fileSize || ''}
+                    onChange={(e) => setEditingItemModal({ ...editingItemModal, fileSize: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-[#00ffc8]"
+                    placeholder="Misal: 48.5 MB"
+                  />
+                </div>
+              </div>
+
+              {/* Deskripsi */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Deskripsi / Keterangan File
+                </label>
+                <textarea
+                  rows={2}
+                  value={editingItemModal.description}
+                  onChange={(e) => setEditingItemModal({ ...editingItemModal, description: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-[#00ffc8]"
+                  placeholder="Keterangan singkat tentang file yang diunduh..."
+                />
+              </div>
+
+              {/* Status */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Status Visibilitas
+                </label>
+                <select
+                  value={editingItemModal.status}
+                  onChange={(e) => setEditingItemModal({ ...editingItemModal, status: e.target.value as 'active' | 'hidden' })}
+                  className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-[#00ffc8]"
+                >
+                  <option value="active">Aktif (Dapat diunduh pengunjung)</option>
+                  <option value="hidden">Disembunyikan (Hanya admin)</option>
+                </select>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-4 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const toDel = editingItemModal;
+                    setEditingItemModal(null);
+                    setItemToDelete(toDel);
+                  }}
+                  className="px-4 py-2.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30 text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>Hapus File Ini</span>
+                </button>
+
+                <div className="flex items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditingItemModal(null)}
+                    className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition cursor-pointer"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#0099ff] to-[#00ffc8] text-slate-950 font-bold text-xs flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(0,255,200,0.3)] hover:brightness-110 transition cursor-pointer"
+                  >
+                    <Save className="w-4 h-4" />
+                    <span>Simpan ke Website & Spreadsheet</span>
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 

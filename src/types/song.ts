@@ -80,6 +80,19 @@ export interface Order {
   status: string;
 }
 
+export interface DownloadItem {
+  id: string;
+  fileName: string;
+  description: string;
+  fileUrl: string;
+  fileSize?: string;
+  category: string;
+  format: string;
+  downloadCount: number;
+  status: 'active' | 'hidden';
+  createdAt: string;
+}
+
 export interface AppConfig {
   appsScriptUrl: string;
   autoPlayNext: boolean;

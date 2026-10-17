@@ -95,6 +95,28 @@ export function getGoogleDriveAudioUrl(driveIdOrUrl: string): string {
   return candidates[0] || '';
 }
 
+export function getGoogleDriveDownloadUrl(driveIdOrUrl: string): string {
+  if (!driveIdOrUrl) return '';
+  const trimmed = driveIdOrUrl.trim();
+
+  // If already a direct download or external link
+  if (
+    (trimmed.startsWith('http://') || trimmed.startsWith('https://')) &&
+    !trimmed.includes('drive.google.com') &&
+    !trimmed.includes('docs.google.com') &&
+    !trimmed.includes('drive.usercontent.google.com')
+  ) {
+    return trimmed;
+  }
+
+  const driveId = extractDriveId(trimmed);
+  if (driveId) {
+    return `https://drive.usercontent.google.com/download?id=${driveId}&export=download&authuser=0`;
+  }
+
+  return trimmed;
+}
+
 export function getGoogleDriveImageUrl(coverOrDriveId: string): string {
   if (!coverOrDriveId) {
     return 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=800&q=80';

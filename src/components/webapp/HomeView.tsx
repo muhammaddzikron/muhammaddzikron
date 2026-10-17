@@ -18,7 +18,8 @@ import {
   Users,
   Compass,
   Sliders,
-  Share2
+  Share2,
+  Download
 } from 'lucide-react';
 import { WebAppTab } from './Sidebar';
 import { STATS } from '../../data/initialData';
@@ -391,13 +392,13 @@ export const HomeView: React.FC<HomeViewProps> = ({
         </div>
 
         <div
-          onClick={() => onSelectTab('gallery')}
+          onClick={() => onSelectTab('download')}
           className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 hover:border-[#0099ff]/40 transition cursor-pointer group"
         >
-          <Sparkles className="w-6 h-6 text-[#0099ff] mb-2 group-hover:scale-110 transition" />
-          <h4 className="text-sm font-bold text-white mb-1">Galeri Studio Musik</h4>
+          <Download className="w-6 h-6 text-[#0099ff] mb-2 group-hover:scale-110 transition" />
+          <h4 className="text-sm font-bold text-white mb-1">Area Unduhan & Master HQ</h4>
           <p className="text-xs text-slate-400 leading-relaxed">
-            Dokumentasi proses penggubahan musik, rekaman studio, hingga konser panggung.
+            Unduh audio master WAV, partitur notasi chord, buku lirik, dan stems dari Google Drive.
           </p>
         </div>
 

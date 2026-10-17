@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Song, Order } from '../../types/song';
+import { Song, Order, DownloadItem } from '../../types/song';
 import {
   ShieldCheck,
   Plus,
@@ -34,9 +34,12 @@ import {
   ExternalLink,
   Volume2,
   CheckCheck,
-  Youtube
+  Youtube,
+  Instagram,
+  FileDown,
+  HardDrive
 } from 'lucide-react';
-import { getGoogleDriveAudioUrl, getGoogleDriveImageUrl, extractDriveId } from '../../services/googleDrive';
+import { getGoogleDriveAudioUrl, getGoogleDriveImageUrl, extractDriveId, getGoogleDriveDownloadUrl } from '../../services/googleDrive';
 import { extractYouTubeId } from '../../utils/youtube';
 import {
   saveSongToGoogleSheet,
@@ -47,6 +50,17 @@ import {
   clearAllOrdersFromLocal,
   INITIAL_SAMPLE_ORDERS
 } from '../../services/appsScript';
+import {
+  getDownloadItems,
+  saveDownloadItems,
+  addDownloadItem,
+  updateDownloadItem,
+  deleteDownloadItem,
+  resetDownloadItemsToDefault,
+  resolveDownloadUrl,
+  INSTAGRAM_PROFILE_URL,
+  INSTAGRAM_USERNAME
+} from '../../services/downloadService';
 import { formatSongDuration, formatSecondsToMinutes } from '../../utils/duration';
 
 interface AdminViewProps {
@@ -83,13 +97,27 @@ export const AdminView: React.FC<AdminViewProps> = ({
   onOpenLoginModal,
   onOpenEditProfile
 }) => {
-  const [activeSubTab, setActiveSubTab] = useState<'list' | 'add' | 'export' | 'orders'>('list');
+  const [activeSubTab, setActiveSubTab] = useState<'list' | 'add' | 'export' | 'orders' | 'downloads'>('list');
   const [editingSongId, setEditingSongId] = useState<string | null>(null);
   const [formData, setFormData] = useState(EMPTY_SONG_FORM);
 
   const [copiedStatus, setCopiedStatus] = useState<string | null>(null);
   const [successToast, setSuccessToast] = useState<string | null>(null);
   const [isSyncingGSheet, setIsSyncingGSheet] = useState(false);
+
+  // Download Management State
+  const [downloadList, setDownloadList] = useState<DownloadItem[]>([]);
+  const [editingDownloadId, setEditingDownloadId] = useState<string | null>(null);
+  const [showDownloadForm, setShowDownloadForm] = useState(false);
+  const [downloadFormData, setDownloadFormData] = useState({
+    fileName: '',
+    description: '',
+    fileUrl: '',
+    fileSize: '',
+    category: 'Master Audio HQ',
+    format: 'WAV + MP3',
+    status: 'active' as 'active' | 'hidden'
+  });
 
   // Audio testing state for form
   const [isTestingAudio, setIsTestingAudio] = useState(false);
@@ -106,6 +134,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
   useEffect(() => {
     if (isAdminLoggedIn) {
       loadOrders();
+      setDownloadList(getDownloadItems());
     }
   }, [isAdminLoggedIn]);
 
@@ -115,6 +144,97 @@ export const AdminView: React.FC<AdminViewProps> = ({
     setOrders(res.orders);
     setOrdersLive(res.isLive);
     setIsLoadingOrders(false);
+  };
+
+  const handleResetDownloadForm = () => {
+    setEditingDownloadId(null);
+    setDownloadFormData({
+      fileName: '',
+      description: '',
+      fileUrl: '',
+      fileSize: '',
+      category: 'Master Audio HQ',
+      format: 'WAV + MP3',
+      status: 'active'
+    });
+    setShowDownloadForm(false);
+  };
+
+  const handleSaveDownload = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!downloadFormData.fileName.trim()) {
+      showNotification('Harap masukkan nama file yang valid.');
+      return;
+    }
+    if (!downloadFormData.fileUrl.trim()) {
+      showNotification('Harap masukkan link URL atau Google Drive file.');
+      return;
+    }
+
+    if (editingDownloadId) {
+      const updated = updateDownloadItem(editingDownloadId, {
+        fileName: downloadFormData.fileName.trim(),
+        description: downloadFormData.description.trim(),
+        fileUrl: downloadFormData.fileUrl.trim(),
+        fileSize: downloadFormData.fileSize.trim() || undefined,
+        category: downloadFormData.category,
+        format: downloadFormData.format.trim() || 'File',
+        status: downloadFormData.status
+      });
+      setDownloadList(updated);
+      showNotification(`File "${downloadFormData.fileName}" berhasil diperbarui!`);
+    } else {
+      const added = addDownloadItem({
+        fileName: downloadFormData.fileName.trim(),
+        description: downloadFormData.description.trim(),
+        fileUrl: downloadFormData.fileUrl.trim(),
+        fileSize: downloadFormData.fileSize.trim() || undefined,
+        category: downloadFormData.category,
+        format: downloadFormData.format.trim() || 'File',
+        status: downloadFormData.status
+      });
+      setDownloadList(getDownloadItems());
+      showNotification(`File "${added.fileName}" berhasil ditambahkan ke area unduhan!`);
+    }
+
+    handleResetDownloadForm();
+  };
+
+  const handleEditDownload = (item: DownloadItem) => {
+    setEditingDownloadId(item.id);
+    setDownloadFormData({
+      fileName: item.fileName,
+      description: item.description,
+      fileUrl: item.fileUrl,
+      fileSize: item.fileSize || '',
+      category: item.category,
+      format: item.format,
+      status: item.status
+    });
+    setShowDownloadForm(true);
+  };
+
+  const handleDeleteDownload = (item: DownloadItem) => {
+    if (window.confirm(`Yakin ingin menghapus file "${item.fileName}" dari area download?`)) {
+      const updated = deleteDownloadItem(item.id);
+      setDownloadList(updated);
+      showNotification(`File "${item.fileName}" telah dihapus.`);
+    }
+  };
+
+  const handleToggleDownloadStatus = (item: DownloadItem) => {
+    const newStatus = item.status === 'active' ? 'hidden' : 'active';
+    const updated = updateDownloadItem(item.id, { status: newStatus });
+    setDownloadList(updated);
+    showNotification(`Status file diubah menjadi ${newStatus === 'active' ? 'Tampil' : 'Disembunyikan'}.`);
+  };
+
+  const handleResetDownloadsToDefault = () => {
+    if (window.confirm('Reset daftar file download ke daftar bawaan awal?')) {
+      const res = resetDownloadItemsToDefault();
+      setDownloadList(res);
+      showNotification('Daftar file download direset ke bawaan.');
+    }
   };
 
   const handleTestDriveAudio = () => {
@@ -455,6 +575,18 @@ export const AdminView: React.FC<AdminViewProps> = ({
           >
             <Inbox className="w-4 h-4" />
             <span>Pesanan Masuk ({orders.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveSubTab('downloads')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+              activeSubTab === 'downloads'
+                ? 'bg-[#00ffc8] text-slate-950 shadow-[0_0_12px_rgba(0,255,200,0.3)]'
+                : 'bg-slate-900 text-slate-300 hover:text-white'
+            }`}
+          >
+            <HardDrive className="w-4 h-4" />
+            <span>Kelola Download ({downloadList.length})</span>
           </button>
 
           <button
@@ -1034,6 +1166,341 @@ export const AdminView: React.FC<AdminViewProps> = ({
               })}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Sub Tab: Download Management */}
+      {activeSubTab === 'downloads' && (
+        <div className="space-y-6">
+          {/* Header Info & Instagram Gate Notice */}
+          <div className="p-5 sm:p-6 rounded-3xl bg-slate-900/80 border border-slate-800 space-y-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <HardDrive className="w-5 h-5 text-[#00ffc8]" />
+                  <span>Manajemen File Area Unduhan</span>
+                </h3>
+                <p className="text-xs text-slate-400 mt-1">
+                  Kelola file audio master (WAV/MP3), partitur chord, lirik, atau bundle yang dapat diunduh pengunjung. Mendukung link Google Drive secara otomatis.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2.5">
+                <button
+                  onClick={() => {
+                    handleResetDownloadForm();
+                    setShowDownloadForm(true);
+                  }}
+                  className="px-4 py-2.5 rounded-xl bg-[#00ffc8] text-slate-950 font-bold text-xs flex items-center gap-2 shadow-[0_0_15px_rgba(0,255,200,0.3)] hover:brightness-110 transition cursor-pointer"
+                >
+                  <Plus className="w-4 h-4 stroke-[3]" />
+                  <span>Tambah File Baru</span>
+                </button>
+
+                <button
+                  onClick={handleResetDownloadsToDefault}
+                  className="px-3 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition cursor-pointer"
+                  title="Kembalikan file ke daftar bawaan"
+                >
+                  Reset Bawaan
+                </button>
+              </div>
+            </div>
+
+            {/* Instagram Follow Requirement Information */}
+            <div className="p-3.5 rounded-2xl bg-gradient-to-r from-pink-950/20 via-slate-950 to-slate-950 border border-pink-500/20 flex items-center justify-between gap-3 text-xs">
+              <div className="flex items-center gap-2.5 text-slate-300">
+                <Instagram className="w-4 h-4 text-pink-400 shrink-0" />
+                <span>
+                  <strong>Syarat Pengunjung:</strong> Tombol unduh terkunci hingga pengunjung follow Instagram{' '}
+                  <span className="text-[#00ffc8] font-bold">{INSTAGRAM_USERNAME}</span>.
+                </span>
+              </div>
+              <a
+                href={INSTAGRAM_PROFILE_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[11px] text-pink-400 hover:text-pink-300 underline shrink-0 flex items-center gap-1"
+              >
+                <span>Buka Instagram</span>
+                <ExternalLink className="w-3 h-3" />
+              </a>
+            </div>
+          </div>
+
+          {/* Add / Edit Download Item Form Modal or Card */}
+          {showDownloadForm && (
+            <div className="p-6 rounded-3xl bg-slate-900 border border-[#00ffc8]/30 shadow-2xl space-y-5 animate-fade-in">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                  <FileDown className="w-4 h-4 text-[#00ffc8]" />
+                  <span>{editingDownloadId ? 'Edit File Unduhan' : 'Tambah File Unduhan Baru'}</span>
+                </h4>
+                <button
+                  onClick={handleResetDownloadForm}
+                  className="text-xs text-slate-400 hover:text-white"
+                >
+                  Tutup Form
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveDownload} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* File Name */}
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                      Nama File / Judul Karya <span className="text-rose-400">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={downloadFormData.fileName}
+                      onChange={(e) => setDownloadFormData({ ...downloadFormData, fileName: e.target.value })}
+                      placeholder="Contoh: The Miracle of Rain - Master Audio HQ (24-bit WAV)"
+                      className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#00ffc8]"
+                    />
+                  </div>
+
+                  {/* File URL / Google Drive */}
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center justify-between">
+                      <span>Link URL File / Google Drive <span className="text-rose-400">*</span></span>
+                      {downloadFormData.fileUrl && extractDriveId(downloadFormData.fileUrl) && (
+                        <span className="text-[10px] text-emerald-400 font-mono flex items-center gap-1">
+                          <Check className="w-3 h-3" /> Link Google Drive Terdeteksi
+                        </span>
+                      )}
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        required
+                        value={downloadFormData.fileUrl}
+                        onChange={(e) => setDownloadFormData({ ...downloadFormData, fileUrl: e.target.value })}
+                        placeholder="Tempel link Google Drive (https://drive.google.com/file/d/...) atau URL file langsung"
+                        className="flex-1 px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#00ffc8]"
+                      />
+                      {downloadFormData.fileUrl && (
+                        <a
+                          href={resolveDownloadUrl(downloadFormData.fileUrl)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 shrink-0"
+                          title="Uji buka link download"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                          <span>Uji Link</span>
+                        </a>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      Mendukung format link sharing Google Drive biasa, link open/uc, maupun link file langsung (Dropbox, CDN, dsb).
+                    </p>
+                  </div>
+
+                  {/* Category */}
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                      Kategori File
+                    </label>
+                    <select
+                      value={downloadFormData.category}
+                      onChange={(e) => setDownloadFormData({ ...downloadFormData, category: e.target.value })}
+                      className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-[#00ffc8]"
+                    >
+                      <option value="Master Audio HQ">Master Audio HQ</option>
+                      <option value="Partitur & Chord PDF">Partitur & Chord PDF</option>
+                      <option value="Lirik & Panduan">Lirik & Panduan</option>
+                      <option value="Backing Track / Stems">Backing Track / Stems</option>
+                      <option value="Paket Bundle">Paket Bundle</option>
+                      <option value="Lainnya">Lainnya</option>
+                    </select>
+                  </div>
+
+                  {/* Format */}
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                      Format File
+                    </label>
+                    <input
+                      type="text"
+                      value={downloadFormData.format}
+                      onChange={(e) => setDownloadFormData({ ...downloadFormData, format: e.target.value })}
+                      placeholder="Contoh: WAV + MP3, PDF, ZIP"
+                      className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#00ffc8]"
+                    />
+                  </div>
+
+                  {/* File Size */}
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                      Ukuran File (Opsional)
+                    </label>
+                    <input
+                      type="text"
+                      value={downloadFormData.fileSize}
+                      onChange={(e) => setDownloadFormData({ ...downloadFormData, fileSize: e.target.value })}
+                      placeholder="Contoh: 48.5 MB, 12.0 MB"
+                      className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#00ffc8]"
+                    />
+                  </div>
+
+                  {/* Status */}
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                      Status Tampilan
+                    </label>
+                    <select
+                      value={downloadFormData.status}
+                      onChange={(e) => setDownloadFormData({ ...downloadFormData, status: e.target.value as 'active' | 'hidden' })}
+                      className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-[#00ffc8]"
+                    >
+                      <option value="active">Aktif (Tampilkan di Halaman Download)</option>
+                      <option value="hidden">Disembunyikan (Hanya Draft Admin)</option>
+                    </select>
+                  </div>
+
+                  {/* Description */}
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                      Deskripsi / Catatan File
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={downloadFormData.description}
+                      onChange={(e) => setDownloadFormData({ ...downloadFormData, description: e.target.value })}
+                      placeholder="Tuliskan keterangan isi file, kualitas audio, atau kegunaan partitur..."
+                      className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#00ffc8]"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 pt-2">
+                  <button
+                    type="submit"
+                    className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#0099ff] to-[#00ffc8] text-slate-950 font-bold text-xs flex items-center gap-2 shadow-[0_0_15px_rgba(0,255,200,0.3)] hover:brightness-110 transition cursor-pointer"
+                  >
+                    <Save className="w-4 h-4" />
+                    <span>{editingDownloadId ? 'Simpan Perubahan' : 'Tambahkan File'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleResetDownloadForm}
+                    className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition cursor-pointer"
+                  >
+                    Batal
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {/* Downloads Table */}
+          <div className="rounded-3xl border border-slate-800 bg-slate-900/70 overflow-x-auto shadow-2xl">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="border-b border-slate-800 bg-slate-950/60 text-slate-400 font-semibold">
+                  <th className="py-3.5 px-4 w-12 text-center">No</th>
+                  <th className="py-3.5 px-4">Nama File & Deskripsi</th>
+                  <th className="py-3.5 px-4">Kategori & Format</th>
+                  <th className="py-3.5 px-4">Ukuran</th>
+                  <th className="py-3.5 px-4 text-center">Unduhan</th>
+                  <th className="py-3.5 px-4">Sumber Link</th>
+                  <th className="py-3.5 px-4 text-center">Status</th>
+                  <th className="py-3.5 px-4 text-center">Aksi</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800/60">
+                {downloadList.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="py-8 text-center text-slate-400">
+                      Belum ada file download. Klik "Tambah File Baru" di atas untuk menambahkan.
+                    </td>
+                  </tr>
+                ) : (
+                  downloadList.map((item, idx) => {
+                    const isDrive = Boolean(extractDriveId(item.fileUrl));
+                    return (
+                      <tr key={item.id} className="hover:bg-slate-800/40 transition">
+                        <td className="py-3 px-4 text-center text-slate-400 font-mono">{idx + 1}</td>
+                        <td className="py-3 px-4 max-w-xs">
+                          <div className="font-bold text-white text-xs">{item.fileName}</div>
+                          <div className="text-[11px] text-slate-400 truncate mt-0.5">{item.description}</div>
+                        </td>
+                        <td className="py-3 px-4 whitespace-nowrap">
+                          <span className="px-2 py-0.5 rounded-full bg-slate-800 text-[#00ffc8] text-[10px] font-bold">
+                            {item.category}
+                          </span>
+                          <div className="text-[10px] text-slate-400 mt-0.5 font-mono">{item.format}</div>
+                        </td>
+                        <td className="py-3 px-4 text-slate-300 font-mono text-[11px] whitespace-nowrap">
+                          {item.fileSize || '-'}
+                        </td>
+                        <td className="py-3 px-4 text-center font-mono text-slate-300">
+                          <span className="px-2 py-0.5 rounded-md bg-slate-800 text-[10px]">
+                            {item.downloadCount || 0}x
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 whitespace-nowrap">
+                          {isDrive ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-sky-500/10 border border-sky-500/30 text-sky-300 text-[10px] font-semibold">
+                              <HardDrive className="w-3 h-3 text-[#0099ff]" />
+                              Google Drive
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 text-[10px]">
+                              <ExternalLink className="w-3 h-3" />
+                              Direct URL
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 text-center whitespace-nowrap">
+                          <button
+                            onClick={() => handleToggleDownloadStatus(item)}
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold cursor-pointer transition ${
+                              item.status === 'active'
+                                ? 'bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30'
+                                : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                            }`}
+                          >
+                            {item.status === 'active' ? 'Aktif' : 'Disembunyikan'}
+                          </button>
+                        </td>
+                        <td className="py-3 px-4 text-center whitespace-nowrap">
+                          <div className="flex items-center justify-center gap-1.5">
+                            <a
+                              href={resolveDownloadUrl(item.fileUrl)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition"
+                              title="Uji download"
+                            >
+                              <Download className="w-3.5 h-3.5" />
+                            </a>
+                            <button
+                              onClick={() => handleEditDownload(item)}
+                              className="p-1.5 rounded-lg bg-slate-800 hover:bg-[#00ffc8]/20 text-slate-300 hover:text-[#00ffc8] transition cursor-pointer"
+                              title="Edit file"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteDownload(item)}
+                              className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 transition cursor-pointer"
+                              title="Hapus file"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 

@@ -5,7 +5,8 @@ import {
   FileText,
   User,
   Send,
-  ShieldCheck
+  ShieldCheck,
+  Download
 } from 'lucide-react';
 import { WebAppTab } from './Sidebar';
 
@@ -25,6 +26,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
     { id: 'home', label: 'Beranda', icon: <Home className="w-5 h-5" /> },
     { id: 'library', label: 'Lagu', icon: <Music2 className="w-5 h-5" /> },
     { id: 'lyrics', label: 'Lirik', icon: <FileText className="w-5 h-5" /> },
+    { id: 'download', label: 'Unduh', icon: <Download className="w-5 h-5" /> },
     { id: 'about', label: 'Profil', icon: <User className="w-5 h-5" /> },
     { id: 'contact', label: 'Kontak', icon: <Send className="w-5 h-5" /> }
   ];

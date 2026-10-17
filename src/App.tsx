@@ -28,9 +28,11 @@ import { LyricsView } from './components/webapp/LyricsView';
 import { AboutView } from './components/webapp/AboutView';
 import { ContactView } from './components/webapp/ContactView';
 import { AdminView } from './components/webapp/AdminView';
+import { DownloadView } from './components/webapp/DownloadView';
 import { ShortcutsModal } from './components/webapp/ShortcutsModal';
 import { MobileBottomNav } from './components/webapp/MobileBottomNav';
 import { VisitorStatsWidget } from './components/webapp/VisitorStatsWidget';
+import { getDownloadItems } from './services/downloadService';
 import { formatSongDuration } from './utils/duration';
 import { X, Disc3, Heart, FileText, Sparkles } from 'lucide-react';
 
@@ -113,6 +115,19 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [showShortcutsModal, setShowShortcutsModal] = useState(false);
+
+  // Downloads Count
+  const [downloadsCount, setDownloadsCount] = useState<number>(() => {
+    return getDownloadItems().filter((d) => d.status !== 'hidden').length;
+  });
+
+  useEffect(() => {
+    const handleDownloadsUpdated = () => {
+      setDownloadsCount(getDownloadItems().filter((d) => d.status !== 'hidden').length);
+    };
+    window.addEventListener('dzikron_downloads_updated', handleDownloadsUpdated);
+    return () => window.removeEventListener('dzikron_downloads_updated', handleDownloadsUpdated);
+  }, []);
 
   // Admin Auth State
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState<boolean>(() => {
@@ -320,6 +335,7 @@ export default function App() {
           }}
           songsCount={songs.length}
           favoritesCount={favorites.length}
+          downloadCount={downloadsCount}
           isAdminLoggedIn={isAdminLoggedIn}
           onOpenAdminLogin={() => setShowAdminLoginModal(true)}
           onAdminLogout={handleAdminLogout}
@@ -367,6 +383,7 @@ export default function App() {
                     { id: 'home', label: 'Beranda' },
                     { id: 'library', label: `Semua Lagu (${songs.length})` },
                     { id: 'lyrics', label: 'Studio Lirik' },
+                    { id: 'download', label: `Area Unduhan (${downloadsCount})` },
                     { id: 'about', label: 'Profil Komposer' },
                     { id: 'contact', label: 'Kontak & Pesanan' }
                   ].map((item) => (
@@ -523,6 +540,10 @@ export default function App() {
                   onToggleFavorite={toggleFavorite}
                   favorites={favorites}
                 />
+              )}
+
+              {activeTab === 'download' && (
+                <DownloadView />
               )}
 
               {activeTab === 'about' && (

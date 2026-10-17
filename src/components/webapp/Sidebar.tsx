@@ -9,18 +9,20 @@ import {
   LogOut,
   Heart,
   Disc3,
-  Sparkles
+  Sparkles,
+  Download
 } from 'lucide-react';
 import { Song } from '../../types/song';
 import { VisitorStatsWidget } from './VisitorStatsWidget';
 
-export type WebAppTab = 'home' | 'library' | 'lyrics' | 'about' | 'contact' | 'admin';
+export type WebAppTab = 'home' | 'library' | 'lyrics' | 'download' | 'about' | 'contact' | 'admin';
 
 interface SidebarProps {
   activeTab: WebAppTab;
   onSelectTab: (tab: WebAppTab) => void;
   songsCount: number;
   favoritesCount: number;
+  downloadCount?: number;
   isAdminLoggedIn: boolean;
   onOpenAdminLogin?: () => void;
   onAdminLogout?: () => void;
@@ -33,6 +35,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSelectTab,
   songsCount,
   favoritesCount,
+  downloadCount,
   isAdminLoggedIn,
   onOpenAdminLogin,
   onAdminLogout,
@@ -43,6 +46,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'home', label: 'Beranda', icon: <Home className="w-4 h-4" /> },
     { id: 'library', label: 'Semua Lagu', icon: <Music2 className="w-4 h-4" />, badge: songsCount },
     { id: 'lyrics', label: 'Studio Lirik', icon: <FileText className="w-4 h-4" /> },
+    { id: 'download', label: 'Area Unduhan', icon: <Download className="w-4 h-4" />, badge: downloadCount },
     { id: 'about', label: 'Profil Komposer', icon: <User className="w-4 h-4" /> },
     { id: 'contact', label: 'Kontak & Pesanan', icon: <Send className="w-4 h-4" /> }
   ];

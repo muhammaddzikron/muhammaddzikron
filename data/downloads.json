@@ -1,0 +1,50 @@
+[
+  {
+    "id": "dl-1",
+    "fileName": "The Miracle of Rain - Master Audio HQ (24-bit WAV & MP3 320kbps)",
+    "description": "File audio kualitas master studio tertinggi untuk kebutuhan audiophile, pemutaran acara, dan referensi produksi musik.",
+    "fileUrl": "https://drive.google.com/file/d/1A2b3C4d5E6f7G8h9I0j1K2l3M4n5O6p/view?usp=sharing",
+    "fileSize": "48.5 MB",
+    "category": "Master Audio HQ",
+    "format": "WAV + MP3",
+    "downloadCount": 382,
+    "status": "active",
+    "createdAt": "2026-09-01"
+  },
+  {
+    "id": "dl-2",
+    "fileName": "Buku Notasi & Partitur Chord - Koleksi Karya Muhammad Dzikron (Vol. 1)",
+    "description": "Partitur lengkap, chord progresi, melodi vokal, dan panduan dinamika aransemen untuk musisi & pengiring musik.",
+    "fileUrl": "https://drive.google.com/file/d/1B2c3D4e5F6g7H8i9J0k1L2m3N4o5P6q/view?usp=sharing",
+    "fileSize": "12.8 MB",
+    "category": "Partitur & Chord PDF",
+    "format": "PDF Digital Book",
+    "downloadCount": 247,
+    "status": "active",
+    "createdAt": "2026-09-10"
+  },
+  {
+    "id": "dl-3",
+    "fileName": "Lirik & Panduan Makna Lagu - Anthology Muhammad Dzikron",
+    "description": "Dokumen lirik resmi lengkap dengan anotasi pesan moral, latar belakang penciptaan, dan rujukan bait puitis.",
+    "fileUrl": "https://drive.google.com/file/d/1C3d4E5f6G7h8I9j0K1l2M3n4O5p6Q7r/view?usp=sharing",
+    "fileSize": "5.2 MB",
+    "category": "Lirik & Panduan",
+    "format": "PDF Booklet",
+    "downloadCount": 195,
+    "status": "active",
+    "createdAt": "2026-09-15"
+  },
+  {
+    "id": "dl-4",
+    "fileName": "Multi-Track Stems & Backing Track Instrumentalia (Pop Religi & Indie)",
+    "description": "Audio backing track tanpa vokal (karaoke / instrumen) untuk penampilan live, ibadah, festival, atau cover.",
+    "fileUrl": "https://drive.google.com/file/d/1D4e5F6g7H8i9J0k1L2m3N4o5P6q7R8s/view?usp=sharing",
+    "fileSize": "112.0 MB",
+    "category": "Backing Track / Stems",
+    "format": "ZIP Archive",
+    "downloadCount": 164,
+    "status": "active",
+    "createdAt": "2026-10-01"
+  }
+]

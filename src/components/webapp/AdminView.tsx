@@ -56,10 +56,15 @@ import {
   fetchDownloadsFromGoogleSheet,
   saveDownloadToGoogleSheet,
   deleteDownloadFromGoogleSheet,
-  syncAllDownloadsToGoogleSheet
+  syncAllDownloadsToGoogleSheet,
+  saveBannerConfigToGoogleSheet,
+  APPS_SCRIPT_CODE_SAMPLE,
+  getStoredAppsScriptUrl,
+  setStoredAppsScriptUrl
 } from '../../services/appsScript';
 import {
   getDownloadItems,
+  syncDownloadsFromServer,
   saveDownloadItems,
   addDownloadItem,
   updateDownloadItem,
@@ -131,6 +136,11 @@ export const AdminView: React.FC<AdminViewProps> = ({
   const [copiedDownloadsTSV, setCopiedDownloadsTSV] = useState(false);
   const [bannerConfig, setBannerConfig] = useState<DownloadBannerConfig>(getDownloadBannerConfig());
   const [bannerFormData, setBannerFormData] = useState<DownloadBannerConfig>(getDownloadBannerConfig());
+  const [editingModalOriginalName, setEditingModalOriginalName] = useState<string>('');
+  const [editingFormOriginalName, setEditingFormOriginalName] = useState<string>('');
+  const [copiedAppsScriptCode, setCopiedAppsScriptCode] = useState(false);
+  const [showSpreadsheetHelp, setShowSpreadsheetHelp] = useState(false);
+  const [downloadsSheetNotice, setDownloadsSheetNotice] = useState<string | null>(null);
 
   const [downloadFormData, setDownloadFormData] = useState({
     fileName: '',
@@ -159,6 +169,11 @@ export const AdminView: React.FC<AdminViewProps> = ({
       loadOrders();
       setDownloadList(getDownloadItems());
       setBannerConfig(getDownloadBannerConfig());
+      syncDownloadsFromServer().then((items) => {
+        if (items && items.length > 0) {
+          setDownloadList(items);
+        }
+      });
     }
   }, [isAdminLoggedIn]);
 
@@ -172,6 +187,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
 
   const handleResetDownloadForm = () => {
     setEditingDownloadId(null);
+    setEditingFormOriginalName('');
     setDownloadFormData({
       fileName: '',
       description: '',
@@ -211,8 +227,13 @@ export const AdminView: React.FC<AdminViewProps> = ({
 
       const targetFullItem = updated.find(d => d.id === editingDownloadId);
       if (targetFullItem) {
-        saveDownloadToGoogleSheet(targetFullItem).then((res) => {
-          if (res.success) {
+        saveDownloadToGoogleSheet(targetFullItem, editingFormOriginalName).then((res) => {
+          if (res.needsNewDeploymentVersion) {
+            setDownloadsSheetNotice(
+              'Perhatian: Perubahan file tersimpan di website, namun Google Apps Script masih versi lama (belum mengenali Tab Unduhan). Silakan lakukan Deploy -> Manage deployments -> Edit -> Versi baru (New version) -> Deploy di Apps Script.'
+            );
+            showNotification(res.message);
+          } else if (res.success) {
             showNotification(`File "${targetFullItem.fileName}" tersinkron ke Google Spreadsheet!`);
           }
         });
@@ -231,7 +252,12 @@ export const AdminView: React.FC<AdminViewProps> = ({
       showNotification(`File "${added.fileName}" ditambahkan ke Website! Menyimpan ke Spreadsheet...`);
 
       saveDownloadToGoogleSheet(added).then((res) => {
-        if (res.success) {
+        if (res.needsNewDeploymentVersion) {
+          setDownloadsSheetNotice(
+            'Perhatian: File tersimpan di website, namun Google Apps Script masih versi lama. Harap lakukan Deploy Versi Baru di Apps Script agar Tab "Unduhan" terisi.'
+          );
+          showNotification(res.message);
+        } else if (res.success) {
           showNotification(`File "${added.fileName}" tersimpan di Google Spreadsheet (Tab "Unduhan")!`);
         }
       });
@@ -268,8 +294,13 @@ export const AdminView: React.FC<AdminViewProps> = ({
     setEditingItemModal(null);
     showNotification(`Perubahan file "${updatedItem.fileName}" berhasil disimpan! Menyinkronkan ke Spreadsheet...`);
 
-    saveDownloadToGoogleSheet(updatedItem).then((res) => {
-      if (res.success) {
+    saveDownloadToGoogleSheet(updatedItem, editingModalOriginalName).then((res) => {
+      if (res.needsNewDeploymentVersion) {
+        setDownloadsSheetNotice(
+          'Perhatian: Perubahan tersimpan di website, namun Google Apps Script masih versi lama (belum mengenali Tab Unduhan). Silakan lakukan Deploy -> Manage deployments -> Edit -> Versi baru (New version) -> Deploy di Apps Script.'
+        );
+        showNotification(res.message);
+      } else if (res.success) {
         showNotification(`File "${updatedItem.fileName}" tersimpan di Google Spreadsheet (Tab "Unduhan")!`);
       }
     });
@@ -277,6 +308,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
 
   const handleEditDownload = (item: DownloadItem) => {
     setEditingItemModal({ ...item });
+    setEditingModalOriginalName(item.fileName);
   };
 
   const confirmDeleteDownload = () => {
@@ -313,6 +345,14 @@ export const AdminView: React.FC<AdminViewProps> = ({
     const res = await syncAllDownloadsToGoogleSheet(downloadList);
     setIsSyncingDownloadsSheet(false);
     showNotification(res.message);
+    if (res.needsNewDeploymentVersion) {
+      setDownloadsSheetNotice(
+        'Google Apps Script yang aktif masih versi lama (belum mengenali Tab Unduhan). Harap lakukan Deploy -> Manage deployments -> Edit (pensil) -> Pilih "Versi baru" (New version) -> Deploy di editor Google Apps Script.'
+      );
+      setShowSpreadsheetHelp(true);
+    } else if (res.success) {
+      setDownloadsSheetNotice(null);
+    }
   };
 
   const handleFetchDownloadsFromSheet = async () => {
@@ -320,11 +360,23 @@ export const AdminView: React.FC<AdminViewProps> = ({
     const res = await fetchDownloadsFromGoogleSheet();
     setDownloadList(res.downloads);
     setIsLoadingDownloadsSheet(false);
+    if ((res as any).needsScriptUpdate) {
+      setDownloadsSheetNotice('Kode Apps Script di Spreadsheet Anda perlu diperbarui agar Tab "Unduhan" aktif dan dapat menyimpan perubahan secara langsung.');
+    } else {
+      setDownloadsSheetNotice(null);
+    }
     showNotification(
       res.isLive
         ? `Berhasil mengambil (${res.downloads.length}) file unduhan dari Google Spreadsheet!`
-        : `Gagal memuat dari Spreadsheet: ${res.error || 'Menggunakan data lokal'}`
+        : `Info Spreadsheet: ${res.error || 'Menggunakan data lokal'}`
     );
+  };
+
+  const handleCopyAppsScriptCode = () => {
+    navigator.clipboard.writeText(APPS_SCRIPT_CODE_SAMPLE);
+    setCopiedAppsScriptCode(true);
+    setTimeout(() => setCopiedAppsScriptCode(false), 3000);
+    showNotification('Kode Google Apps Script lengkap (dengan Tab Unduhan) berhasil disalin ke clipboard!');
   };
 
   const handleCopyDownloadsTSV = () => {
@@ -351,7 +403,8 @@ export const AdminView: React.FC<AdminViewProps> = ({
     const updated = saveDownloadBannerConfig(bannerFormData);
     setBannerConfig(updated);
     setShowBannerConfigModal(false);
-    showNotification('Pengaturan teks Akses Unduhan Terbuka berhasil disimpan!');
+    saveBannerConfigToGoogleSheet(updated);
+    showNotification('Pengaturan teks Akses Unduhan Terbuka berhasil disimpan & dikirim ke Spreadsheet!');
   };
 
   const handleResetBannerConfig = () => {
@@ -1363,11 +1416,63 @@ export const AdminView: React.FC<AdminViewProps> = ({
                 </button>
 
                 <button
+                  onClick={() => setShowSpreadsheetHelp(true)}
+                  className="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-[#00ffc8] border border-[#00ffc8]/30 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+                  title="Panduan & Kode Script Spreadsheet untuk Tab Unduhan"
+                >
+                  <FileSpreadsheet className="w-3.5 h-3.5 text-[#00ffc8]" />
+                  <span>Petunjuk Script Sheet</span>
+                </button>
+
+                <button
                   onClick={() => setShowResetDownloadsModal(true)}
                   className="px-3 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 text-xs font-semibold transition cursor-pointer"
                   title="Kembalikan file ke daftar bawaan awal"
                 >
                   Reset Bawaan
+                </button>
+              </div>
+            </div>
+
+            {/* Google Spreadsheet Sync Alert / Guide */}
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-950/20 via-slate-900 to-slate-900 border border-emerald-500/20 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs">
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center shrink-0 mt-0.5">
+                  <FileSpreadsheet className="w-4 h-4 text-[#00ffc8]" />
+                </div>
+                <div>
+                  <div className="font-bold text-white flex items-center gap-2">
+                    <span>Sinkronisasi Google Spreadsheet (Tab "Unduhan")</span>
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 text-[10px] font-semibold border border-emerald-500/30">
+                      Tersambung
+                    </span>
+                  </div>
+                  <p className="text-slate-400 text-[11px] mt-0.5 leading-relaxed">
+                    Setiap penambahan, edit link Google Drive, atau penghapusan file otomatis disimpan ke Spreadsheet.
+                    Jika perubahan belum muncul di Google Spreadsheet Anda, perbarui script Google Apps Script satu kali (Deploy &rarr; New version).
+                  </p>
+                  {downloadsSheetNotice && (
+                    <p className="text-amber-400 text-[11px] font-medium mt-1">
+                      {downloadsSheetNotice}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0 w-full md:w-auto">
+                <button
+                  onClick={handleCopyAppsScriptCode}
+                  className="flex-1 md:flex-none px-3.5 py-2 rounded-xl bg-[#00ffc8]/10 hover:bg-[#00ffc8]/20 text-[#00ffc8] border border-[#00ffc8]/30 font-semibold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer"
+                  title="Salin seluruh kode script Google Spreadsheet (Tab 1-4)"
+                >
+                  {copiedAppsScriptCode ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{copiedAppsScriptCode ? 'Kode Tersalin!' : 'Salin Kode Script'}</span>
+                </button>
+                <button
+                  onClick={() => setShowSpreadsheetHelp(true)}
+                  className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold flex items-center gap-1 transition cursor-pointer"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>Panduan</span>
                 </button>
               </div>
             </div>
@@ -2117,7 +2222,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
                   value={bannerFormData.pageHeaderTitle}
                   onChange={(e) => setBannerFormData({ ...bannerFormData, pageHeaderTitle: e.target.value })}
                   className="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-[#00ffc8]"
-                  placeholder="Unduh Master Audio & Materi Musik"
+                  placeholder="Download Area"
                 />
               </div>
 
@@ -2160,6 +2265,107 @@ export const AdminView: React.FC<AdminViewProps> = ({
                 </div>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Panduan Integrasi Google Spreadsheet & Tab Unduhan */}
+      {showSpreadsheetHelp && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="w-full max-w-xl bg-slate-900 border border-slate-700 rounded-3xl p-6 shadow-2xl space-y-5 text-left max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-[#00ffc8]/10 border border-[#00ffc8]/30 flex items-center justify-center text-[#00ffc8]">
+                  <FileSpreadsheet className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-white">Panduan Integrasi Google Spreadsheet (Tab Unduhan)</h4>
+                  <p className="text-[11px] text-slate-400">Pastikan Google Apps Script Anda siap menerima data Tab Unduhan</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowSpreadsheetHelp(false)}
+                className="p-1.5 rounded-lg bg-slate-800 text-slate-400 hover:text-white transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Explanation box */}
+            <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 space-y-2 text-xs text-slate-300 leading-relaxed">
+              <p>
+                <strong className="text-white">Kenapa perubahan di dasbor belum muncul di Google Spreadsheet?</strong>
+              </p>
+              <p className="text-slate-400 text-[11px]">
+                Google Apps Script di Spreadsheet Anda perlu diperbarui satu kali dengan versi kode terbaru agar mengenali <strong>Tab 4: "Unduhan"</strong>. Setelah diperbarui, semua tambah, edit nama/link, dan hapus file akan tersimpan secara otomatis.
+              </p>
+            </div>
+
+            {/* Steps */}
+            <div className="space-y-3 text-xs">
+              <h5 className="font-bold text-white flex items-center gap-2">
+                <Check className="w-4 h-4 text-[#00ffc8]" />
+                <span>3 Langkah Mudah Memperbarui Script:</span>
+              </h5>
+
+              <ol className="list-decimal list-inside space-y-2 text-slate-300 pl-1 leading-relaxed text-[11px]">
+                <li>
+                  Buka Spreadsheet Google Anda &rarr; Klik menu <strong>Extensions (Ekstensi) &rarr; Apps Script</strong>.
+                </li>
+                <li>
+                  Hapus seluruh kode lama di editor, lalu <strong>Paste (Tempel)</strong> kode terbaru yang disalin dari tombol di bawah.
+                </li>
+                <li>
+                  Klik tombol <strong>Deploy &rarr; Manage deployments</strong> &rarr; Klik ikon <strong>Pensil (Edit)</strong> &rarr; Pilih <strong>Version: New version</strong> &rarr; Klik <strong>Deploy</strong>.
+                </li>
+              </ol>
+            </div>
+
+            {/* Action Buttons inside modal */}
+            <div className="space-y-3 pt-2 border-t border-slate-800">
+              <div className="flex flex-col sm:flex-row items-center gap-2.5">
+                <button
+                  onClick={handleCopyAppsScriptCode}
+                  className="w-full sm:flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-[#0099ff] to-[#00ffc8] text-slate-950 font-bold text-xs flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(0,255,200,0.3)] hover:brightness-110 transition cursor-pointer"
+                >
+                  {copiedAppsScriptCode ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                  <span>{copiedAppsScriptCode ? 'Kode Lengkap Berhasil Disalin!' : 'Salin Kode Apps Script Lengkap'}</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    handleSyncDownloadsToSheet();
+                    setShowSpreadsheetHelp(false);
+                  }}
+                  className="w-full sm:w-auto py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer"
+                  title="Kirim semua file yang ada di dasbor ke Spreadsheet"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>Sinkronkan Sekarang</span>
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between text-[11px] text-slate-400">
+                <span>Atau salin tabel jika ingin paste manual:</span>
+                <button
+                  onClick={handleCopyDownloadsTSV}
+                  className="text-[#00ffc8] hover:underline flex items-center gap-1 cursor-pointer font-medium"
+                >
+                  <Copy className="w-3 h-3" />
+                  <span>{copiedDownloadsTSV ? 'Tersalin!' : 'Salin Format Tabel TSV'}</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-2 border-t border-slate-800">
+              <button
+                type="button"
+                onClick={() => setShowSpreadsheetHelp(false)}
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition cursor-pointer"
+              >
+                Tutup Panduan
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -28,6 +28,7 @@ import {
 import { DownloadItem } from '../../types/song';
 import {
   getDownloadItems,
+  syncDownloadsFromServer,
   getInstagramFollowStatus,
   setInstagramFollowStatus,
   incrementDownloadCount,
@@ -60,6 +61,7 @@ export const DownloadView: React.FC<DownloadViewProps> = ({
   const [bannerConfig, setBannerConfig] = useState<DownloadBannerConfig>(getDownloadBannerConfig());
   const [itemToDelete, setItemToDelete] = useState<DownloadItem | null>(null);
   const [editingItemModal, setEditingItemModal] = useState<DownloadItem | null>(null);
+  const [editingModalOriginalName, setEditingModalOriginalName] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [showFollowModal, setShowFollowModal] = useState<boolean>(false);
@@ -71,6 +73,13 @@ export const DownloadView: React.FC<DownloadViewProps> = ({
     setDownloadItems(getDownloadItems());
     setIsFollowed(getInstagramFollowStatus());
     setBannerConfig(getDownloadBannerConfig());
+
+    // Fetch from persistent server store
+    syncDownloadsFromServer().then((items) => {
+      if (items && items.length > 0) {
+        setDownloadItems(items);
+      }
+    });
 
     // Fetch latest downloads from spreadsheet if configured
     fetchDownloadsFromGoogleSheet().then((res) => {
@@ -195,10 +204,12 @@ export const DownloadView: React.FC<DownloadViewProps> = ({
     const updated = updateDownloadItem(editingItemModal.id, updatedItem);
     setDownloadItems(updated);
     setEditingItemModal(null);
-    showToast(`File "${updatedItem.fileName}" diperbarui di Website & Spreadsheet!`);
+    showToast(`File "${updatedItem.fileName}" berhasil diperbarui di website!`);
 
-    saveDownloadToGoogleSheet(updatedItem).then((res) => {
-      if (res.success) {
+    saveDownloadToGoogleSheet(updatedItem, editingModalOriginalName).then((res) => {
+      if (res.needsNewDeploymentVersion) {
+        showToast(`Tersimpan di website! (Google Apps Script perlu Deploy Versi Baru untuk Tab Unduhan)`);
+      } else if (res.success) {
         showToast(`File "${updatedItem.fileName}" tersinkron ke Google Spreadsheet!`);
       }
     });
@@ -493,7 +504,10 @@ export const DownloadView: React.FC<DownloadViewProps> = ({
                 {isAdminLoggedIn && (
                   <div className="flex items-center gap-2 pt-2 border-t border-slate-800/80">
                     <button
-                      onClick={() => setEditingItemModal({ ...item })}
+                      onClick={() => {
+                        setEditingItemModal({ ...item });
+                        setEditingModalOriginalName(item.fileName);
+                      }}
                       className="flex-1 py-1.5 px-3 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/30 text-cyan-300 text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer"
                       title="Edit file ini"
                     >

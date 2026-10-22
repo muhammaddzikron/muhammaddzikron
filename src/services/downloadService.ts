@@ -67,7 +67,17 @@ export function getDownloadItems(): DownloadItem[] {
       return INITIAL_DOWNLOAD_ITEMS;
     }
     const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) {
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      // Periksa apakah data berisi placeholder rusak "File Unduhan #..." dari bug mapping lagu lama
+      const isCorrupted = parsed.some(
+        (item: any) =>
+          typeof item?.fileName === 'string' &&
+          (item.fileName.startsWith('File Unduhan #') || item.fileName.toLowerCase().startsWith('file unduhan #'))
+      );
+      if (isCorrupted) {
+        localStorage.setItem(DOWNLOADS_STORAGE_KEY, JSON.stringify(INITIAL_DOWNLOAD_ITEMS));
+        return INITIAL_DOWNLOAD_ITEMS;
+      }
       return parsed;
     }
     return INITIAL_DOWNLOAD_ITEMS;
@@ -87,6 +97,30 @@ export function saveDownloadItems(items: DownloadItem[]): void {
   }
 }
 
+export async function syncDownloadsFromServer(): Promise<DownloadItem[]> {
+  try {
+    const res = await fetch('/api/downloads');
+    if (res.ok) {
+      const data = await res.json();
+      if (data && Array.isArray(data.downloads) && data.downloads.length > 0) {
+        // Validate no corrupted items
+        const isCorrupted = data.downloads.some(
+          (item: any) =>
+            typeof item?.fileName === 'string' &&
+            item.fileName.startsWith('File Unduhan #')
+        );
+        if (!isCorrupted) {
+          saveDownloadItems(data.downloads);
+          return data.downloads;
+        }
+      }
+    }
+  } catch (err) {
+    // Non-blocking fallback to local storage
+  }
+  return getDownloadItems();
+}
+
 export function addDownloadItem(newItem: Omit<DownloadItem, 'id' | 'downloadCount' | 'createdAt'>): DownloadItem {
   const items = getDownloadItems();
   const item: DownloadItem = {
@@ -97,6 +131,16 @@ export function addDownloadItem(newItem: Omit<DownloadItem, 'id' | 'downloadCoun
   };
   const updated = [item, ...items];
   saveDownloadItems(updated);
+
+  // Sync to server disk persistence
+  if (typeof window !== 'undefined') {
+    fetch('/api/downloads', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ item })
+    }).catch((e) => console.warn('Could not save to /api/downloads:', e));
+  }
+
   return item;
 }
 
@@ -104,6 +148,17 @@ export function updateDownloadItem(id: string, updates: Partial<DownloadItem>): 
   const items = getDownloadItems();
   const updated = items.map((item) => (item.id === id || item.fileName === id ? { ...item, ...updates } : item));
   saveDownloadItems(updated);
+
+  // Sync to server disk persistence
+  const targetItem = updated.find((i) => i.id === id || i.fileName === id);
+  if (targetItem && typeof window !== 'undefined') {
+    fetch('/api/downloads', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ item: targetItem, oldFileName: id })
+    }).catch((e) => console.warn('Could not sync update to /api/downloads:', e));
+  }
+
   return updated;
 }
 
@@ -112,6 +167,14 @@ export function deleteDownloadItem(idOrName: string): DownloadItem[] {
   const target = String(idOrName).trim();
   const updated = items.filter((item) => item.id !== target && item.fileName !== target);
   saveDownloadItems(updated);
+
+  // Sync to server disk persistence
+  if (typeof window !== 'undefined') {
+    fetch(`/api/downloads/${encodeURIComponent(target)}`, {
+      method: 'DELETE'
+    }).catch((e) => console.warn('Could not delete from /api/downloads:', e));
+  }
+
   return updated;
 }
 
@@ -144,6 +207,9 @@ export function incrementDownloadCount(id: string): void {
 
 export function resetDownloadItemsToDefault(): DownloadItem[] {
   saveDownloadItems(INITIAL_DOWNLOAD_ITEMS);
+  if (typeof window !== 'undefined') {
+    fetch('/api/downloads/reset', { method: 'POST' }).catch(() => {});
+  }
   return INITIAL_DOWNLOAD_ITEMS;
 }
 
@@ -186,7 +252,7 @@ export interface DownloadBannerConfig {
   instagramUsername: string; // e.g. "@muhammaddzikron"
   instagramUrl: string; // e.g. "https://www.instagram.com/muhammaddzikron"
   pageHeaderBadge: string; // e.g. "Pusat Unduhan Resmi • Muhammad Dzikron"
-  pageHeaderTitle: string; // e.g. "Unduh Master Audio & Materi Musik"
+  pageHeaderTitle: string; // e.g. "Download Area"
   pageHeaderDesc: string; // e.g. "Dapatkan master audio original kualitas studio..."
 }
 
@@ -198,7 +264,7 @@ export const DEFAULT_DOWNLOAD_BANNER_CONFIG: DownloadBannerConfig = {
   instagramUsername: '@muhammaddzikron',
   instagramUrl: 'https://www.instagram.com/muhammaddzikron',
   pageHeaderBadge: 'Pusat Unduhan Resmi • Muhammad Dzikron',
-  pageHeaderTitle: 'Unduh Master Audio & Materi Musik',
+  pageHeaderTitle: 'Download Area',
   pageHeaderDesc: 'Dapatkan master audio original kualitas studio (WAV / MP3 320kbps), buku chord & notasi partitur resmi, panduan lirik, serta paket instrumentalia langsung dari tautan aman Google Drive.'
 };
 
@@ -208,6 +274,17 @@ export function getDownloadBannerConfig(): DownloadBannerConfig {
     const raw = localStorage.getItem(BANNER_CONFIG_STORAGE_KEY);
     if (!raw) return DEFAULT_DOWNLOAD_BANNER_CONFIG;
     const parsed = JSON.parse(raw);
+    if (
+      !parsed.pageHeaderTitle ||
+      parsed.pageHeaderTitle === 'Unduh Master Audio & Materi Musik' ||
+      parsed.pageHeaderTitle === 'Unduh Materi' ||
+      parsed.pageHeaderTitle.toLowerCase().includes('unduh master')
+    ) {
+      parsed.pageHeaderTitle = 'Download Area';
+      try {
+        localStorage.setItem(BANNER_CONFIG_STORAGE_KEY, JSON.stringify({ ...DEFAULT_DOWNLOAD_BANNER_CONFIG, ...parsed }));
+      } catch {}
+    }
     return { ...DEFAULT_DOWNLOAD_BANNER_CONFIG, ...parsed };
   } catch {
     return DEFAULT_DOWNLOAD_BANNER_CONFIG;

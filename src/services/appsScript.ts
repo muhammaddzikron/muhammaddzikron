@@ -710,7 +710,7 @@ export async function syncAllSongsToGoogleSheet(songs: Song[]): Promise<{ succes
 
 export async function fetchDownloadsFromGoogleSheet(
   customUrl?: string
-): Promise<{ downloads: DownloadItem[]; isLive: boolean; error?: string }> {
+): Promise<{ downloads: DownloadItem[]; isLive: boolean; error?: string; needsScriptUpdate?: boolean }> {
   const endpoint = customUrl || getStoredAppsScriptUrl();
   const cached = getDownloadItems();
 
@@ -736,8 +736,22 @@ export async function fetchDownloadsFromGoogleSheet(
       rawList = json.data;
     }
 
-    if (rawList.length === 0) {
-      return { downloads: cached, isLive: true };
+    const isSongData =
+      rawList.length > 0 &&
+      Boolean(rawList[0]['Judul Lagu'] || rawList[0]['Penyanyi'] || rawList[0]['Genre']);
+    const hasDownloadFields = rawList.some((item: any) =>
+      Boolean(item['Nama File'] || item['nama_file'] || item['Link Download'] || item['Format'] || item['format'])
+    );
+
+    // Jika Apps Script lama mengembalikan sheet Lagu karena belum mengenali type=downloads
+    if (isSongData || !hasDownloadFields) {
+      console.warn('Apps Script belum mendukung Tab Unduhan (mengembalikan katalog lagu).');
+      return {
+        downloads: cached,
+        isLive: false,
+        needsScriptUpdate: true,
+        error: 'Kode Google Apps Script di Spreadsheet Anda belum memiliki branch Tab Unduhan. Silakan perbarui kode script.'
+      };
     }
 
     const parsed: DownloadItem[] = rawList.map((item: any, idx: number) => {
@@ -798,21 +812,82 @@ export async function fetchDownloadsFromGoogleSheet(
   }
 }
 
+export interface SaveDownloadResult {
+  success: boolean;
+  message: string;
+  needsNewDeploymentVersion?: boolean;
+  spreadsheetSynced?: boolean;
+}
+
+export async function checkSpreadsheetDownloadsStatus(): Promise<{
+  ready: boolean;
+  needsNewDeploymentVersion?: boolean;
+  message: string;
+}> {
+  const endpoint = getStoredAppsScriptUrl();
+  if (!endpoint) {
+    return { ready: false, message: 'URL Google Apps Script belum diisi di Pengaturan.' };
+  }
+
+  try {
+    const res = await fetch('/api/downloads/check-spreadsheet', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ endpointUrl: endpoint })
+    });
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (err: any) {
+    console.warn('Check spreadsheet downloads error:', err);
+  }
+  return { ready: false, message: 'Tidak dapat menghubungi server pengecekan.' };
+}
+
 export async function saveDownloadToGoogleSheet(
   item: DownloadItem,
+  oldFileName?: string,
   customUrl?: string
-): Promise<{ success: boolean; message: string }> {
+): Promise<SaveDownloadResult> {
   const endpoint = customUrl || getStoredAppsScriptUrl();
 
   if (!endpoint) {
-    return { success: true, message: 'Tersimpan secara lokal di browser.' };
+    return { success: true, message: 'Tersimpan secara lokal di website.' };
   }
 
+  // 1. First attempt through server proxy which inspects exact Google Apps Script JSON response
+  try {
+    const proxyRes = await fetch('/api/downloads/sync-spreadsheet', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        endpointUrl: endpoint,
+        action: 'save_download',
+        item,
+        oldFileName
+      })
+    });
+
+    if (proxyRes.ok) {
+      const data = await proxyRes.json();
+      return {
+        success: true,
+        message: data.message,
+        needsNewDeploymentVersion: Boolean(data.needsNewDeploymentVersion),
+        spreadsheetSynced: Boolean(data.spreadsheetSynced)
+      };
+    }
+  } catch (proxyErr) {
+    console.warn('Server proxy sync fallback to browser direct fetch:', proxyErr);
+  }
+
+  // 2. Direct browser fallback
   try {
     const payload = {
       action: 'save_download',
       id: item.id,
       fileName: item.fileName,
+      oldFileName: oldFileName || undefined,
       category: item.category,
       format: item.format,
       fileSize: item.fileSize || '-',
@@ -825,13 +900,13 @@ export async function saveDownloadToGoogleSheet(
     await fetch(endpoint, {
       method: 'POST',
       mode: 'no-cors',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify(payload)
     });
 
     return {
       success: true,
-      message: `File "${item.fileName}" berhasil dikirim & disimpan ke Google Spreadsheet (Tab "Unduhan")!`
+      message: `File "${item.fileName}" tersimpan di website & dikirim ke Google Spreadsheet!`
     };
   } catch (err: any) {
     console.error('Error saving download to Apps Script:', err);
@@ -842,20 +917,42 @@ export async function saveDownloadToGoogleSheet(
   }
 }
 
+export async function saveBannerConfigToGoogleSheet(
+  config: any
+): Promise<{ success: boolean; message: string }> {
+  const endpoint = getStoredAppsScriptUrl();
+  if (!endpoint) return { success: true, message: 'Tersimpan secara lokal di browser.' };
+
+  try {
+    await fetch(endpoint, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        action: 'save_download_banner',
+        banner: config
+      })
+    });
+    return { success: true, message: 'Pengaturan teks unduhan berhasil disinkronkan ke Spreadsheet!' };
+  } catch (err: any) {
+    return { success: false, message: `Gagal sinkron teks: ${err.message}` };
+  }
+}
+
 export async function deleteDownloadFromGoogleSheet(
   fileName: string,
   id?: string
 ): Promise<{ success: boolean; message: string }> {
   const endpoint = getStoredAppsScriptUrl();
   if (!endpoint) {
-    return { success: true, message: 'Dihapus dari penyimpanan lokal browser.' };
+    return { success: true, message: 'Dihapus dari penyimpanan website.' };
   }
 
   try {
     await fetch(endpoint, {
       method: 'POST',
       mode: 'no-cors',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({
         action: 'delete_download',
         fileName,
@@ -879,17 +976,43 @@ export async function deleteDownloadFromGoogleSheet(
 
 export async function syncAllDownloadsToGoogleSheet(
   downloads: DownloadItem[]
-): Promise<{ success: boolean; message: string }> {
+): Promise<SaveDownloadResult> {
   const endpoint = getStoredAppsScriptUrl();
   if (!endpoint) {
     return { success: false, message: 'URL Apps Script belum dikonfigurasi.' };
   }
 
+  // 1. Try server proxy for exact deployment verification
+  try {
+    const proxyRes = await fetch('/api/downloads/sync-spreadsheet', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        endpointUrl: endpoint,
+        action: 'sync_all',
+        downloads
+      })
+    });
+
+    if (proxyRes.ok) {
+      const data = await proxyRes.json();
+      return {
+        success: data.success,
+        message: data.message,
+        needsNewDeploymentVersion: Boolean(data.needsNewDeploymentVersion),
+        spreadsheetSynced: Boolean(data.spreadsheetSynced)
+      };
+    }
+  } catch (proxyErr) {
+    console.warn('Server proxy sync fallback:', proxyErr);
+  }
+
+  // 2. Direct fallback
   try {
     await fetch(endpoint, {
       method: 'POST',
       mode: 'no-cors',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({
         action: 'sync_downloads',
         downloads: downloads.map((d, idx) => ({
@@ -909,7 +1032,7 @@ export async function syncAllDownloadsToGoogleSheet(
 
     return {
       success: true,
-      message: `Semua (${downloads.length}) file unduhan berhasil disinkronkan ke Google Spreadsheet (Tab "Unduhan")!`
+      message: `Semua (${downloads.length}) file unduhan berhasil dikirim ke Google Spreadsheet (Tab "Unduhan")!`
     };
   } catch (err: any) {
     console.error('Error syncing all downloads to Apps Script:', err);
@@ -1308,8 +1431,10 @@ function doPost(e) {
       var data = sheet.getDataRange().getValues();
       var rowIndex = -1;
       var fileName = String(body.fileName || body.nama_file || body.title || '').trim();
+      var oldFileName = String(body.oldFileName || '').trim();
       for (var i = 1; i < data.length; i++) {
-        if (String(data[i][1]).trim().toLowerCase() === fileName.toLowerCase()) {
+        var rowName = String(data[i][1]).trim().toLowerCase();
+        if ((oldFileName && rowName === oldFileName.toLowerCase()) || (fileName && rowName === fileName.toLowerCase())) {
           rowIndex = i + 1;
           break;
         }
@@ -1339,7 +1464,7 @@ function doPost(e) {
       var sheet = ss.getSheetByName('Unduhan') || ss.getSheetByName('Download') || ss.getSheetByName('Downloads');
       if (sheet) {
         var data = sheet.getDataRange().getValues();
-        var targetName = String(body.fileName || body.title || '').trim().toLowerCase();
+        var targetName = String(body.fileName || body.title || body.oldFileName || '').trim().toLowerCase();
         for (var i = 1; i < data.length; i++) {
           if (String(data[i][1]).trim().toLowerCase() === targetName) {
             sheet.deleteRow(i + 1);
@@ -1374,6 +1499,27 @@ function doPost(e) {
         ]);
       }
       return ContentService.createTextOutput(JSON.stringify({ status: 'success', message: 'Semua file unduhan tersinkron di Spreadsheet' }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // 11. Simpan Pengaturan Teks Unduhan
+    if (action === 'save_download_banner' || action === 'update_download_banner') {
+      var b = body.banner || body;
+      var pSheet = getOrCreateSheet(ss, 'Profil', ['Field', 'Value']);
+      var pData = pSheet.getDataRange().getValues();
+      var foundRow = -1;
+      for (var pi = 1; pi < pData.length; pi++) {
+        if (String(pData[pi][0]).trim().toLowerCase() === 'judul halaman unduh') {
+          foundRow = pi + 1;
+          break;
+        }
+      }
+      if (foundRow > 0) {
+        pSheet.getRange(foundRow, 2).setValue(b.pageHeaderTitle || 'Download Area');
+      } else {
+        pSheet.appendRow(['Judul Halaman Unduh', b.pageHeaderTitle || 'Download Area']);
+      }
+      return ContentService.createTextOutput(JSON.stringify({ status: 'success', message: 'Pengaturan teks unduhan tersimpan di Spreadsheet' }))
         .setMimeType(ContentService.MimeType.JSON);
     }
     

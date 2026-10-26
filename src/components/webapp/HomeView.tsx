@@ -64,49 +64,49 @@ export const HomeView: React.FC<HomeViewProps> = ({
   return (
     <div className="space-y-8 pb-12 animate-in fade-in duration-300">
       
-      {/* 1. Hero Spotlight Release Banner (Centerpiece Luxury Card) */}
+      {/* 1. Hero Spotlight Release Banner (Centerpiece Luxury White Card) */}
       {featuredSong && (
-        <div className="relative overflow-hidden rounded-3xl border border-slate-800 bg-gradient-to-r from-slate-950 via-[#0a1527] to-[#041122] p-6 sm:p-8 lg:p-10 shadow-2xl">
-          {/* Ambient Glows */}
-          <div className="absolute -top-24 -right-24 w-80 h-80 bg-amber-500/15 rounded-full blur-[100px] pointer-events-none" />
-          <div className="absolute -bottom-24 -left-24 w-80 h-80 bg-indigo-500/20 rounded-full blur-[100px] pointer-events-none" />
+        <div className="relative overflow-hidden rounded-3xl border border-slate-200/90 bg-white p-6 sm:p-8 lg:p-10 shadow-[0_10px_35px_rgba(15,23,42,0.05)]">
+          {/* Subtle Ambient Glows */}
+          <div className="absolute -top-24 -right-24 w-80 h-80 bg-amber-100/40 rounded-full blur-[90px] pointer-events-none" />
+          <div className="absolute -bottom-24 -left-24 w-80 h-80 bg-indigo-100/40 rounded-full blur-[90px] pointer-events-none" />
 
           <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
             
             {/* Left Info */}
             <div className="lg:col-span-7 space-y-4">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-400/15 border border-amber-400/30 text-amber-300 text-xs font-bold uppercase tracking-wider">
-                <Sparkles className="w-3.5 h-3.5" />
+              <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-amber-50 border border-amber-300 text-amber-900 text-xs font-bold uppercase tracking-wider shadow-xs">
+                <Sparkles className="w-3.5 h-3.5 text-amber-600" />
                 <span>
                   {isPlaying && currentSong?.id === featuredSong.id
-                    ? 'Now Playing • Featured Masterpiece'
-                    : 'Featured Masterpiece Release'}
+                    ? 'Sedang Diputar • Masterpiece Pilihan'
+                    : 'Karya Pilihan • Rilisan Unggulan'}
                 </span>
                 {isPlaying && currentSong?.id === featuredSong.id && (
                   <span className="flex h-2 w-2 relative">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-400"></span>
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-500 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-600"></span>
                   </span>
                 )}
               </div>
 
-              <h1 className="text-3xl sm:text-5xl font-serif font-extrabold text-white tracking-tight leading-tight">
+              <h1 className="text-3xl sm:text-5xl font-serif font-extrabold text-slate-900 tracking-tight leading-tight">
                 {featuredSong.title}
               </h1>
 
-              <div className="flex flex-wrap items-center gap-3 text-xs text-slate-300">
-                <span className="font-semibold text-white">{featuredSong.singer}</span>
-                <span>•</span>
-                <span className="px-2.5 py-0.5 rounded-full bg-white/10 border border-white/20 text-amber-300 font-semibold">
+              <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 text-xs text-slate-600">
+                <span className="font-bold text-slate-800">{featuredSong.singer}</span>
+                <span className="text-slate-300">•</span>
+                <span className="px-2.5 py-0.5 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-700 font-bold text-xs">
                   {featuredSong.genre}
                 </span>
-                <span>•</span>
-                <span>Tahun {featuredSong.year}</span>
-                <span>•</span>
-                <span className="font-mono">{formatSongDuration(featuredSong.duration)}</span>
+                <span className="text-slate-300">•</span>
+                <span className="font-medium text-slate-600">Tahun {featuredSong.year}</span>
+                <span className="text-slate-300">•</span>
+                <span className="font-mono text-slate-500 font-semibold">{formatSongDuration(featuredSong.duration)}</span>
               </div>
 
-              <p className="text-xs sm:text-sm text-slate-300/90 leading-relaxed max-w-xl line-clamp-3">
+              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed max-w-xl line-clamp-3">
                 {featuredSong.lyrics ? featuredSong.lyrics.split('\n').slice(0, 4).join(' ') + '...' : 'Karya cipta melodi orisinal ciptaan Muhammad Dzikron.'}
               </p>
 
@@ -114,16 +114,16 @@ export const HomeView: React.FC<HomeViewProps> = ({
               <div className="flex flex-wrap items-center gap-3 pt-2">
                 <button
                   onClick={() => onPlaySong(featuredSong)}
-                  className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 text-slate-950 font-extrabold text-xs uppercase tracking-wider flex items-center gap-2.5 hover:scale-105 transition-all shadow-[0_0_25px_rgba(245,158,11,0.35)] cursor-pointer"
+                  className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-extrabold text-xs uppercase tracking-wider flex items-center gap-2.5 transition-all shadow-md shadow-amber-200 hover:scale-105 cursor-pointer active:scale-95"
                 >
                   {isPlaying && currentSong?.id === featuredSong.id ? (
                     <>
-                      <Pause className="w-4 h-4" />
+                      <Pause className="w-4 h-4 fill-white" />
                       <span>Jeda Putar</span>
                     </>
                   ) : (
                     <>
-                      <Play className="w-4 h-4 fill-slate-950" />
+                      <Play className="w-4 h-4 fill-white ml-0.5" />
                       <span>Putar Sekarang</span>
                     </>
                   )}
@@ -131,20 +131,20 @@ export const HomeView: React.FC<HomeViewProps> = ({
 
                 <button
                   onClick={() => onSelectSongDetails(featuredSong)}
-                  className="px-5 py-3.5 rounded-2xl bg-white/10 hover:bg-white/20 text-white border border-white/20 text-xs font-semibold flex items-center gap-2 transition cursor-pointer"
+                  className="px-5 py-3.5 rounded-2xl bg-white hover:bg-slate-50 text-slate-800 border border-slate-200/90 hover:border-slate-300 text-xs font-bold flex items-center gap-2 transition cursor-pointer shadow-xs active:scale-95"
                 >
-                  <FileText className="w-4 h-4 text-amber-300" />
+                  <FileText className="w-4 h-4 text-indigo-600" />
                   <span>Lihat Lirik & Info</span>
                 </button>
 
                 <button
                   onClick={() => onToggleFavorite(featuredSong.id)}
-                  className={`p-3.5 rounded-2xl border transition cursor-pointer ${
+                  className={`p-3.5 rounded-2xl border transition cursor-pointer shadow-xs active:scale-95 ${
                     favorites.includes(featuredSong.id)
-                      ? 'bg-rose-500/30 text-rose-300 border-rose-500/50'
-                      : 'bg-white/10 text-slate-300 hover:text-white border-white/20'
+                      ? 'bg-rose-50 text-rose-600 border-rose-300'
+                      : 'bg-white text-slate-600 hover:text-slate-900 border-slate-200/90 hover:bg-slate-50'
                   }`}
-                  title="Tambah ke Favorit"
+                  title={favorites.includes(featuredSong.id) ? 'Hapus dari Favorit' : 'Tambah ke Favorit'}
                 >
                   <Heart className={`w-4 h-4 ${favorites.includes(featuredSong.id) ? 'fill-rose-500 text-rose-500' : ''}`} />
                 </button>
@@ -155,29 +155,29 @@ export const HomeView: React.FC<HomeViewProps> = ({
             <div className="lg:col-span-5 flex justify-center">
               <div className="relative group cursor-pointer" onClick={() => onPlaySong(featuredSong)}>
                 {/* Vinyl Record Behind Cover */}
-                <div className={`absolute -right-6 top-1/2 -translate-y-1/2 w-44 h-44 sm:w-56 sm:h-56 rounded-full bg-black border-4 border-slate-800 shadow-2xl flex items-center justify-center transition-transform duration-700 ${
+                <div className={`absolute -right-6 top-1/2 -translate-y-1/2 w-44 h-44 sm:w-56 sm:h-56 rounded-full bg-slate-900 border-4 border-slate-200 shadow-xl flex items-center justify-center transition-transform duration-700 ${
                   isPlaying && currentSong?.id === featuredSong.id
                     ? 'translate-x-6 sm:translate-x-12 animate-spin-slow'
                     : 'group-hover:translate-x-6'
                 }`}>
-                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-2 border-amber-400/50 flex items-center justify-center bg-slate-900">
-                    <Disc3 className="w-8 h-8 text-amber-400" />
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-2 border-amber-300 flex items-center justify-center bg-amber-500 shadow-inner">
+                    <Disc3 className="w-8 h-8 text-slate-950" />
                   </div>
                 </div>
 
                 {/* Album Cover Art */}
-                <div className="relative w-48 h-48 sm:w-60 sm:h-60 rounded-2xl overflow-hidden border-2 border-white/20 shadow-[0_15px_40px_rgba(0,0,0,0.8)] z-10">
+                <div className="relative w-48 h-48 sm:w-60 sm:h-60 rounded-3xl overflow-hidden border-2 border-slate-200 shadow-xl z-10 bg-slate-100">
                   <img
                     src={featuredSong.cover}
                     alt={featuredSong.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end p-4">
-                    <div className="w-10 h-10 rounded-full bg-amber-400 text-slate-950 flex items-center justify-center shadow-lg group-hover:scale-110 transition">
+                  <div className="absolute inset-0 bg-slate-900/20 flex items-end p-4">
+                    <div className="w-11 h-11 rounded-full bg-amber-500 hover:bg-amber-600 text-white flex items-center justify-center shadow-lg group-hover:scale-110 transition">
                       {isPlaying && currentSong?.id === featuredSong.id ? (
-                        <Pause className="w-5 h-5 fill-slate-950" />
+                        <Pause className="w-5 h-5 fill-white" />
                       ) : (
-                        <Play className="w-5 h-5 fill-slate-950 ml-0.5" />
+                        <Play className="w-5 h-5 fill-white ml-0.5" />
                       )}
                     </div>
                   </div>

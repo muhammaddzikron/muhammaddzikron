@@ -52,20 +52,20 @@ export const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
         // Gradient coloring
         const grad = ctx.createLinearGradient(0, height, 0, 0);
         if (color === 'tosca') {
-          grad.addColorStop(0, 'rgba(0, 255, 200, 0.2)');
-          grad.addColorStop(1, '#00ffc8');
+          grad.addColorStop(0, '#059669');
+          grad.addColorStop(1, '#10b981');
         } else if (color === 'blue') {
-          grad.addColorStop(0, 'rgba(0, 153, 255, 0.2)');
-          grad.addColorStop(1, '#0099ff');
+          grad.addColorStop(0, '#2563eb');
+          grad.addColorStop(1, '#4f46e5');
         } else {
-          grad.addColorStop(0, '#0099ff');
-          grad.addColorStop(0.5, '#00ffc8');
-          grad.addColorStop(1, '#a855f7');
+          grad.addColorStop(0, '#4f46e5');
+          grad.addColorStop(0.5, '#ec4899');
+          grad.addColorStop(1, '#f59e0b');
         }
 
         ctx.fillStyle = grad;
-        ctx.shadowBlur = isPlaying ? 8 : 0;
-        ctx.shadowColor = '#00ffc8';
+        ctx.shadowBlur = isPlaying ? 4 : 0;
+        ctx.shadowColor = 'rgba(99, 102, 241, 0.3)';
 
         // Draw rounded top bar
         ctx.beginPath();

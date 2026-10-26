@@ -41,24 +41,24 @@ export const CustomCursor: React.FC = () => {
   return (
     <>
       <div
-        className="fixed pointer-events-none z-50 rounded-full bg-[#00ffc8] transition-transform duration-75 ease-out -translate-x-1/2 -translate-y-1/2 mix-blend-screen"
+        className="fixed pointer-events-none z-50 rounded-full bg-indigo-600 transition-transform duration-75 ease-out -translate-x-1/2 -translate-y-1/2"
         style={{
           left: `${position.x}px`,
           top: `${position.y}px`,
-          width: isHovered ? '24px' : '8px',
-          height: isHovered ? '24px' : '8px',
-          boxShadow: isHovered ? '0 0 20px #00ffc8, 0 0 40px #0099ff' : '0 0 10px #00ffc8',
-          opacity: 0.8
+          width: isHovered ? '20px' : '8px',
+          height: isHovered ? '20px' : '8px',
+          boxShadow: isHovered ? '0 0 15px rgba(79, 70, 229, 0.4)' : '0 0 8px rgba(79, 70, 229, 0.3)',
+          opacity: 0.75
         }}
       />
       <div
-        className="fixed pointer-events-none z-50 rounded-full border border-[#0099ff]/50 transition-transform duration-300 ease-out -translate-x-1/2 -translate-y-1/2"
+        className="fixed pointer-events-none z-50 rounded-full border border-indigo-400 transition-transform duration-300 ease-out -translate-x-1/2 -translate-y-1/2"
         style={{
           left: `${position.x}px`,
           top: `${position.y}px`,
-          width: isHovered ? '48px' : '32px',
-          height: isHovered ? '48px' : '32px',
-          opacity: isHovered ? 0.9 : 0.4
+          width: isHovered ? '42px' : '28px',
+          height: isHovered ? '42px' : '28px',
+          opacity: isHovered ? 0.7 : 0.3
         }}
       />
     </>

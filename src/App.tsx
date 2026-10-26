@@ -319,7 +319,7 @@ export default function App() {
   };
 
   return (
-    <div className="relative h-screen w-screen bg-[#050505] text-slate-100 font-sans selection:bg-[#00ffc8]/30 selection:text-[#00ffc8] overflow-hidden flex flex-col">
+    <div className="relative h-screen w-screen bg-[#f8fafc] text-slate-900 font-sans selection:bg-indigo-500/20 selection:text-indigo-900 overflow-hidden flex flex-col">
       
       {/* Ambient Aurora Effects */}
       <BackgroundAurora />

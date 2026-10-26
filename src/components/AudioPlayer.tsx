@@ -396,7 +396,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
                 {/* Play / Pause Main Button */}
                 <button
                   onClick={onPlayPause}
-                  className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white font-bold flex items-center justify-center shadow-[0_4px_20px_rgba(15,23,42,0.3)] hover:scale-105 active:scale-95 transition-all cursor-pointer"
+                  className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white font-bold flex items-center justify-center shadow-lg shadow-indigo-200 hover:scale-105 active:scale-95 transition-all cursor-pointer"
                   title="Play / Pause (Space)"
                 >
                   {isPlaying ? (

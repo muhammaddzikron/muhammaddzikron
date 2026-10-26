@@ -83,7 +83,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
   }, [songs, selectedGenre, searchFilter]);
 
   return (
-    <div className="space-y-4 sm:space-y-5 pb-10 animate-in fade-in duration-300">
+    <div className="space-y-3.5 sm:space-y-4 pb-10 animate-in fade-in duration-300">
       
       {/* 1. Hero Spotlight Release Banner (Centerpiece Luxury White Card) */}
       {featuredSong && (
@@ -210,119 +210,78 @@ export const HomeView: React.FC<HomeViewProps> = ({
         </div>
       )}
 
-      {/* 2. Quick Genre Cards (Warna-Warni) */}
-      <div>
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-500">
-            <Compass className="w-3.5 h-3.5 text-indigo-600" />
-            <span>Jelajahi Berdasarkan Genre</span>
-          </div>
-          <button
-            onClick={() => onSelectTab('library')}
-            className="text-xs text-indigo-600 hover:text-indigo-800 hover:underline flex items-center gap-1 font-bold"
-          >
-            <span>Semua Lagu</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
+      {/* 2. Bar Pencarian & Filter Kategori (Presisi di Bawah Card Atas) */}
+      <div className="rounded-2xl bg-white border border-slate-200/90 shadow-[0_4px_20px_rgba(15,23,42,0.03)] p-3 sm:p-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          
+          {/* Left: Section title, badge & quick genre pills */}
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-2 mr-1">
+              <ListMusic className="w-4 h-4 text-indigo-600" />
+              <span className="font-serif font-extrabold text-sm sm:text-base text-slate-900">
+                Daftar Lagu
+              </span>
+              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200/80">
+                {displayedSongs.length}
+              </span>
+            </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-3">
-          {genres.map((genre) => {
-            const styling = GENRE_COLORS[genre] || { bg: 'bg-indigo-100', text: 'text-indigo-700', border: 'border-indigo-200' };
-            const isSelected = selectedGenre === genre;
-            return (
-              <div
-                key={genre}
-                onClick={() => setSelectedGenre(isSelected ? 'Semua' : genre)}
-                className={`p-3 rounded-2xl bg-white hover:bg-slate-50 border transition-all cursor-pointer group shadow-xs hover:shadow-md ${
-                  isSelected ? 'border-indigo-500 ring-2 ring-indigo-200' : 'border-slate-200/90 hover:border-slate-300'
-                }`}
+            {/* Genre Pills */}
+            <div className="flex items-center gap-1.5 overflow-x-auto py-0.5 scrollbar-none">
+              {allGenresList.map((g) => {
+                const isSelected = selectedGenre === g;
+                return (
+                  <button
+                    key={g}
+                    onClick={() => setSelectedGenre(g)}
+                    className={`px-3 py-1 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer shadow-xs ${
+                      isSelected
+                        ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-200'
+                        : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200/90'
+                    }`}
+                  >
+                    {g}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Right: Quick Search */}
+          <div className="relative w-full sm:w-72 shrink-0">
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchFilter}
+              onChange={(e) => setSearchFilter(e.target.value)}
+              placeholder="Cari lagu di playlist..."
+              className="w-full pl-9 pr-8 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-indigo-600 focus:bg-white shadow-xs"
+            />
+            {searchFilter && (
+              <button
+                onClick={() => setSearchFilter('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
               >
-                <div className={`w-8 h-8 rounded-xl ${styling.bg} ${styling.text} flex items-center justify-center mb-1.5 group-hover:scale-110 transition shadow-xs`}>
-                  <Music className="w-3.5 h-3.5" />
-                </div>
-                <div className="text-xs font-bold text-slate-900 group-hover:text-indigo-600 transition truncate">
-                  {genre}
-                </div>
-                <div className="text-[11px] font-medium text-slate-500 mt-0.5">
-                  {songs.filter((s) => s.genre === genre).length} Karya
-                </div>
-              </div>
-            );
-          })}
+                ✕
+              </button>
+            )}
+          </div>
+
         </div>
       </div>
 
-      {/* 3. Playlist Daftar Lagu Resmi (Karakter Card seperti di Download Area) */}
-      <div className="space-y-3">
-        {/* Playlist Header & Filter Controls */}
-        <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/90 shadow-[0_4px_25px_rgba(15,23,42,0.04)] space-y-3">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 text-xs font-bold uppercase tracking-wider mb-2 border border-indigo-200">
-                <ListMusic className="w-3.5 h-3.5 text-indigo-600" />
-                <span>Katalog Karya Lengkap</span>
-              </div>
-              <h2 className="text-xl sm:text-2xl font-serif font-extrabold text-slate-900 flex items-center gap-2.5">
-                <span>Playlist & Daftar Lagu Resmi</span>
-                <span className="text-xs px-3 py-1 rounded-full bg-slate-100 text-slate-700 border border-slate-200 font-sans font-bold">
-                  {displayedSongs.length} Lagu Ditampilkan
-                </span>
-              </h2>
-              <p className="text-xs text-slate-500 mt-1">
-                Koleksi lengkap seluruh lagu orisinal hasil cipta karya Muhammad Dzikron dalam kualitas audio studio HQ.
-              </p>
-            </div>
-
-            {/* Quick Search */}
-            <div className="relative w-full md:w-72">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                value={searchFilter}
-                onChange={(e) => setSearchFilter(e.target.value)}
-                placeholder="Cari lagu di playlist..."
-                className="w-full pl-10 pr-4 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-indigo-600 focus:bg-white shadow-xs"
-              />
-            </div>
-          </div>
-
-          {/* Genre Filter Pills */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none pt-1 border-t border-slate-100">
-            {allGenresList.map((g) => {
-              const isSelected = selectedGenre === g;
-              const count = g === 'Semua' ? songs.length : songs.filter((s) => s.genre === g).length;
-              return (
-                <button
-                  key={g}
-                  onClick={() => setSelectedGenre(g)}
-                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer shadow-xs flex items-center gap-1.5 ${
-                    isSelected
-                      ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-200'
-                      : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200'
-                  }`}
-                >
-                  <span>{g}</span>
-                  <span className={`text-[10px] px-1.5 py-0.2 rounded-md ${isSelected ? 'bg-white/20 text-white' : 'bg-slate-200/80 text-slate-700'}`}>
-                    {count}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Songs Grid: All Songs rendered with Download Area card character */}
+      {/* 3. Daftar Card Lagu-Lagu (Karakter Card seperti di Download Area) */}
+      <div>
         {displayedSongs.length === 0 ? (
-          <div className="p-12 text-center rounded-3xl bg-white border border-slate-200/90 shadow-xs space-y-3">
-            <Music className="w-10 h-10 text-slate-400 mx-auto" />
-            <h3 className="text-base font-bold text-slate-800">Tidak ada lagu yang sesuai filter</h3>
+          <div className="p-10 text-center rounded-2xl bg-white border border-slate-200/90 shadow-xs space-y-2">
+            <Music className="w-8 h-8 text-slate-400 mx-auto" />
+            <h3 className="text-sm font-bold text-slate-800">Tidak ada lagu yang sesuai filter</h3>
             <p className="text-xs text-slate-500 max-w-sm mx-auto">
               Coba gunakan kata kunci pencarian lain atau pilih filter "Semua" lagu.
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-3.5 sm:gap-4 lg:gap-4.5">
             {displayedSongs.map((song, idx) => (
               <SongCard
                 key={song.id}

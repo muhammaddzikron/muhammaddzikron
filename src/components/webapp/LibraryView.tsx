@@ -15,6 +15,7 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import { formatSongDuration } from '../../utils/duration';
+import { SongCard } from './SongCard';
 
 interface LibraryViewProps {
   songs: Song[];
@@ -45,7 +46,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
 }) => {
   const [selectedGenre, setSelectedGenre] = useState('Semua');
   const [sortBy, setSortBy] = useState<'order' | 'title' | 'year' | 'duration'>('order');
-  const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
+  const [viewMode, setViewMode] = useState<'table' | 'grid'>('grid');
   const [copiedShareId, setCopiedShareId] = useState<string | null>(null);
 
   // Extract unique genres
@@ -378,93 +379,30 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
         </div>
       )}
 
-      {/* Grid Card View */}
+      {/* Grid Card View (Menggunakan Karakter Card Download Area) */}
       {viewMode === 'grid' && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
-          {filteredSongs.map((song) => {
-            const isCurrent = currentSong?.id === song.id;
-            const isFav = favorites.includes(song.id);
-
-            return (
-              <div
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-5">
+          {filteredSongs.length === 0 ? (
+            <div className="col-span-full py-16 text-center bg-white rounded-3xl border border-slate-200/90 shadow-[0_4px_25px_rgba(15,23,42,0.04)]">
+              <Music className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+              <p className="font-bold text-slate-800 text-base">Tidak ada lagu yang sesuai.</p>
+              <p className="text-xs text-slate-500 mt-1">Coba kata kunci lain atau pilih genre "Semua".</p>
+            </div>
+          ) : (
+            filteredSongs.map((song, index) => (
+              <SongCard
                 key={song.id}
-                onClick={() => onPlaySong(song)}
-                className={`p-4 rounded-3xl bg-white border transition-all duration-200 cursor-pointer group hover:-translate-y-1 shadow-[0_4px_20px_rgba(15,23,42,0.04)] hover:shadow-lg ${
-                  isCurrent
-                    ? 'border-indigo-500 ring-2 ring-indigo-200 shadow-md'
-                    : 'border-slate-200/90 hover:border-slate-300'
-                }`}
-              >
-                {/* Cover Image with Play Overlay */}
-                <div className="relative aspect-square rounded-2xl overflow-hidden mb-3 bg-slate-100 border border-slate-100 shadow-xs">
-                  <img
-                    src={song.cover}
-                    alt={song.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
-                  />
-                  <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center backdrop-blur-xs">
-                    <div className="w-12 h-12 rounded-full bg-white text-indigo-700 flex items-center justify-center shadow-xl group-hover:scale-110 transition">
-                      {isCurrent && isPlaying ? (
-                        <Pause className="w-5 h-5 fill-indigo-700" />
-                      ) : (
-                        <Play className="w-5 h-5 fill-indigo-700 ml-0.5" />
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Favorite Button on Card */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onToggleFavorite(song.id);
-                    }}
-                    className={`absolute top-3 right-3 p-2 rounded-full backdrop-blur-md transition shadow-sm ${
-                      isFav ? 'bg-rose-500 text-white' : 'bg-white/80 text-slate-700 hover:bg-white'
-                    }`}
-                  >
-                    <Heart className={`w-3.5 h-3.5 ${isFav ? 'fill-white' : ''}`} />
-                  </button>
-                </div>
-
-                {/* Track Details */}
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${getGenreColorBadge(song.genre)}`}>
-                      {song.genre}
-                    </span>
-                    <span className="text-[10px] font-mono text-slate-400">
-                      {formatSongDuration(song.duration)}
-                    </span>
-                  </div>
-
-                  <h3 className={`font-bold text-sm truncate ${isCurrent ? 'text-indigo-600' : 'text-slate-900 group-hover:text-indigo-600'}`}>
-                    {song.title}
-                  </h3>
-
-                  <p className="text-xs text-slate-500 truncate">
-                    {song.singer}
-                  </p>
-
-                  <div className="flex items-center justify-between pt-2.5 border-t border-slate-100" onClick={(e) => e.stopPropagation()}>
-                    <button
-                      onClick={() => onSelectSongDetails(song)}
-                      className="text-[11px] text-slate-600 hover:text-indigo-600 flex items-center gap-1 font-semibold"
-                    >
-                      <FileText className="w-3.5 h-3.5 text-indigo-600" />
-                      <span>Lirik Lagu</span>
-                    </button>
-
-                    <button
-                      onClick={(e) => handleShare(song, e)}
-                      className="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-100 transition"
-                    >
-                      <Share2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+                song={song}
+                index={index}
+                currentSong={currentSong}
+                isPlaying={isPlaying}
+                onPlaySong={onPlaySong}
+                onSelectSongDetails={onSelectSongDetails}
+                onToggleFavorite={onToggleFavorite}
+                isFavorite={favorites.includes(song.id)}
+              />
+            ))
+          )}
         </div>
       )}
 

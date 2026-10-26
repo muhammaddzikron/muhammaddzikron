@@ -363,11 +363,11 @@ export const ContactView: React.FC<ContactViewProps> = ({
   // JIKA DALAM POSISI LOGOUT (PENGUNJUNG / CLIENT): TAMPILKAN FORMULIR
   // ==========================================
   return (
-    <div className="space-y-8 pb-16 animate-in fade-in duration-300">
+    <div className="space-y-4 sm:space-y-5 pb-10 animate-in fade-in duration-300">
       
       {/* Admin Quick Switch Bar (Only visible if viewing as admin) */}
       {isAdminLoggedIn && viewPublicFormAsAdmin && (
-        <div className="p-3.5 rounded-2xl bg-indigo-50 border border-indigo-200 flex items-center justify-between gap-3 text-xs">
+        <div className="p-3 rounded-xl bg-indigo-50 border border-indigo-200 flex items-center justify-between gap-3 text-xs">
           <div className="flex items-center gap-2 text-indigo-900 font-semibold">
             <ShieldCheck className="w-4 h-4 text-indigo-600" />
             <span>Mode Pratinjau Formulir Pengunjung (Anda sedang login sebagai Admin)</span>
@@ -382,15 +382,15 @@ export const ContactView: React.FC<ContactViewProps> = ({
       )}
 
       {/* Top Banner */}
-      <div className="p-6 sm:p-10 rounded-3xl bg-white border border-slate-200/90 shadow-[0_4px_25px_rgba(15,23,42,0.04)] relative overflow-hidden">
+      <div className="p-5 sm:p-7 rounded-2xl sm:rounded-3xl bg-white border border-slate-200/90 shadow-[0_4px_25px_rgba(15,23,42,0.04)] relative overflow-hidden">
         <div className="absolute top-0 right-0 w-80 h-80 bg-rose-50/50 rounded-full blur-3xl pointer-events-none" />
-        <div className="relative z-10 max-w-3xl space-y-3">
+        <div className="relative z-10 max-w-3xl space-y-2.5">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-50 text-rose-900 text-xs font-bold uppercase tracking-wider border border-rose-200">
             <Sparkles className="w-3.5 h-3.5 text-rose-600" />
             <span>Kolaborasi & Layanan Komposisi</span>
           </div>
 
-          <h1 className="text-2xl sm:text-4xl font-serif font-extrabold text-slate-900">
+          <h1 className="text-2xl sm:text-3xl font-serif font-black text-slate-900">
             Wujudkan Cerita Anda Menjadi <span className="text-rose-600">Lagu & Melodi Indah</span>
           </h1>
 

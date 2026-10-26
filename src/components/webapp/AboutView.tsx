@@ -42,20 +42,20 @@ export const AboutView: React.FC<AboutViewProps> = ({
   };
 
   return (
-    <div className="space-y-8 pb-16 animate-in fade-in duration-300">
+    <div className="space-y-4 sm:space-y-5 pb-10 animate-in fade-in duration-300">
       
       {/* 1. Main Bio Banner */}
-      <div className="relative p-6 sm:p-10 rounded-3xl bg-white border border-slate-200/90 shadow-[0_4px_25px_rgba(15,23,42,0.04)] overflow-hidden">
+      <div className="relative p-5 sm:p-7 rounded-2xl sm:rounded-3xl bg-white border border-slate-200/90 shadow-[0_4px_25px_rgba(15,23,42,0.04)] overflow-hidden">
         
         {/* Soft luxury ambient glow */}
-        <div className="absolute top-0 right-0 w-96 h-96 bg-purple-50/60 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-amber-50/60 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-0 right-0 w-80 h-80 bg-purple-50/50 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-80 h-80 bg-amber-50/50 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center relative z-10">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-center relative z-10">
           
           {/* Profile Photo */}
           <div className="lg:col-span-4 flex justify-center">
-            <div className="relative w-48 h-48 sm:w-60 sm:h-60 rounded-3xl overflow-hidden border-2 border-slate-200 shadow-xl bg-slate-100 group">
+            <div className="relative w-40 h-40 sm:w-52 sm:h-52 rounded-2xl sm:rounded-3xl overflow-hidden border-2 border-slate-200 shadow-xl bg-slate-100 group">
               <img
                 src={photoSrc}
                 alt={profile.name}

@@ -237,7 +237,7 @@ export const DownloadView: React.FC<DownloadViewProps> = ({
   };
 
   return (
-    <div className="space-y-6 pb-16 animate-in fade-in duration-300">
+    <div className="space-y-4 pb-10 animate-in fade-in duration-300">
       
       {/* Toast Notification */}
       {downloadSuccessToast && (
@@ -249,7 +249,7 @@ export const DownloadView: React.FC<DownloadViewProps> = ({
 
       {/* Admin Mode Quick Action Bar */}
       {isAdminLoggedIn && (
-        <div className="p-4 rounded-2xl bg-indigo-50 border border-indigo-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-indigo-950">
+        <div className="p-3.5 rounded-2xl bg-indigo-50 border border-indigo-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-indigo-950">
           <div className="flex items-center gap-2.5">
             <ShieldCheck className="w-5 h-5 text-indigo-600 shrink-0" />
             <span>
@@ -259,7 +259,7 @@ export const DownloadView: React.FC<DownloadViewProps> = ({
           {onNavigateToAdmin && (
             <button
               onClick={onNavigateToAdmin}
-              className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm shadow-indigo-200 transition cursor-pointer shrink-0"
+              className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm shadow-indigo-200 transition cursor-pointer shrink-0"
             >
               <Settings className="w-3.5 h-3.5" />
               <span>Buka Dasbor Admin</span>
@@ -269,9 +269,9 @@ export const DownloadView: React.FC<DownloadViewProps> = ({
       )}
 
       {/* Header Banner */}
-      <div className="relative overflow-hidden rounded-3xl bg-white border border-slate-200/90 p-6 sm:p-10 shadow-[0_4px_25px_rgba(15,23,42,0.04)]">
-        <div className="absolute -right-16 -top-16 w-80 h-80 bg-sky-100/50 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -left-16 -bottom-16 w-80 h-80 bg-amber-100/40 rounded-full blur-3xl pointer-events-none" />
+      <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-white border border-slate-200/90 p-5 sm:p-6 shadow-[0_4px_25px_rgba(15,23,42,0.04)]">
+        <div className="absolute -right-16 -top-16 w-72 h-72 bg-sky-100/40 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -left-16 -bottom-16 w-72 h-72 bg-amber-100/35 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative z-10 max-w-3xl space-y-3">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-50 border border-sky-200 text-xs font-bold text-sky-900">

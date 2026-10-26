@@ -115,21 +115,21 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
   };
 
   return (
-    <div className="space-y-6 pb-16 animate-in fade-in duration-300">
+    <div className="space-y-4 pb-10 animate-in fade-in duration-300">
       
       {/* Top Banner / Filter Controls */}
-      <div className="p-5 sm:p-6 rounded-3xl bg-white border border-slate-200/90 shadow-[0_4px_25px_rgba(15,23,42,0.04)] space-y-4">
+      <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/90 shadow-[0_4px_25px_rgba(15,23,42,0.04)] space-y-3">
         
         {/* Row 1: Header info & View Switcher */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h1 className="text-xl sm:text-2xl font-serif font-extrabold text-slate-900 flex items-center gap-2.5">
               <span>Katalog Lagu Resmi</span>
-              <span className="text-xs px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200/80 font-sans font-bold shadow-xs">
+              <span className="text-xs px-3 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200/80 font-sans font-bold shadow-xs">
                 {filteredSongs.length} Lagu Ditemukan
               </span>
             </h1>
-            <p className="text-xs text-slate-500 mt-1">
+            <p className="text-xs text-slate-500 mt-0.5">
               Koleksi lagu orisinal hasil cipta karya Muhammad Dzikron dalam kualitas audio studio.
             </p>
           </div>

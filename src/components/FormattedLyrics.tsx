@@ -39,7 +39,7 @@ export const FormattedLyrics: React.FC<FormattedLyricsProps> = ({
         if (isSection) {
           return (
             <div key={idx} className="pt-3.5 pb-1">
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-md bg-[#00ffc8]/10 border border-[#00ffc8]/30 text-[#00ffc8] text-xs font-mono font-bold uppercase tracking-wider shadow-sm">
+              <span className="inline-flex items-center px-3 py-1 rounded-lg bg-amber-50 border border-amber-300 text-amber-900 text-xs font-mono font-bold uppercase tracking-wider shadow-xs">
                 {line.replace(/^\[|\]$|^\(|\)$/g, '')}
               </span>
             </div>
@@ -52,14 +52,14 @@ export const FormattedLyrics: React.FC<FormattedLyricsProps> = ({
           const role = line.replace(/^\(|\)$/g, '').toLowerCase();
           const colorClass =
             role === 'female'
-              ? 'bg-rose-500/20 text-rose-300 border-rose-500/30'
+              ? 'bg-rose-50 text-rose-800 border-rose-200'
               : role === 'male'
-              ? 'bg-sky-500/20 text-sky-300 border-sky-500/30'
-              : 'bg-amber-500/20 text-amber-300 border-amber-500/30';
+              ? 'bg-sky-50 text-sky-800 border-sky-200'
+              : 'bg-emerald-50 text-emerald-800 border-emerald-200';
 
           return (
             <div key={idx} className="pt-2 pb-0.5">
-              <span className={`inline-block px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider border ${colorClass}`}>
+              <span className={`inline-block px-2.5 py-0.5 rounded-md text-[11px] font-bold uppercase tracking-wider border ${colorClass}`}>
                 {role}
               </span>
             </div>
@@ -68,7 +68,7 @@ export const FormattedLyrics: React.FC<FormattedLyricsProps> = ({
 
         // Normal lyric line
         return (
-          <p key={idx} className="text-slate-200 tracking-wide">
+          <p key={idx} className="text-slate-800 tracking-wide font-normal">
             {rawLine}
           </p>
         );

@@ -354,82 +354,85 @@ export default function App() {
         {mobileDrawerOpen && (
           <div
             onClick={() => setMobileDrawerOpen(false)}
-            className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md md:hidden flex"
+            className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-md md:hidden flex"
           >
             <div
               onClick={(e) => e.stopPropagation()}
-              className="w-72 h-full bg-[#080d17] border-r border-slate-800 p-5 flex flex-col justify-between overflow-y-auto"
+              className="w-72 h-full bg-white border-r border-slate-200 p-5 flex flex-col justify-between overflow-y-auto shadow-2xl"
             >
               <div className="space-y-6">
-                <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+                <div className="flex items-center justify-between pb-4 border-b border-slate-100">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#0099ff] to-[#00ffc8] p-[1px]">
-                      <div className="w-full h-full bg-[#050811] rounded-[11px] flex items-center justify-center">
-                        <Disc3 className="w-4 h-4 text-[#00ffc8]" />
+                    <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-amber-500 via-rose-500 to-indigo-600 p-[1.5px] shadow-sm">
+                      <div className="w-full h-full bg-white rounded-[10px] flex items-center justify-center">
+                        <Disc3 className="w-4 h-4 text-indigo-600" />
                       </div>
                     </div>
                     <div>
-                      <h2 className="font-bold text-sm text-white font-serif tracking-tight leading-none">
+                      <h2 className="font-bold text-sm text-slate-900 font-serif tracking-tight leading-none">
                         Muhammad Dzikron
                       </h2>
-                      <p className="text-[10px] text-slate-400 mt-0.5">
+                      <p className="text-[10px] text-slate-500 mt-0.5">
                         Karya Tanpa Batas
                       </p>
                     </div>
                   </div>
                   <button
                     onClick={() => setMobileDrawerOpen(false)}
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-white bg-slate-800/50"
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-slate-800 bg-slate-100"
                   >
                     <X className="w-4 h-4" />
                   </button>
                 </div>
 
-                <nav className="space-y-1 text-sm font-semibold">
+                <nav className="space-y-1.5 text-sm font-semibold">
                   {[
-                    { id: 'home', label: 'Beranda' },
-                    { id: 'library', label: `Semua Lagu (${songs.length})` },
-                    { id: 'lyrics', label: 'Studio Lirik' },
-                    { id: 'download', label: `Area Unduhan (${downloadsCount})` },
-                    { id: 'about', label: 'Profil Komposer' },
-                    { id: 'contact', label: 'Kontak & Pesanan' }
-                  ].map((item) => (
-                    <button
-                      key={item.id}
-                      onClick={() => {
-                        setActiveTab(item.id as WebAppTab);
-                        setMobileDrawerOpen(false);
-                      }}
-                      className={`w-full text-left px-4 py-2.5 rounded-xl transition cursor-pointer text-xs font-semibold ${
-                        activeTab === item.id
-                          ? 'bg-[#00ffc8] text-slate-950 font-bold'
-                          : 'text-slate-300 hover:bg-slate-800'
-                      }`}
-                    >
-                      {item.label}
-                    </button>
-                  ))}
+                    { id: 'home', label: 'Beranda', activeBg: 'bg-emerald-50 text-emerald-950 border-l-4 border-emerald-500 font-extrabold', iconBg: 'bg-emerald-100 text-emerald-700' },
+                    { id: 'library', label: `Semua Lagu (${songs.length})`, activeBg: 'bg-indigo-50 text-indigo-950 border-l-4 border-indigo-600 font-extrabold', iconBg: 'bg-indigo-100 text-indigo-700' },
+                    { id: 'lyrics', label: 'Studio Lirik', activeBg: 'bg-amber-50 text-amber-950 border-l-4 border-amber-500 font-extrabold', iconBg: 'bg-amber-100 text-amber-700' },
+                    { id: 'download', label: `Download Area (${downloadsCount})`, activeBg: 'bg-sky-50 text-sky-950 border-l-4 border-sky-500 font-extrabold', iconBg: 'bg-sky-100 text-sky-700' },
+                    { id: 'about', label: 'Profil Komposer', activeBg: 'bg-purple-50 text-purple-950 border-l-4 border-purple-600 font-extrabold', iconBg: 'bg-purple-100 text-purple-700' },
+                    { id: 'contact', label: 'Kontak & Pesanan', activeBg: 'bg-rose-50 text-rose-950 border-l-4 border-rose-500 font-extrabold', iconBg: 'bg-rose-100 text-rose-700' }
+                  ].map((item) => {
+                    const isActive = activeTab === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => {
+                          setActiveTab(item.id as WebAppTab);
+                          setMobileDrawerOpen(false);
+                        }}
+                        className={`w-full text-left px-3.5 py-2.5 rounded-xl transition cursor-pointer text-xs font-semibold ${
+                          isActive
+                            ? `${item.activeBg} shadow-sm`
+                            : 'text-slate-700 hover:bg-slate-50'
+                        }`}
+                      >
+                        {item.label}
+                      </button>
+                    );
+                  })}
                 </nav>
 
                 {/* Koleksi Saya (Mobile) */}
-                <div className="pt-2 border-t border-slate-800/80">
-                  <div className="px-2 mb-2 text-[10px] font-bold uppercase tracking-widest text-slate-400 flex items-center justify-between">
+                <div className="pt-2 border-t border-slate-100">
+                  <div className="px-2 mb-2 text-[10px] font-extrabold uppercase tracking-wider text-slate-400 flex items-center justify-between">
                     <span>Koleksi Saya</span>
-                    <Sparkles className="w-3 h-3 text-[#00ffc8]" />
+                    <Sparkles className="w-3 h-3 text-amber-500" />
                   </div>
-                  <div className="space-y-1">
+                  <div className="space-y-1.5">
                     <button
                       onClick={() => {
                         setActiveTab('library');
                         setMobileDrawerOpen(false);
                       }}
-                      className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-slate-300 hover:bg-slate-800/50"
+                      className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-pink-50 hover:text-pink-900 transition-colors"
                     >
                       <div className="flex items-center gap-2">
-                        <Heart className="w-3.5 h-3.5 text-rose-400 fill-rose-500/30" />
+                        <Heart className="w-3.5 h-3.5 text-pink-600 fill-pink-500/20" />
                         <span>Lagu Favorit</span>
                       </div>
-                      <span className="px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 text-[10px] font-bold">
+                      <span className="px-2 py-0.5 rounded-full bg-pink-100 text-pink-700 text-[10px] font-bold">
                         {favorites.length}
                       </span>
                     </button>
@@ -439,13 +442,13 @@ export default function App() {
                         setActiveTab('lyrics');
                         setMobileDrawerOpen(false);
                       }}
-                      className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-slate-300 hover:bg-slate-800/50"
+                      className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-teal-50 hover:text-teal-900 transition-colors"
                     >
                       <div className="flex items-center gap-2">
-                        <FileText className="w-3.5 h-3.5 text-[#0099ff]" />
+                        <FileText className="w-3.5 h-3.5 text-teal-600" />
                         <span>Sedang Diputar</span>
                       </div>
-                      <span className="text-[10px] text-slate-400 truncate max-w-[90px]">
+                      <span className="text-[10px] text-slate-500 truncate max-w-[90px]">
                         {currentSong ? currentSong.title : 'None'}
                       </span>
                     </button>
@@ -453,19 +456,19 @@ export default function App() {
                 </div>
 
                 {/* Statistik Pengunjung & Sumber Trafik (Di Bawah Koleksi Saya) */}
-                <div className="pt-2 border-t border-slate-800/80">
+                <div className="pt-2 border-t border-slate-100">
                   <VisitorStatsWidget />
                 </div>
               </div>
 
               {isAdminLoggedIn && (
-                <div className="space-y-2 pt-4 border-t border-slate-800">
+                <div className="space-y-2 pt-4 border-t border-slate-100">
                   <button
                     onClick={() => {
                       setMobileDrawerOpen(false);
                       setActiveTab('admin');
                     }}
-                    className="w-full py-3 rounded-xl bg-slate-900 border border-slate-800 text-[#00ffc8] text-xs font-bold"
+                    className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-white text-xs font-bold shadow-md"
                   >
                     Buka Studio Admin CMS
                   </button>
@@ -475,7 +478,7 @@ export default function App() {
                       setMobileDrawerOpen(false);
                       handleAdminLogout();
                     }}
-                    className="w-full py-2.5 rounded-xl bg-rose-500/10 text-rose-300 border border-rose-500/30 text-xs font-bold"
+                    className="w-full py-2.5 rounded-xl bg-rose-50 text-rose-700 border border-rose-200 text-xs font-bold"
                   >
                     Keluar / Logout Admin
                   </button>
@@ -486,7 +489,7 @@ export default function App() {
         )}
 
         {/* Right Main Scrollable View Area */}
-        <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-[#060911]/60">
+        <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-[#f8fafc]/95">
           
           {/* Top Sticky Header */}
           <TopHeader

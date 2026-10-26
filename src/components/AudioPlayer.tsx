@@ -305,11 +305,11 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
             </div>
           )}
 
-          <div className="glass-panel rounded-3xl p-3 sm:p-4 border border-slate-700/80 shadow-[0_20px_50px_rgba(0,0,0,0.9)] backdrop-blur-2xl">
+          <div className="bg-white/95 rounded-3xl p-3 sm:p-4 border border-slate-200/90 shadow-[0_20px_60px_rgba(15,23,42,0.12)] backdrop-blur-2xl">
             {/* Top Mini Progress Bar */}
-          <div className="relative w-full h-1 bg-slate-800 rounded-full mb-3 cursor-pointer group">
+          <div className="relative w-full h-1.5 bg-slate-100 rounded-full mb-3 cursor-pointer group overflow-hidden">
             <div
-              className="absolute h-full bg-gradient-to-r from-[#0099ff] to-[#00ffc8] rounded-full group-hover:bg-[#00ffc8]"
+              className="absolute h-full bg-gradient-to-r from-amber-500 via-rose-500 to-indigo-600 rounded-full"
               style={{ width: `${(currentTime / (duration || 1)) * 100}%` }}
             />
             <input
@@ -328,7 +328,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
             <div className="col-span-8 sm:col-span-4 lg:col-span-3 flex items-center gap-3">
               <div
                 onClick={() => onOpenDetails(currentSong)}
-                className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-2xl overflow-hidden shrink-0 cursor-pointer group shadow-lg border border-slate-700/60"
+                className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-2xl overflow-hidden shrink-0 cursor-pointer group shadow-md border border-slate-200"
               >
                 <img
                   src={currentSong.cover}
@@ -337,10 +337,10 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
                 />
 
                 {/* Spinning Vinyl overlay */}
-                <div className={`absolute inset-0 bg-black/40 flex items-center justify-center transition-opacity ${
+                <div className={`absolute inset-0 bg-slate-950/40 flex items-center justify-center transition-opacity ${
                   isPlaying ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
                 }`}>
-                  <Disc className={`w-6 h-6 text-[#00ffc8] ${isPlaying ? 'animate-spin-slow' : ''}`} />
+                  <Disc className={`w-6 h-6 text-white ${isPlaying ? 'animate-spin-slow' : ''}`} />
                 </div>
               </div>
 
@@ -348,18 +348,18 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
                 <div className="flex items-center gap-1.5">
                   <h4
                     onClick={() => onOpenDetails(currentSong)}
-                    className="text-sm font-bold text-white truncate cursor-pointer hover:text-[#00ffc8] transition-colors"
+                    className="text-sm font-bold text-slate-900 truncate cursor-pointer hover:text-indigo-600 transition-colors"
                   >
                     {currentSong.title}
                   </h4>
                   <button
                     onClick={() => onToggleFavorite(currentSong.id)}
-                    className="text-slate-400 hover:text-rose-500 shrink-0"
+                    className="text-slate-400 hover:text-rose-500 shrink-0 transition"
                   >
                     <Heart className={`w-3.5 h-3.5 ${isFav ? 'text-rose-500 fill-rose-500' : ''}`} />
                   </button>
                 </div>
-                <p className="text-xs text-slate-400 truncate">{currentSong.singer}</p>
+                <p className="text-xs text-slate-500 truncate">{currentSong.singer}</p>
 
                 {/* Waveform Visualizer */}
                 <div className="mt-1 hidden sm:block">
@@ -377,7 +377,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
                 <button
                   onClick={() => setIsShuffle(!isShuffle)}
                   className={`p-1.5 rounded-full text-xs transition-colors hidden lg:block ${
-                    isShuffle ? 'text-[#00ffc8] bg-[#00ffc8]/10' : 'text-slate-400 hover:text-white'
+                    isShuffle ? 'text-indigo-600 bg-indigo-50 font-bold' : 'text-slate-400 hover:text-slate-700'
                   }`}
                   title="Acak Lagu (Shuffle)"
                 >
@@ -387,7 +387,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
                 {/* Prev Song */}
                 <button
                   onClick={onPrev}
-                  className="p-2 text-slate-300 hover:text-white hover:bg-slate-800/60 rounded-full transition-colors cursor-pointer"
+                  className="p-2 text-slate-600 hover:text-slate-950 hover:bg-slate-100 rounded-full transition-colors cursor-pointer"
                   title="Lagu Sebelumnya (←)"
                 >
                   <SkipBack className="w-5 h-5" />
@@ -396,20 +396,20 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
                 {/* Play / Pause Main Button */}
                 <button
                   onClick={onPlayPause}
-                  className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-r from-[#0099ff] to-[#00ffc8] text-slate-950 font-bold flex items-center justify-center shadow-[0_0_20px_rgba(0,255,200,0.5)] hover:scale-105 active:scale-95 transition-all cursor-pointer"
+                  className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white font-bold flex items-center justify-center shadow-[0_4px_20px_rgba(15,23,42,0.3)] hover:scale-105 active:scale-95 transition-all cursor-pointer"
                   title="Play / Pause (Space)"
                 >
                   {isPlaying ? (
-                    <Pause className="w-5 h-5 sm:w-6 sm:h-6 fill-slate-950" />
+                    <Pause className="w-5 h-5 sm:w-6 sm:h-6 fill-white" />
                   ) : (
-                    <Play className="w-5 h-5 sm:w-6 sm:h-6 fill-slate-950 ml-0.5" />
+                    <Play className="w-5 h-5 sm:w-6 sm:h-6 fill-white ml-0.5" />
                   )}
                 </button>
 
                 {/* Next Song */}
                 <button
                   onClick={onNext}
-                  className="p-2 text-slate-300 hover:text-white hover:bg-slate-800/60 rounded-full transition-colors cursor-pointer"
+                  className="p-2 text-slate-600 hover:text-slate-950 hover:bg-slate-100 rounded-full transition-colors cursor-pointer"
                   title="Lagu Berikutnya (→)"
                 >
                   <SkipForward className="w-5 h-5" />
@@ -423,7 +423,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
                     else setRepeatMode('off');
                   }}
                   className={`p-1.5 rounded-full text-xs transition-colors hidden lg:block ${
-                    repeatMode !== 'off' ? 'text-[#00ffc8] bg-[#00ffc8]/10' : 'text-slate-400 hover:text-white'
+                    repeatMode !== 'off' ? 'text-indigo-600 bg-indigo-50 font-bold' : 'text-slate-400 hover:text-slate-700'
                   }`}
                   title={`Ulangi: ${repeatMode}`}
                 >
@@ -432,11 +432,11 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
               </div>
 
               {/* Seek Bar Time Indicators */}
-              <div className="hidden lg:flex items-center gap-3 w-full max-w-md text-[11px] font-mono text-slate-400 mt-1">
+              <div className="hidden lg:flex items-center gap-3 w-full max-w-md text-[11px] font-mono text-slate-500 mt-1">
                 <span>{formatTime(currentTime)}</span>
-                <div className="flex-1 h-1 bg-slate-800 rounded-full overflow-hidden">
+                <div className="flex-1 h-1 bg-slate-100 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-[#00ffc8]"
+                    className="h-full bg-gradient-to-r from-amber-500 to-indigo-600"
                     style={{ width: `${(currentTime / (duration || 1)) * 100}%` }}
                   />
                 </div>
@@ -448,8 +448,8 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
             <div className="hidden sm:flex col-span-4 lg:col-span-3 items-center justify-end gap-3">
               {/* Volume Slider */}
               <div className="flex items-center gap-2">
-                <button onClick={toggleMute} className="text-slate-400 hover:text-white">
-                  {isMuted ? <VolumeX className="w-4 h-4 text-rose-400" /> : <Volume2 className="w-4 h-4 text-[#00ffc8]" />}
+                <button onClick={toggleMute} className="text-slate-400 hover:text-slate-700">
+                  {isMuted ? <VolumeX className="w-4 h-4 text-rose-500" /> : <Volume2 className="w-4 h-4 text-indigo-600" />}
                 </button>
                 <input
                   type="range"
@@ -458,7 +458,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
                   step={0.01}
                   value={isMuted ? 0 : volume}
                   onChange={handleVolumeChange}
-                  className="w-16 h-1 accent-[#00ffc8] cursor-pointer"
+                  className="w-16 h-1 accent-indigo-600 cursor-pointer"
                 />
               </div>
 
@@ -467,8 +467,8 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
                 onClick={() => setShowQueue(!showQueue)}
                 className={`p-2 rounded-xl text-xs flex items-center gap-1.5 border transition-all cursor-pointer ${
                   showQueue
-                    ? 'bg-[#00ffc8]/20 border-[#00ffc8] text-[#00ffc8]'
-                    : 'bg-slate-800/80 border-slate-700 text-slate-300 hover:text-white'
+                    ? 'bg-indigo-50 border-indigo-300 text-indigo-700 font-bold'
+                    : 'bg-slate-50 border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                 }`}
                 title="Daftar Antrean"
               >
@@ -478,7 +478,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
               {/* Full Lyric/Detail Modal Trigger */}
               <button
                 onClick={() => onOpenDetails(currentSong)}
-                className="p-2 rounded-xl bg-slate-800/80 border border-slate-700 text-slate-300 hover:text-[#00ffc8] hover:border-[#00ffc8]/50 transition-colors cursor-pointer"
+                className="p-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-600 hover:text-indigo-600 hover:border-indigo-300 transition-colors cursor-pointer"
                 title="Lirik & Detail"
               >
                 <Maximize2 className="w-4 h-4" />
@@ -493,15 +493,15 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
 
       {/* Playlist Queue Drawer Modal */}
       {showQueue && (
-        <div className="fixed bottom-24 right-4 sm:right-8 z-50 w-80 sm:w-96 glass-panel rounded-3xl p-5 border border-slate-700 shadow-2xl backdrop-blur-2xl animate-in slide-in-from-bottom-5">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-800 mb-4">
-            <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              <ListMusic className="w-4 h-4 text-[#00ffc8]" />
+        <div className="fixed bottom-24 right-4 sm:right-8 z-50 w-80 sm:w-96 bg-white/98 rounded-3xl p-5 border border-slate-200 shadow-2xl backdrop-blur-2xl animate-in slide-in-from-bottom-5">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+            <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <ListMusic className="w-4 h-4 text-indigo-600" />
               Daftar Antrean Putar ({playlist.length} Lagu)
             </h3>
             <button
               onClick={() => setShowQueue(false)}
-              className="text-slate-400 hover:text-white p-1 rounded-lg"
+              className="text-slate-400 hover:text-slate-700 p-1 rounded-lg"
             >
               <X className="w-4 h-4" />
             </button>
@@ -516,18 +516,18 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
                   onClick={() => onSelectSong(s)}
                   className={`p-2.5 rounded-xl border flex items-center justify-between gap-3 cursor-pointer transition-all ${
                     isCurrent
-                      ? 'bg-[#00ffc8]/10 border-[#00ffc8] text-[#00ffc8]'
-                      : 'bg-slate-900/60 border-slate-800/80 hover:bg-slate-800 text-slate-300'
+                      ? 'bg-indigo-50/80 border-indigo-300 text-indigo-900 font-bold shadow-sm'
+                      : 'bg-slate-50/70 border-slate-100 hover:bg-slate-100 text-slate-700'
                   }`}
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <img src={s.cover} alt={s.title} className="w-9 h-9 rounded-lg object-cover shrink-0" />
+                    <img src={s.cover} alt={s.title} className="w-9 h-9 rounded-lg object-cover shrink-0 border border-slate-200" />
                     <div className="min-w-0">
                       <h5 className="text-xs font-bold truncate">{s.title}</h5>
-                      <p className="text-[10px] text-slate-400 truncate">{s.singer}</p>
+                      <p className="text-[10px] text-slate-500 truncate">{s.singer}</p>
                     </div>
                   </div>
-                  <span className="text-[10px] font-mono text-slate-500">{s.duration}</span>
+                  <span className="text-[10px] font-mono text-slate-400">{s.duration}</span>
                 </div>
               );
             })}
@@ -535,9 +535,9 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
 
           {/* Next Up Recommendation */}
           {nextSong && (
-            <div className="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
+            <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
               <span>Lagu Berikutnya:</span>
-              <span className="font-semibold text-[#00ffc8] truncate max-w-[180px]">
+              <span className="font-semibold text-indigo-600 truncate max-w-[180px]">
                 {nextSong.title}
               </span>
             </div>

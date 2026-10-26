@@ -5,7 +5,6 @@ import {
   MapPin,
   HeartHandshake,
   Edit3,
-  Sparkles,
   Music,
   Disc,
   Users,
@@ -46,29 +45,30 @@ export const AboutView: React.FC<AboutViewProps> = ({
     <div className="space-y-8 pb-16 animate-in fade-in duration-300">
       
       {/* 1. Main Bio Banner */}
-      <div className="relative p-6 sm:p-10 rounded-3xl bg-gradient-to-r from-slate-900/90 via-slate-900/60 to-[#0c1f2d] border border-slate-800/80 shadow-2xl overflow-hidden">
+      <div className="relative p-6 sm:p-10 rounded-3xl bg-white border border-slate-200/90 shadow-[0_4px_25px_rgba(15,23,42,0.04)] overflow-hidden">
         
-        {/* Decorative background glow */}
-        <div className="absolute top-0 right-0 w-96 h-96 bg-[#00ffc8]/5 rounded-full blur-3xl pointer-events-none" />
+        {/* Soft luxury ambient glow */}
+        <div className="absolute top-0 right-0 w-96 h-96 bg-purple-50/60 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-96 h-96 bg-amber-50/60 rounded-full blur-3xl pointer-events-none" />
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center relative z-10">
           
           {/* Profile Photo */}
           <div className="lg:col-span-4 flex justify-center">
-            <div className="relative w-48 h-48 sm:w-60 sm:h-60 rounded-3xl overflow-hidden border-2 border-[#00ffc8]/40 shadow-[0_0_30px_rgba(0,255,200,0.2)] bg-slate-900">
+            <div className="relative w-48 h-48 sm:w-60 sm:h-60 rounded-3xl overflow-hidden border-2 border-slate-200 shadow-xl bg-slate-100 group">
               <img
                 src={photoSrc}
                 alt={profile.name}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
                 onError={(e) => {
                   (e.target as HTMLImageElement).src =
                     'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=800&q=80';
                 }}
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent flex items-end p-4">
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent flex items-end p-4">
                 <div>
                   <div className="text-white font-bold text-sm">{profile.name}</div>
-                  <div className="text-[11px] text-[#00ffc8]">{profile.tagline || 'Songwriter & Composer'}</div>
+                  <div className="text-[11px] text-amber-300 font-medium">{profile.tagline || 'Songwriter & Composer'}</div>
                 </div>
               </div>
             </div>
@@ -77,8 +77,8 @@ export const AboutView: React.FC<AboutViewProps> = ({
           {/* Bio Text */}
           <div className="lg:col-span-8 space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#00ffc8]/10 text-[#00ffc8] text-xs font-bold uppercase tracking-wider border border-[#00ffc8]/20">
-                <User className="w-3.5 h-3.5" />
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-50 text-purple-900 text-xs font-bold uppercase tracking-wider border border-purple-200">
+                <User className="w-3.5 h-3.5 text-purple-700" />
                 <span>Biografi Komposer</span>
               </div>
 
@@ -87,55 +87,55 @@ export const AboutView: React.FC<AboutViewProps> = ({
                 <button
                   id="btn-edit-profile-admin"
                   onClick={onOpenEditProfile}
-                  className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-slate-800 hover:bg-[#00ffc8] text-slate-300 hover:text-slate-950 font-semibold text-xs border border-slate-700 hover:border-[#00ffc8] transition-all shadow-md cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-900 font-semibold text-xs border border-purple-200 transition-all shadow-xs cursor-pointer"
                 >
-                  <Edit3 className="w-3.5 h-3.5" />
+                  <Edit3 className="w-3.5 h-3.5 text-purple-700" />
                   <span>Edit Profil Komposer</span>
                 </button>
               ) : (
                 <button
                   id="btn-edit-profile-guest"
                   onClick={onOpenLoginModal || onOpenEditProfile}
-                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-800/60 hover:bg-slate-800 text-slate-400 hover:text-slate-200 text-xs border border-slate-700/60 transition cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-slate-900 text-xs border border-slate-200 transition cursor-pointer"
                   title="Login admin untuk mengedit profil"
                 >
-                  <Edit3 className="w-3.5 h-3.5" />
+                  <Edit3 className="w-3.5 h-3.5 text-slate-500" />
                   <span>Edit Profil</span>
                 </button>
               )}
             </div>
 
-            <h1 className="text-2xl sm:text-4xl font-serif font-extrabold text-white tracking-tight leading-tight">
+            <h1 className="text-2xl sm:text-4xl font-serif font-extrabold text-slate-900 tracking-tight leading-tight">
               {profile.headline || 'Menenun Jiwa ke dalam Harmoni & Nada'}
             </h1>
 
-            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed whitespace-pre-line">
+            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed whitespace-pre-line">
               {profile.bio}
             </p>
 
             {profile.experience && (
-              <p className="text-xs sm:text-sm text-slate-300/90 leading-relaxed whitespace-pre-line">
+              <p className="text-xs sm:text-sm text-slate-500 leading-relaxed whitespace-pre-line">
                 {profile.experience}
               </p>
             )}
 
-            <div className="flex flex-wrap items-center gap-3 pt-2 text-xs text-slate-300">
+            <div className="flex flex-wrap items-center gap-3 pt-2 text-xs text-slate-700">
               {profile.location && (
-                <div className="flex items-center gap-1.5 bg-slate-900/80 px-3 py-1.5 rounded-xl border border-slate-800">
-                  <MapPin className="w-3.5 h-3.5 text-[#00ffc8]" />
-                  <span>{profile.location}</span>
+                <div className="flex items-center gap-1.5 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200 shadow-xs">
+                  <MapPin className="w-3.5 h-3.5 text-emerald-600" />
+                  <span className="font-medium">{profile.location}</span>
                 </div>
               )}
               {profile.activeSince && (
-                <div className="flex items-center gap-1.5 bg-slate-900/80 px-3 py-1.5 rounded-xl border border-slate-800">
-                  <Calendar className="w-3.5 h-3.5 text-[#0099ff]" />
-                  <span>{profile.activeSince}</span>
+                <div className="flex items-center gap-1.5 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200 shadow-xs">
+                  <Calendar className="w-3.5 h-3.5 text-sky-600" />
+                  <span className="font-medium">{profile.activeSince}</span>
                 </div>
               )}
               {profile.collaborationStatus && (
-                <div className="flex items-center gap-1.5 bg-slate-900/80 px-3 py-1.5 rounded-xl border border-slate-800">
-                  <HeartHandshake className="w-3.5 h-3.5 text-rose-400" />
-                  <span>{profile.collaborationStatus}</span>
+                <div className="flex items-center gap-1.5 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200 shadow-xs">
+                  <HeartHandshake className="w-3.5 h-3.5 text-rose-600" />
+                  <span className="font-medium">{profile.collaborationStatus}</span>
                 </div>
               )}
             </div>
@@ -147,45 +147,45 @@ export const AboutView: React.FC<AboutViewProps> = ({
       {/* 2. Key Stats Matrix */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Lagu */}
-        <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 text-center space-y-1 shadow-lg hover:border-slate-700 transition">
-          <div className="text-2xl sm:text-3xl font-extrabold font-serif text-[#00ffc8]">
+        <div className="p-5 rounded-3xl bg-white border border-slate-200/90 text-center space-y-1 shadow-[0_4px_20px_rgba(15,23,42,0.04)] hover:shadow-md transition">
+          <div className="text-2xl sm:text-3xl font-extrabold font-serif text-emerald-700">
             {formatStatValue(profile.statSongs)}+
           </div>
-          <div className="text-xs font-semibold text-white flex items-center justify-center gap-1.5">
-            <Music className="w-3.5 h-3.5 text-[#00ffc8]" />
+          <div className="text-xs font-bold text-slate-800 flex items-center justify-center gap-1.5">
+            <Music className="w-3.5 h-3.5 text-emerald-600" />
             <span>Lagu Diciptakan</span>
           </div>
         </div>
 
         {/* Album & EP */}
-        <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 text-center space-y-1 shadow-lg hover:border-slate-700 transition">
-          <div className="text-2xl sm:text-3xl font-extrabold font-serif text-[#0099ff]">
+        <div className="p-5 rounded-3xl bg-white border border-slate-200/90 text-center space-y-1 shadow-[0_4px_20px_rgba(15,23,42,0.04)] hover:shadow-md transition">
+          <div className="text-2xl sm:text-3xl font-extrabold font-serif text-indigo-700">
             {formatStatValue(profile.statAlbums)} Rilis
           </div>
-          <div className="text-xs font-semibold text-white flex items-center justify-center gap-1.5">
-            <Disc className="w-3.5 h-3.5 text-[#0099ff]" />
+          <div className="text-xs font-bold text-slate-800 flex items-center justify-center gap-1.5">
+            <Disc className="w-3.5 h-3.5 text-indigo-600" />
             <span>Album & EP</span>
           </div>
         </div>
 
         {/* Total Pendengar */}
-        <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 text-center space-y-1 shadow-lg hover:border-slate-700 transition">
-          <div className="text-2xl sm:text-3xl font-extrabold font-serif text-[#a855f7]">
+        <div className="p-5 rounded-3xl bg-white border border-slate-200/90 text-center space-y-1 shadow-[0_4px_20px_rgba(15,23,42,0.04)] hover:shadow-md transition">
+          <div className="text-2xl sm:text-3xl font-extrabold font-serif text-purple-700">
             {formatStatValue(profile.statListeners)}+
           </div>
-          <div className="text-xs font-semibold text-white flex items-center justify-center gap-1.5">
-            <Users className="w-3.5 h-3.5 text-[#a855f7]" />
+          <div className="text-xs font-bold text-slate-800 flex items-center justify-center gap-1.5">
+            <Users className="w-3.5 h-3.5 text-purple-600" />
             <span>Total Pendengar</span>
           </div>
         </div>
 
         {/* Genre Musik */}
-        <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 text-center space-y-1 shadow-lg hover:border-slate-700 transition">
-          <div className="text-2xl sm:text-3xl font-extrabold font-serif text-[#f43f5e]">
+        <div className="p-5 rounded-3xl bg-white border border-slate-200/90 text-center space-y-1 shadow-[0_4px_20px_rgba(15,23,42,0.04)] hover:shadow-md transition">
+          <div className="text-2xl sm:text-3xl font-extrabold font-serif text-rose-700">
             {formatStatValue(profile.statGenres)} Kombinasi
           </div>
-          <div className="text-xs font-semibold text-white flex items-center justify-center gap-1.5">
-            <Grid className="w-3.5 h-3.5 text-[#f43f5e]" />
+          <div className="text-xs font-bold text-slate-800 flex items-center justify-center gap-1.5">
+            <Grid className="w-3.5 h-3.5 text-rose-600" />
             <span>Genre Musik</span>
           </div>
         </div>

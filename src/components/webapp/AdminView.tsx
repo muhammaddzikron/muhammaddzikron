@@ -675,16 +675,16 @@ export const AdminView: React.FC<AdminViewProps> = ({
       )}
 
       {/* Header Banner */}
-      <div className="p-6 rounded-3xl bg-gradient-to-r from-slate-900/90 via-slate-900/60 to-[#041a1f] border border-slate-800/80 shadow-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="p-6 rounded-3xl bg-white border border-slate-200/90 shadow-[0_4px_25px_rgba(15,23,42,0.04)] flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="p-3 rounded-2xl bg-gradient-to-tr from-[#0099ff]/20 to-[#00ffc8]/20 text-[#00ffc8] border border-[#00ffc8]/30">
-            <Disc className="w-6 h-6 animate-spin-slow" />
+          <div className="p-3 rounded-2xl bg-amber-50 text-amber-800 border border-amber-200 shadow-xs">
+            <Disc className="w-6 h-6 animate-spin-slow text-amber-700" />
           </div>
           <div>
-            <h1 className="text-xl sm:text-2xl font-serif font-extrabold text-white flex items-center gap-2">
+            <h1 className="text-xl sm:text-2xl font-serif font-extrabold text-slate-900 flex items-center gap-2">
               Studio Admin & CMS Playlist
             </h1>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-500">
               Kelola katalog daftar lagu resmi, input lirik, dan sinkronkan dengan Google Spreadsheet.
             </p>
           </div>
@@ -694,33 +694,33 @@ export const AdminView: React.FC<AdminViewProps> = ({
           <button
             onClick={handleSyncAllToGoogleSheet}
             disabled={isSyncingGSheet}
-            className="px-3.5 py-2 rounded-xl bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 border border-emerald-500/30 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50"
+            className="px-3.5 py-2 rounded-xl bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50 shadow-xs"
             title="Kirim semua daftar lagu ke Google Spreadsheet"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isSyncingGSheet ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 text-emerald-700 ${isSyncingGSheet ? 'animate-spin' : ''}`} />
             <span>{isSyncingGSheet ? 'Menyinkronkan...' : 'Sinkron ke Spreadsheet'}</span>
           </button>
 
           <button
             onClick={onLogout}
-            className="px-4 py-2 rounded-xl bg-rose-500 hover:bg-rose-400 text-slate-950 text-xs font-bold flex items-center gap-2 transition cursor-pointer shadow-[0_0_15px_rgba(244,63,94,0.3)] hover:scale-105"
+            className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold flex items-center gap-2 transition cursor-pointer shadow-md shadow-rose-200 hover:scale-105"
             title="Keluar dari sesi Administrator"
           >
-            <LogOut className="w-4 h-4 text-slate-950" />
+            <LogOut className="w-4 h-4 text-white" />
             <span>Keluar / Logout Admin</span>
           </button>
         </div>
       </div>
 
       {/* Sub Tabs */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-3">
         <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => setActiveSubTab('list')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer shadow-xs ${
               activeSubTab === 'list'
-                ? 'bg-[#00ffc8] text-slate-950 shadow-[0_0_12px_rgba(0,255,200,0.3)]'
-                : 'bg-slate-900 text-slate-300 hover:text-white'
+                ? 'bg-amber-600 text-white shadow-sm shadow-amber-200'
+                : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
             }`}
           >
             <Music className="w-4 h-4" />
@@ -732,10 +732,10 @@ export const AdminView: React.FC<AdminViewProps> = ({
               handleResetForm();
               setActiveSubTab('add');
             }}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer shadow-xs ${
               activeSubTab === 'add'
-                ? 'bg-[#00ffc8] text-slate-950 shadow-[0_0_12px_rgba(0,255,200,0.3)]'
-                : 'bg-slate-900 text-slate-300 hover:text-white'
+                ? 'bg-amber-600 text-white shadow-sm shadow-amber-200'
+                : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
             }`}
           >
             <Plus className="w-4 h-4" />
@@ -744,10 +744,10 @@ export const AdminView: React.FC<AdminViewProps> = ({
 
           <button
             onClick={() => setActiveSubTab('orders')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer shadow-xs ${
               activeSubTab === 'orders'
-                ? 'bg-[#00ffc8] text-slate-950 shadow-[0_0_12px_rgba(0,255,200,0.3)]'
-                : 'bg-slate-900 text-slate-300 hover:text-white'
+                ? 'bg-amber-600 text-white shadow-sm shadow-amber-200'
+                : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
             }`}
           >
             <Inbox className="w-4 h-4" />
@@ -756,22 +756,22 @@ export const AdminView: React.FC<AdminViewProps> = ({
 
           <button
             onClick={() => setActiveSubTab('downloads')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer shadow-xs ${
               activeSubTab === 'downloads'
-                ? 'bg-[#00ffc8] text-slate-950 shadow-[0_0_12px_rgba(0,255,200,0.3)]'
-                : 'bg-slate-900 text-slate-300 hover:text-white'
+                ? 'bg-amber-600 text-white shadow-sm shadow-amber-200'
+                : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
             }`}
           >
-            <Unlock className="w-4 h-4 text-emerald-400" />
+            <Unlock className="w-4 h-4 text-emerald-600" />
             <span>Akses Unduhan Terbuka ({downloadList.length})</span>
           </button>
 
           <button
             onClick={() => setActiveSubTab('export')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer shadow-xs ${
               activeSubTab === 'export'
-                ? 'bg-[#00ffc8] text-slate-950 shadow-[0_0_12px_rgba(0,255,200,0.3)]'
-                : 'bg-slate-900 text-slate-300 hover:text-white'
+                ? 'bg-amber-600 text-white shadow-sm shadow-amber-200'
+                : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
             }`}
           >
             <Download className="w-4 h-4" />

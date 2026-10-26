@@ -4,15 +4,11 @@ import {
   User,
   Save,
   Image,
-  Sparkles,
   MapPin,
   Calendar,
   HeartHandshake,
-  FileSpreadsheet,
   Check,
-  AlertCircle,
   RefreshCw,
-  Sliders,
   Music,
   Disc,
   Users,
@@ -60,20 +56,20 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
       // 1. Save to state & local cache
       onSaveProfile(formData);
 
-      // 2. Sync to Google Apps Script
+      // 2. Sync to Google Spreadsheet (Tab Profil)
       const res = await saveProfileToGoogleSheet(formData);
-      setStatusMessage(res.message);
+      setIsSaving(false);
       setSaveSuccess(true);
+      setStatusMessage(res.message || 'Profil berhasil disimpan dan disinkronkan ke Google Spreadsheet!');
 
       setTimeout(() => {
-        setIsSaving(false);
         setSaveSuccess(false);
         onClose();
-      }, 1200);
+      }, 1500);
     } catch (err: any) {
-      console.error('Gagal menyimpan profil:', err);
+      console.warn('Gagal menyimpan profil:', err);
       setIsSaving(false);
-      setStatusMessage(`Gagal sinkron: ${err.message || 'Periksa koneksi spreadsheet'}`);
+      setStatusMessage('Profil tersimpan di website, namun sinkronisasi Spreadsheet mengalami kendala jaringan.');
     }
   };
 
@@ -81,22 +77,22 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
   const previewPhoto = formData.photoUrl ? getGoogleDriveImageUrl(formData.photoUrl) : '';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md overflow-y-auto animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md overflow-y-auto animate-in fade-in duration-200">
       <div
-        className="relative w-full max-w-3xl bg-[#090e1a] border border-slate-700/80 rounded-3xl shadow-2xl overflow-hidden my-8"
+        className="relative w-full max-w-3xl bg-white border border-slate-200/90 rounded-3xl shadow-2xl overflow-hidden my-8 text-slate-800"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
-        <div className="flex items-center justify-between p-5 sm:p-6 border-b border-slate-800 bg-slate-900/60">
+        <div className="flex items-center justify-between p-5 sm:p-6 border-b border-slate-100 bg-slate-50/50">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-2xl bg-gradient-to-tr from-[#0099ff]/20 to-[#00ffc8]/20 border border-[#00ffc8]/30 text-[#00ffc8]">
+            <div className="p-2.5 rounded-2xl bg-purple-50 border border-purple-200 text-purple-700">
               <User className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-lg sm:text-xl font-bold font-serif text-white tracking-tight">
+              <h2 className="text-lg sm:text-xl font-bold font-serif text-slate-900 tracking-tight">
                 Edit Profil Komposer
               </h2>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-500">
                 Ubah informasi biografi dan sinkronkan otomatis ke tab <strong>"Profil"</strong> Google Spreadsheet.
               </p>
             </div>
@@ -104,7 +100,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
 
           <button
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+            className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -114,17 +110,17 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
         <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-6 max-h-[75vh] overflow-y-auto">
           
           {/* 1. Profile Preview & Photo Link */}
-          <div className="p-4 sm:p-5 rounded-2xl bg-slate-950/70 border border-slate-800 space-y-4">
+          <div className="p-4 sm:p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-[#00ffc8] flex items-center gap-1.5">
-                <Image className="w-3.5 h-3.5" />
+              <span className="text-xs font-bold uppercase tracking-wider text-purple-900 flex items-center gap-1.5">
+                <Image className="w-3.5 h-3.5 text-purple-700" />
                 <span>Foto Profil & Identitas Visual</span>
               </span>
             </div>
 
             <div className="flex flex-col sm:flex-row items-center gap-5">
               {/* Photo Preview Avatar */}
-              <div className="relative w-28 h-28 sm:w-32 sm:h-32 rounded-2xl overflow-hidden border-2 border-[#00ffc8]/40 shrink-0 shadow-lg bg-slate-900 flex items-center justify-center">
+              <div className="relative w-28 h-28 sm:w-32 sm:h-32 rounded-2xl overflow-hidden border-2 border-slate-200 shrink-0 shadow-md bg-slate-100 flex items-center justify-center">
                 {previewPhoto ? (
                   <img
                     src={previewPhoto}
@@ -136,207 +132,198 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                     }}
                   />
                 ) : (
-                  <User className="w-10 h-10 text-slate-600" />
+                  <User className="w-10 h-10 text-slate-400" />
                 )}
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent flex items-end p-2">
-                  <span className="text-[10px] text-white font-medium truncate">{formData.name || 'Pratinjau'}</span>
-                </div>
               </div>
 
-              {/* Photo URL Inputs */}
-              <div className="flex-1 w-full space-y-3">
+              {/* Photo Link Input */}
+              <div className="flex-1 w-full space-y-2 text-xs">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
-                    Link Foto Profil (Direct URL / Google Drive Link / ID):
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    Link Foto / File ID Google Drive
                   </label>
                   <input
                     type="text"
-                    value={formData.photoUrl}
+                    value={formData.photoUrl || ''}
                     onChange={(e) => handleChange('photoUrl', e.target.value)}
-                    placeholder="https://images.unsplash.com/... atau ID/Link Google Drive"
-                    className="w-full px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#00ffc8]"
+                    placeholder="Contoh: https://drive.google.com/file/d/1a2b3c... atau link gambar langsung"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-purple-600 shadow-xs"
                   />
-                  <p className="text-[11px] text-slate-400 mt-1">
-                    Dapat berupa URL gambar langsung atau link file Google Drive yang disetel publik.
-                  </p>
                 </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">
-                      Nama Lengkap:
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.name}
-                      onChange={(e) => handleChange('name', e.target.value)}
-                      placeholder="Muhammad Dzikron"
-                      className="w-full px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#00ffc8]"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">
-                      Sub-Judul / Tagline:
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.tagline}
-                      onChange={(e) => handleChange('tagline', e.target.value)}
-                      placeholder="Songwriter & Composer"
-                      className="w-full px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#00ffc8]"
-                    />
-                  </div>
-                </div>
+                <p className="text-[11px] text-slate-500 leading-relaxed">
+                  Gunakan link Google Drive yang disetel ke <em>"Anyone with the link can view"</em>.
+                </p>
               </div>
             </div>
           </div>
 
-          {/* 2. Headline & Biografi */}
-          <div className="space-y-4">
+          {/* 2. Main Identity & Headlines */}
+          <div className="space-y-4 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">
+                  Nama Lengkap Komposer *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={formData.name}
+                  onChange={(e) => handleChange('name', e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-purple-600 focus:bg-white shadow-xs"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">
+                  Tagline Profesi Singkat
+                </label>
+                <input
+                  type="text"
+                  value={formData.tagline}
+                  onChange={(e) => handleChange('tagline', e.target.value)}
+                  placeholder="Songwriter, Arranger & Sound Designer"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-purple-600 focus:bg-white shadow-xs"
+                />
+              </div>
+            </div>
+
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">
-                Headline / Slogan Utama Biografi:
+              <label className="block font-semibold text-slate-700 mb-1">
+                Headline Profil (Judul Besar Bio)
               </label>
               <input
                 type="text"
                 value={formData.headline}
                 onChange={(e) => handleChange('headline', e.target.value)}
                 placeholder="Menenun Jiwa ke dalam Harmoni & Nada"
-                className="w-full px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#00ffc8]"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-purple-600 focus:bg-white shadow-xs"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">
-                Biografi Utama (Paragraf 1):
+              <label className="block font-semibold text-slate-700 mb-1">
+                Biografi Utama
               </label>
               <textarea
-                rows={3}
+                rows={4}
                 value={formData.bio}
                 onChange={(e) => handleChange('bio', e.target.value)}
-                placeholder="Tuliskan perkenalan singkat tentang komposer..."
-                className="w-full px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#00ffc8] leading-relaxed"
+                placeholder="Tuliskan biografi, filosofi karya, atau perjalanan bermusik..."
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-purple-600 focus:bg-white leading-relaxed shadow-xs"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">
-                Pengalaman & Perjalanan Musik (Paragraf 2):
+              <label className="block font-semibold text-slate-700 mb-1">
+                Pengalaman & Portofolio Karya Tambahan
               </label>
               <textarea
-                rows={3}
-                value={formData.experience}
+                rows={2}
+                value={formData.experience || ''}
                 onChange={(e) => handleChange('experience', e.target.value)}
-                placeholder="Tuliskan pengalaman bertahun-tahun, genre, pencapaian..."
-                className="w-full px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#00ffc8] leading-relaxed"
+                placeholder="Pengalaman kolaborasi, rilisan digital, festival, atau pencapaian..."
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-purple-600 focus:bg-white leading-relaxed shadow-xs"
               />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1 flex items-center gap-1">
+                  <MapPin className="w-3.5 h-3.5 text-emerald-600" /> Lokasi Basis
+                </label>
+                <input
+                  type="text"
+                  value={formData.location || ''}
+                  onChange={(e) => handleChange('location', e.target.value)}
+                  placeholder="Yogyakarta, Indonesia"
+                  className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-purple-600 focus:bg-white shadow-xs"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1 flex items-center gap-1">
+                  <Calendar className="w-3.5 h-3.5 text-sky-600" /> Aktif Sejak
+                </label>
+                <input
+                  type="text"
+                  value={formData.activeSince || ''}
+                  onChange={(e) => handleChange('activeSince', e.target.value)}
+                  placeholder="2018 - Sekarang"
+                  className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-purple-600 focus:bg-white shadow-xs"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1 flex items-center gap-1">
+                  <HeartHandshake className="w-3.5 h-3.5 text-rose-600" /> Status Kolaborasi
+                </label>
+                <input
+                  type="text"
+                  value={formData.collaborationStatus || ''}
+                  onChange={(e) => handleChange('collaborationStatus', e.target.value)}
+                  placeholder="Terbuka untuk Projek Baru"
+                  className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-purple-600 focus:bg-white shadow-xs"
+                />
+              </div>
             </div>
           </div>
 
-          {/* 3. Status & Informasi Tambahan */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center gap-1">
-                <MapPin className="w-3.5 h-3.5 text-[#00ffc8]" />
-                <span>Lokasi / Asal:</span>
-              </label>
-              <input
-                type="text"
-                value={formData.location}
-                onChange={(e) => handleChange('location', e.target.value)}
-                placeholder="Indonesia"
-                className="w-full px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#00ffc8]"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center gap-1">
-                <Calendar className="w-3.5 h-3.5 text-[#0099ff]" />
-                <span>Tahun Aktif:</span>
-              </label>
-              <input
-                type="text"
-                value={formData.activeSince}
-                onChange={(e) => handleChange('activeSince', e.target.value)}
-                placeholder="Aktif Sejak 2016"
-                className="w-full px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#00ffc8]"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center gap-1">
-                <HeartHandshake className="w-3.5 h-3.5 text-rose-400" />
-                <span>Status Kolaborasi:</span>
-              </label>
-              <input
-                type="text"
-                value={formData.collaborationStatus}
-                onChange={(e) => handleChange('collaborationStatus', e.target.value)}
-                placeholder="Terbuka untuk Kolaborasi"
-                className="w-full px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#00ffc8]"
-              />
-            </div>
-          </div>
-
-          {/* 4. Statistik Prestasi */}
-          <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800 space-y-3">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-              <Sliders className="w-3.5 h-3.5 text-[#00ffc8]" />
-              <span>Statistik & Pencapaian di Halaman Profil</span>
+          {/* 3. Angka Statistik Matrix */}
+          <div className="p-4 sm:p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+            <span className="text-xs font-bold uppercase tracking-wider text-purple-900">
+              Angka Pencapaian (Key Statistics Matrix)
             </span>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
               <div>
-                <label className="block text-[11px] font-medium text-slate-400 mb-1">
-                  Total Lagu:
+                <label className="block text-slate-600 mb-1 flex items-center gap-1">
+                  <Music className="w-3.5 h-3.5 text-emerald-600" /> Total Lagu
                 </label>
                 <input
                   type="text"
-                  value={formData.statSongs}
+                  value={formData.statSongs || ''}
                   onChange={(e) => handleChange('statSongs', e.target.value)}
-                  placeholder="85"
-                  className="w-full px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white text-center font-bold focus:outline-none focus:border-[#00ffc8]"
+                  placeholder="50"
+                  className="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:border-purple-600 shadow-xs"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-medium text-slate-400 mb-1">
-                  Album & EP:
+                <label className="block text-slate-600 mb-1 flex items-center gap-1">
+                  <Disc className="w-3.5 h-3.5 text-indigo-600" /> Album & EP
                 </label>
                 <input
                   type="text"
-                  value={formData.statAlbums}
+                  value={formData.statAlbums || ''}
                   onChange={(e) => handleChange('statAlbums', e.target.value)}
-                  placeholder="12"
-                  className="w-full px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white text-center font-bold focus:outline-none focus:border-[#00ffc8]"
+                  placeholder="3"
+                  className="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:border-purple-600 shadow-xs"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-medium text-slate-400 mb-1">
-                  Total Pendengar:
+                <label className="block text-slate-600 mb-1 flex items-center gap-1">
+                  <Users className="w-3.5 h-3.5 text-purple-600" /> Pendengar
                 </label>
                 <input
                   type="text"
-                  value={formData.statListeners}
+                  value={formData.statListeners || ''}
                   onChange={(e) => handleChange('statListeners', e.target.value)}
-                  placeholder="1500000"
-                  className="w-full px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white text-center font-bold focus:outline-none focus:border-[#00ffc8]"
+                  placeholder="10000"
+                  className="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:border-purple-600 shadow-xs"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-medium text-slate-400 mb-1">
-                  Genre Musik:
+                <label className="block text-slate-600 mb-1 flex items-center gap-1">
+                  <Grid className="w-3.5 h-3.5 text-rose-600" /> Genre Musik
                 </label>
                 <input
                   type="text"
-                  value={formData.statGenres}
+                  value={formData.statGenres || ''}
                   onChange={(e) => handleChange('statGenres', e.target.value)}
-                  placeholder="8"
-                  className="w-full px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white text-center font-bold focus:outline-none focus:border-[#00ffc8]"
+                  placeholder="5"
+                  className="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:border-purple-600 shadow-xs"
                 />
               </div>
             </div>
@@ -344,18 +331,18 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
 
           {/* Status feedback message */}
           {statusMessage && (
-            <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2">
-              <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+            <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2">
+              <Check className="w-4 h-4 text-emerald-600 shrink-0" />
               <span>{statusMessage}</span>
             </div>
           )}
 
           {/* Action Buttons */}
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-800">
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
             <button
               type="button"
               onClick={onClose}
-              className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition cursor-pointer"
+              className="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition cursor-pointer"
             >
               Batal
             </button>
@@ -363,7 +350,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
             <button
               type="submit"
               disabled={isSaving}
-              className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#0099ff] to-[#00ffc8] text-slate-950 font-bold text-xs flex items-center gap-2 hover:opacity-95 transition shadow-[0_0_20px_rgba(0,255,200,0.3)] cursor-pointer disabled:opacity-50"
+              className="px-6 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs flex items-center gap-2 transition shadow-md shadow-purple-200 cursor-pointer disabled:opacity-50"
             >
               {isSaving ? (
                 <>

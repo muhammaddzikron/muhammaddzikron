@@ -115,63 +115,12 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
   };
 
   return (
-    <div className="space-y-4 pb-10 animate-in fade-in duration-300">
+    <div className="space-y-2.5 pb-10 animate-in fade-in duration-300">
       
-      {/* Top Banner / Filter Controls */}
-      <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/90 shadow-[0_4px_25px_rgba(15,23,42,0.04)] space-y-3">
-        
-        {/* Row 1: Header info & View Switcher */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-serif font-extrabold text-slate-900 flex items-center gap-2.5">
-              <span>Katalog Lagu Resmi</span>
-              <span className="text-xs px-3 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200/80 font-sans font-bold shadow-xs">
-                {filteredSongs.length} Lagu Ditemukan
-              </span>
-            </h1>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Koleksi lagu orisinal hasil cipta karya Muhammad Dzikron dalam kualitas audio studio.
-            </p>
-          </div>
-
-          {/* Action buttons */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={onRefreshPlaylist}
-              disabled={isLoadingSheet}
-              className="px-3.5 py-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold flex items-center gap-1.5 border border-slate-200 transition cursor-pointer shadow-xs active:scale-95"
-              title="Perbarui dari Google Spreadsheet"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 text-indigo-600 ${isLoadingSheet ? 'animate-spin' : ''}`} />
-              <span>{isLoadingSheet ? 'Sinkron...' : 'Refresh'}</span>
-            </button>
-
-            {/* View Mode Toggle */}
-            <div className="flex items-center p-1 rounded-xl bg-slate-100 border border-slate-200">
-              <button
-                onClick={() => setViewMode('table')}
-                className={`p-1.5 rounded-lg transition cursor-pointer ${
-                  viewMode === 'table' ? 'bg-white text-indigo-700 shadow-xs font-bold' : 'text-slate-500 hover:text-slate-900'
-                }`}
-                title="Tampilan Tabel"
-              >
-                <List className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => setViewMode('grid')}
-                className={`p-1.5 rounded-lg transition cursor-pointer ${
-                  viewMode === 'grid' ? 'bg-white text-indigo-700 shadow-xs font-bold' : 'text-slate-500 hover:text-slate-900'
-                }`}
-                title="Tampilan Grid Card"
-              >
-                <LayoutGrid className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Row 2: Genre Filter Chips */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+      {/* Sleek, Compact Toolbar Directly Below Search Header */}
+      <div className="p-2 sm:p-2.5 rounded-2xl bg-white border border-slate-200/90 shadow-[0_2px_15px_rgba(15,23,42,0.03)] flex flex-wrap items-center justify-between gap-2">
+        {/* Left: Category pills with "Semua Lagu" and counts */}
+        <div className="flex items-center gap-1.5 overflow-x-auto py-0.5 scrollbar-none flex-1 min-w-[200px]">
           {genres.map((genre) => {
             const isSelected = selectedGenre === genre;
             const count = genre === 'Semua'
@@ -184,15 +133,15 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
               <button
                 key={genre}
                 onClick={() => setSelectedGenre(genre)}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 border shadow-xs ${
+                className={`px-3 py-1 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer flex items-center gap-1.5 border shadow-xs ${
                   isSelected
                     ? genre === 'Favorit'
-                      ? 'bg-rose-600 text-white border-rose-600 shadow-sm shadow-rose-200'
-                      : 'bg-indigo-600 text-white border-indigo-600 shadow-sm shadow-indigo-200'
+                      ? 'bg-rose-600 text-white border-rose-600 shadow-sm'
+                      : 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
                     : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 hover:text-slate-900'
                 }`}
               >
-                {genre === 'Favorit' && <Heart className={`w-3.5 h-3.5 fill-current ${isSelected ? 'text-white' : 'text-rose-500'}`} />}
+                {genre === 'Favorit' && <Heart className={`w-3 h-3 fill-current ${isSelected ? 'text-white' : 'text-rose-500'}`} />}
                 <span>{genre}</span>
                 <span className={`text-[10px] px-1.5 py-0.5 rounded-md ${isSelected ? 'bg-white/20 text-white font-extrabold' : 'bg-slate-200/80 text-slate-700'}`}>
                   {count}
@@ -202,33 +151,52 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
           })}
         </div>
 
-        {/* Row 3: Sort selector */}
-        <div className="flex items-center justify-between pt-3 border-t border-slate-100 text-xs text-slate-500">
-          <div className="flex items-center gap-2">
-            <ArrowUpDown className="w-3.5 h-3.5 text-indigo-600" />
-            <span className="font-medium text-slate-600">Urutkan:</span>
+        {/* Right: Sort, View Toggle & Refresh */}
+        <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 text-xs">
+            <ArrowUpDown className="w-3.5 h-3.5 text-indigo-600 hidden sm:block" />
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as any)}
-              className="px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 text-xs font-medium focus:outline-none focus:border-indigo-500 focus:bg-white shadow-xs cursor-pointer"
+              className="px-2.5 py-1 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 text-xs font-medium focus:outline-none focus:border-indigo-500 focus:bg-white shadow-xs cursor-pointer"
             >
-              <option value="order">Rilis / Tambahan Terbaru (Default)</option>
-              <option value="title">Judul Lagu (A - Z)</option>
-              <option value="year">Tahun Rilis Terbaru</option>
-              <option value="duration">Durasi Lagu</option>
+              <option value="order">Terbaru</option>
+              <option value="title">Judul (A-Z)</option>
+              <option value="year">Tahun Rilis</option>
+              <option value="duration">Durasi</option>
             </select>
           </div>
 
-          {searchQuery && (
-            <button
-              onClick={() => onSearchChange('')}
-              className="text-indigo-600 hover:text-indigo-700 font-semibold hover:underline"
-            >
-              Hapus Filter Pencarian
-            </button>
-          )}
-        </div>
+          <button
+            onClick={onRefreshPlaylist}
+            disabled={isLoadingSheet}
+            className="p-1.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold flex items-center border border-slate-200 transition cursor-pointer shadow-xs active:scale-95"
+            title="Refresh dari Spreadsheet"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 text-indigo-600 ${isLoadingSheet ? 'animate-spin' : ''}`} />
+          </button>
 
+          <div className="flex items-center p-0.5 rounded-xl bg-slate-100 border border-slate-200">
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`p-1 rounded-lg transition cursor-pointer ${
+                viewMode === 'grid' ? 'bg-white text-indigo-700 shadow-xs font-bold' : 'text-slate-500 hover:text-slate-900'
+              }`}
+              title="Tampilan Grid Card"
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => setViewMode('table')}
+              className={`p-1 rounded-lg transition cursor-pointer ${
+                viewMode === 'table' ? 'bg-white text-indigo-700 shadow-xs font-bold' : 'text-slate-500 hover:text-slate-900'
+              }`}
+              title="Tampilan Tabel"
+            >
+              <List className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Main Track List (Table View) */}

@@ -508,7 +508,7 @@ export default function App() {
           />
 
           {/* Dynamic Content View with Smooth Scroll */}
-          <main className="flex-1 overflow-y-auto px-3 sm:px-5 lg:px-6 py-3.5 sm:py-4 pb-28 md:pb-24">
+          <main className="flex-1 overflow-y-auto px-3 sm:px-5 lg:px-6 py-2.5 sm:py-3 pb-28 md:pb-24">
             <div className="w-full">
               
               {activeTab === 'home' && (

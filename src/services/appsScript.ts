@@ -33,7 +33,16 @@ export function getStoredProfile(): ComposerProfile {
   if (typeof window === 'undefined') return INITIAL_COMPOSER_PROFILE;
   try {
     const raw = localStorage.getItem(LOCAL_STORAGE_PROFILE_KEY);
-    return raw ? { ...INITIAL_COMPOSER_PROFILE, ...JSON.parse(raw) } : INITIAL_COMPOSER_PROFILE;
+    if (!raw) return INITIAL_COMPOSER_PROFILE;
+    const parsed = JSON.parse(raw);
+    // If cache still has old bio or doesn't mention Klaten, update to new official bio
+    if (!parsed.bio || !parsed.bio.includes('Klaten')) {
+      parsed.bio = INITIAL_COMPOSER_PROFILE.bio;
+      parsed.location = INITIAL_COMPOSER_PROFILE.location;
+      parsed.activeSince = INITIAL_COMPOSER_PROFILE.activeSince;
+      localStorage.setItem(LOCAL_STORAGE_PROFILE_KEY, JSON.stringify({ ...INITIAL_COMPOSER_PROFILE, ...parsed }));
+    }
+    return { ...INITIAL_COMPOSER_PROFILE, ...parsed };
   } catch {
     return INITIAL_COMPOSER_PROFILE;
   }

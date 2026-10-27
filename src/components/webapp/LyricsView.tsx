@@ -115,16 +115,16 @@ export const LyricsView: React.FC<LyricsViewProps> = ({
     <div className="space-y-4 pb-12 animate-in fade-in duration-300">
       
       {/* 2-Column Responsive Layout: Left Playlist Selector + Right Lyrics Stage */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-5 items-start">
+      <div className="flex flex-col lg:flex-row gap-4 lg:gap-5 items-start w-full">
         
-        {/* Left Column: Playlist Switcher (4 cols on lg, 3 cols on xl) */}
-        <div className="lg:col-span-4 xl:col-span-4 space-y-2.5">
+        {/* Left Column: Playlist Switcher (Guaranteed 320px-384px width, never collapsed) */}
+        <div className="w-full lg:w-80 xl:w-96 shrink-0 space-y-2.5">
           {/* Header Bar */}
           <div className="p-3.5 rounded-2xl bg-white border border-slate-200/90 shadow-xs flex items-center justify-between">
             <div className="flex items-center gap-2">
               <ListMusic className="w-4 h-4 text-amber-600" />
               <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-                Daftar Lagu
+                Daftar Lagu Studio
               </span>
             </div>
             <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200">
@@ -144,14 +144,14 @@ export const LyricsView: React.FC<LyricsViewProps> = ({
             />
           </div>
 
-          {/* Songs List Container (Solid white, prominent titles) */}
+          {/* Songs List Container (Solid white, guaranteed prominent titles) */}
           <div className="rounded-2xl border border-slate-200/90 bg-white shadow-xs divide-y divide-slate-100 overflow-hidden max-h-[620px] overflow-y-auto">
             {filteredSongs.length === 0 ? (
               <div className="p-8 text-center text-xs text-slate-500">
                 Tidak ada lagu yang cocok dengan pencarian.
               </div>
             ) : (
-              filteredSongs.map((song, idx) => {
+              filteredSongs.map((song) => {
                 const isSelected = activeSong.id === song.id;
                 const isThisPlaying = currentSong?.id === song.id && isPlaying;
                 const hasVideo = Boolean(getYouTubeEmbedUrl(song.youtubeUrl));
@@ -162,12 +162,12 @@ export const LyricsView: React.FC<LyricsViewProps> = ({
                     onClick={() => setSelectedSongId(song.id)}
                     className={`flex items-center gap-3 p-3 transition cursor-pointer group ${
                       isSelected
-                        ? 'bg-amber-50/80 border-l-4 border-amber-500'
+                        ? 'bg-amber-50/90 border-l-4 border-amber-500'
                         : 'hover:bg-slate-50 border-l-4 border-transparent'
                     }`}
                   >
                     {/* Cover Art with Play Button */}
-                    <div className="relative w-11 h-11 rounded-xl overflow-hidden bg-slate-100 shrink-0 border border-slate-200 shadow-xs">
+                    <div className="relative w-12 h-12 rounded-xl overflow-hidden bg-slate-100 shrink-0 border border-slate-200 shadow-xs">
                       <img
                         src={song.cover}
                         alt={song.title}
@@ -197,29 +197,29 @@ export const LyricsView: React.FC<LyricsViewProps> = ({
                       </button>
                     </div>
 
-                    {/* Song Title and Details (Explicit flex-1 min-w-0, always clearly readable) */}
-                    <div className="flex-1 min-w-0">
+                    {/* Song Title and Details (Explicit min-w-[150px] - NEVER collapses) */}
+                    <div className="flex-1 min-w-[150px]">
                       <div className="flex items-center gap-1.5">
                         <span
-                          className={`text-xs font-bold truncate block ${
-                            isSelected ? 'text-amber-900 font-extrabold' : 'text-slate-900 group-hover:text-amber-700'
+                          className={`text-xs sm:text-sm font-bold truncate block ${
+                            isSelected ? 'text-amber-950 font-extrabold' : 'text-slate-900 group-hover:text-amber-700'
                           }`}
                         >
                           {song.title}
                         </span>
                         {hasVideo && (
-                          <Youtube className="w-3 h-3 text-rose-500 shrink-0" title="Ada Video YouTube" />
+                          <Youtube className="w-3.5 h-3.5 text-rose-500 shrink-0" title="Ada Video YouTube" />
                         )}
                       </div>
                       <div className="text-[11px] text-slate-500 truncate mt-0.5 flex items-center gap-1">
                         <span>{song.singer}</span>
                         <span className="text-slate-300">•</span>
-                        <span className="font-medium text-indigo-600">{song.genre}</span>
+                        <span className="font-semibold text-indigo-600">{song.genre}</span>
                       </div>
                     </div>
 
                     {/* Duration badge */}
-                    <span className="text-[10px] font-mono text-slate-400 shrink-0">
+                    <span className="text-[10px] font-mono text-slate-400 shrink-0 ml-1">
                       {formatSongDuration(song.duration)}
                     </span>
                   </div>
@@ -229,8 +229,8 @@ export const LyricsView: React.FC<LyricsViewProps> = ({
           </div>
         </div>
 
-        {/* Right Column: Prominent Song Title + Metadata Header + Lyrics Stage (8 cols) */}
-        <div className="lg:col-span-8 xl:col-span-8">
+        {/* Right Column: Prominent Song Title + Metadata Header + Lyrics Stage */}
+        <div className="flex-1 min-w-0 w-full">
           <div className="relative rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-7 lg:p-8 shadow-[0_4px_25px_rgba(15,23,42,0.04)] overflow-hidden min-h-[580px]">
             
             {/* Ambient Background Watermark */}
@@ -238,8 +238,8 @@ export const LyricsView: React.FC<LyricsViewProps> = ({
               <Disc3 className="w-96 h-96 animate-spin-slow" />
             </div>
 
-            {/* PROMINENT TITLE & SONG DESCRIPTION HEADER (CLEARLY VISIBLE & HIGH CONTRAST) */}
-            <div className="relative z-10 pb-5 mb-5 border-b border-slate-100 space-y-4">
+            {/* PROMINENT TITLE & SONG DESCRIPTION HEADER (STICKY, ALWAYS READABLE EVEN WHEN SCROLLING) */}
+            <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-md pb-4 pt-1 mb-4 border-b border-slate-200/80 space-y-3.5">
               
               {/* Row 1: Badges & Format */}
               <div className="flex flex-wrap items-center justify-between gap-2.5">

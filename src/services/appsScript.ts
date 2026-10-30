@@ -240,10 +240,13 @@ export function getCachedOrders(): Order[] {
   try {
     const raw = localStorage.getItem(LOCAL_STORAGE_ORDERS_CACHE_KEY);
     if (!raw) return [];
-    const list: Order[] = JSON.parse(raw);
+    const list = JSON.parse(raw);
+    if (!Array.isArray(list)) return [];
     // Filter out old dummy sample orders if any lingered in localStorage
     return list.filter(
       (o) =>
+        o &&
+        typeof o === 'object' &&
         o.id !== 'ord-1' &&
         o.id !== 'ord-2' &&
         !String(o.name || '').includes('Ahmad Fauzi') &&

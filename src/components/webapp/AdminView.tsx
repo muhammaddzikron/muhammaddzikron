@@ -123,6 +123,11 @@ export const AdminView: React.FC<AdminViewProps> = ({
   const [successToast, setSuccessToast] = useState<string | null>(null);
   const [isSyncingGSheet, setIsSyncingGSheet] = useState(false);
 
+  const showNotification = (msg: string) => {
+    setSuccessToast(msg);
+    setTimeout(() => setSuccessToast(null), 3000);
+  };
+
   // Download Management State
   const [downloadList, setDownloadList] = useState<DownloadItem[]>([]);
   const [editingDownloadId, setEditingDownloadId] = useState<string | null>(null);
@@ -491,34 +496,6 @@ export const AdminView: React.FC<AdminViewProps> = ({
     await clearAllOrdersFromLocal();
     setOrders([]);
     showNotification('Seluruh riwayat pesanan berhasil dibersihkan.');
-  };
-
-  if (!isAdminLoggedIn) {
-    return (
-      <div className="py-16 flex flex-col items-center justify-center text-center max-w-md mx-auto space-y-4 animate-in fade-in duration-300">
-        <div className="w-16 h-16 rounded-3xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600 shadow-sm">
-          <Lock className="w-8 h-8" />
-        </div>
-        <h2 className="text-xl font-bold text-slate-900 font-serif">
-          Akses Portal Admin Terkunci
-        </h2>
-        <p className="text-xs text-slate-500 leading-relaxed">
-          Silakan masuk dengan akun administrator untuk mengelola playlist lagu, input karya baru, dan pengaturan rilis.
-        </p>
-        <button
-          onClick={onOpenLoginModal}
-          className="px-6 py-3 rounded-2xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs uppercase tracking-wider flex items-center gap-2 hover:scale-105 transition shadow-md shadow-amber-200 cursor-pointer"
-        >
-          <ShieldCheck className="w-4 h-4" />
-          <span>Buka Login Admin</span>
-        </button>
-      </div>
-    );
-  }
-
-  const showNotification = (msg: string) => {
-    setSuccessToast(msg);
-    setTimeout(() => setSuccessToast(null), 3000);
   };
 
   const handleEditClick = (song: Song) => {

@@ -274,11 +274,13 @@ export function getDownloadBannerConfig(): DownloadBannerConfig {
     const raw = localStorage.getItem(BANNER_CONFIG_STORAGE_KEY);
     if (!raw) return DEFAULT_DOWNLOAD_BANNER_CONFIG;
     const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return DEFAULT_DOWNLOAD_BANNER_CONFIG;
+    const title = typeof parsed.pageHeaderTitle === 'string' ? parsed.pageHeaderTitle : '';
     if (
-      !parsed.pageHeaderTitle ||
-      parsed.pageHeaderTitle === 'Unduh Master Audio & Materi Musik' ||
-      parsed.pageHeaderTitle === 'Unduh Materi' ||
-      parsed.pageHeaderTitle.toLowerCase().includes('unduh master')
+      !title ||
+      title === 'Unduh Master Audio & Materi Musik' ||
+      title === 'Unduh Materi' ||
+      title.toLowerCase().includes('unduh master')
     ) {
       parsed.pageHeaderTitle = 'Download Area';
       try {

@@ -163,6 +163,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
   const [orders, setOrders] = useState<Order[]>(INITIAL_SAMPLE_ORDERS);
   const [isLoadingOrders, setIsLoadingOrders] = useState(false);
   const [ordersLive, setOrdersLive] = useState(false);
+  const [deletingOrderId, setDeletingOrderId] = useState<string | null>(null);
 
   useEffect(() => {
     if (isAdminLoggedIn) {
@@ -466,8 +467,6 @@ export const AdminView: React.FC<AdminViewProps> = ({
     window.open(`https://wa.me/${formattedPhone}?text=${text}`, '_blank');
   };
 
-  const [deletingOrderId, setDeletingOrderId] = useState<string | null>(null);
-
   const handleDeleteOrder = async (order: Order) => {
     if (!window.confirm(`Hapus pesanan dari klien "${order.name}"?`)) {
       return;
@@ -496,19 +495,19 @@ export const AdminView: React.FC<AdminViewProps> = ({
 
   if (!isAdminLoggedIn) {
     return (
-      <div className="py-16 flex flex-col items-center justify-center text-center max-w-md mx-auto space-y-4">
-        <div className="w-16 h-16 rounded-3xl bg-slate-900 border border-slate-800 flex items-center justify-center text-[#00ffc8] shadow-[0_0_25px_rgba(0,255,200,0.15)]">
+      <div className="py-16 flex flex-col items-center justify-center text-center max-w-md mx-auto space-y-4 animate-in fade-in duration-300">
+        <div className="w-16 h-16 rounded-3xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600 shadow-sm">
           <Lock className="w-8 h-8" />
         </div>
-        <h2 className="text-xl font-bold text-white font-serif">
+        <h2 className="text-xl font-bold text-slate-900 font-serif">
           Akses Portal Admin Terkunci
         </h2>
-        <p className="text-xs text-slate-400 leading-relaxed">
+        <p className="text-xs text-slate-500 leading-relaxed">
           Silakan masuk dengan akun administrator untuk mengelola playlist lagu, input karya baru, dan pengaturan rilis.
         </p>
         <button
           onClick={onOpenLoginModal}
-          className="px-6 py-3 rounded-2xl bg-gradient-to-r from-[#0099ff] to-[#00ffc8] text-slate-950 font-bold text-xs uppercase tracking-wider flex items-center gap-2 hover:scale-105 transition shadow-lg cursor-pointer"
+          className="px-6 py-3 rounded-2xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs uppercase tracking-wider flex items-center gap-2 hover:scale-105 transition shadow-md shadow-amber-200 cursor-pointer"
         >
           <ShieldCheck className="w-4 h-4" />
           <span>Buka Login Admin</span>
@@ -781,10 +780,10 @@ export const AdminView: React.FC<AdminViewProps> = ({
           {onOpenEditProfile && (
             <button
               onClick={onOpenEditProfile}
-              className="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer bg-slate-900 hover:bg-[#00ffc8]/20 text-[#00ffc8] border border-[#00ffc8]/30"
+              className="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 shadow-xs"
               title="Edit Data Profil Komposer & Simpan ke Spreadsheet"
             >
-              <User className="w-4 h-4 text-[#00ffc8]" />
+              <User className="w-4 h-4 text-amber-600" />
               <span>Edit Profil Komposer</span>
             </button>
           )}
@@ -794,7 +793,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
           <button
             onClick={handleSyncAllToGoogleSheet}
             disabled={isSyncingGSheet}
-            className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-emerald-400 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+            className="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-xs"
           >
             <FileSpreadsheet className="w-3.5 h-3.5" />
             <span>Upload ke Sheet</span>
@@ -802,10 +801,10 @@ export const AdminView: React.FC<AdminViewProps> = ({
 
           <button
             onClick={onLogout}
-            className="px-3 py-1.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30 text-xs font-bold flex items-center gap-1.5 transition cursor-pointer"
+            className="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow-xs"
             title="Keluar dari mode admin"
           >
-            <LogOut className="w-3.5 h-3.5" />
+            <LogOut className="w-3.5 h-3.5 text-rose-600" />
             <span>Logout</span>
           </button>
         </div>
@@ -814,20 +813,20 @@ export const AdminView: React.FC<AdminViewProps> = ({
       {/* Sub Tab 1: Song List */}
       {activeSubTab === 'list' && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between text-xs text-slate-400">
+          <div className="flex items-center justify-between text-xs text-slate-500">
             <p>Klik tombol <strong>Edit</strong> untuk mengubah judul, penyanyi, audio link, atau lirik.</p>
             <button
               onClick={onResetToDefault}
-              className="text-slate-400 hover:text-amber-300 underline"
+              className="text-slate-500 hover:text-amber-700 underline font-semibold"
             >
               Reset ke Data Bawaan
             </button>
           </div>
 
-          <div className="rounded-3xl border border-slate-800 bg-slate-900/70 overflow-x-auto shadow-2xl">
+          <div className="rounded-3xl border border-slate-200/90 bg-white overflow-x-auto shadow-xs">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="border-b border-slate-800 bg-slate-950/80 text-slate-400 font-semibold uppercase tracking-wider">
+                <tr className="border-b border-slate-200 bg-slate-50 text-slate-700 font-bold uppercase tracking-wider">
                   <th className="py-3.5 px-4">Urutan</th>
                   <th className="py-3.5 px-4">Lagu & Artis</th>
                   <th className="py-3.5 px-4">Genre / Tahun</th>
@@ -835,10 +834,10 @@ export const AdminView: React.FC<AdminViewProps> = ({
                   <th className="py-3.5 px-4 text-right">Aksi</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/60 text-slate-200">
-                {songs.map((song, index) => (
-                  <tr key={song.id} className="hover:bg-slate-800/40 transition">
-                    <td className="py-3.5 px-4 font-mono font-bold text-slate-400">
+              <tbody className="divide-y divide-slate-100 text-slate-800">
+                {(songs || []).map((song, index) => (
+                  <tr key={song.id} className="hover:bg-slate-50/70 transition">
+                    <td className="py-3.5 px-4 font-mono font-bold text-slate-500">
                       #{song.order || index + 1}
                     </td>
                     <td className="py-3.5 px-4">
@@ -846,27 +845,27 @@ export const AdminView: React.FC<AdminViewProps> = ({
                         <img
                           src={song.cover}
                           alt={song.title}
-                          className="w-9 h-9 rounded-lg object-cover bg-slate-800 border border-slate-700"
+                          className="w-9 h-9 rounded-lg object-cover bg-slate-100 border border-slate-200"
                         />
                         <div>
-                          <div className="font-bold text-white text-sm flex items-center gap-1.5">
+                          <div className="font-bold text-slate-900 text-sm flex items-center gap-1.5">
                             <span>{song.title}</span>
                             {song.youtubeUrl && (
-                              <span className="px-1.5 py-0.5 rounded bg-red-600/20 border border-red-500/30 text-red-400 text-[9px] font-bold flex items-center gap-0.5" title="Video YouTube Terhubung">
+                              <span className="px-1.5 py-0.5 rounded bg-red-50 border border-red-200 text-red-600 text-[9px] font-bold flex items-center gap-0.5" title="Video YouTube Terhubung">
                                 <Youtube className="w-2.5 h-2.5" /> Video
                               </span>
                             )}
                           </div>
-                          <div className="text-[11px] text-slate-400">{song.singer}</div>
+                          <div className="text-[11px] text-slate-500">{song.singer}</div>
                         </div>
                       </div>
                     </td>
                     <td className="py-3.5 px-4">
                       <div className="flex flex-wrap items-center gap-1.5">
-                        <span className="inline-block px-2.5 py-0.5 rounded-md bg-slate-800 border border-slate-700 text-slate-300 text-[11px]">
+                        <span className="inline-block px-2.5 py-0.5 rounded-md bg-slate-100 border border-slate-200 text-slate-700 text-[11px]">
                           {song.genre} ({song.year})
                         </span>
-                        <span className="inline-block px-2 py-0.5 rounded-md bg-slate-950 border border-slate-800 font-mono text-emerald-400 text-[10px]">
+                        <span className="inline-block px-2 py-0.5 rounded-md bg-emerald-50 border border-emerald-200 font-mono text-emerald-700 text-[10px] font-bold">
                           {formatSongDuration(song.duration)}
                         </span>
                       </div>
@@ -876,8 +875,8 @@ export const AdminView: React.FC<AdminViewProps> = ({
                         onClick={() => handleToggleStatus(song.id)}
                         className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 transition cursor-pointer ${
                           song.status === 'Draft'
-                            ? 'bg-slate-800 text-slate-400 border border-slate-700'
-                            : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                            ? 'bg-slate-100 text-slate-600 border border-slate-200'
+                            : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                         }`}
                       >
                         {song.status === 'Draft' ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
@@ -888,14 +887,14 @@ export const AdminView: React.FC<AdminViewProps> = ({
                       <div className="flex items-center justify-end gap-1.5">
                         <button
                           onClick={() => handleEditClick(song)}
-                          className="p-1.5 rounded-lg bg-slate-800 hover:bg-[#00ffc8]/20 text-slate-300 hover:text-[#00ffc8] transition cursor-pointer"
+                          className="p-1.5 rounded-lg bg-slate-100 hover:bg-amber-100 text-slate-600 hover:text-amber-800 transition cursor-pointer"
                           title="Edit Lagu"
                         >
                           <Edit2 className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => handleDeleteSong(song.id, song.title)}
-                          className="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-slate-300 hover:text-rose-400 transition cursor-pointer"
+                          className="p-1.5 rounded-lg bg-slate-100 hover:bg-rose-100 text-slate-600 hover:text-rose-700 transition cursor-pointer"
                           title="Hapus Lagu"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -1206,22 +1205,22 @@ export const AdminView: React.FC<AdminViewProps> = ({
       {/* Sub Tab: Orders / Pesanan Masuk */}
       {activeSubTab === 'orders' && (
         <div className="space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-slate-900/60 border border-slate-800">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-white border border-slate-200/90 shadow-xs">
             <div>
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <Inbox className="w-5 h-5 text-[#00ffc8]" />
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <Inbox className="w-5 h-5 text-amber-600" />
                 <span>Daftar Pesanan & Permintaan Klien Masuk</span>
               </h3>
-              <p className="text-xs text-slate-400 mt-1">
+              <p className="text-xs text-slate-500 mt-1">
                 Data pesanan yang masuk melalui formulir kontak dan tersimpan di Google Spreadsheet (Tab: <strong>Pesanan</strong>).
               </p>
             </div>
 
             <div className="flex items-center gap-2">
-              {orders.length > 0 && (
+              {(orders || []).length > 0 && (
                 <button
                   onClick={handleClearAllOrders}
-                  className="px-3.5 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/20 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+                  className="px-3.5 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-xs"
                   title="Hapus semua riwayat pesanan lokal"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
@@ -1232,7 +1231,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
               <button
                 onClick={loadOrders}
                 disabled={isLoadingOrders}
-                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 text-xs font-semibold flex items-center gap-2 transition cursor-pointer self-start sm:self-auto disabled:opacity-50"
+                className="px-4 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2 transition cursor-pointer self-start sm:self-auto disabled:opacity-50 shadow-xs"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${isLoadingOrders ? 'animate-spin' : ''}`} />
                 <span>{isLoadingOrders ? 'Memuat...' : 'Segarkan Data'}</span>
@@ -1240,85 +1239,85 @@ export const AdminView: React.FC<AdminViewProps> = ({
             </div>
           </div>
 
-          {orders.length === 0 ? (
-            <div className="py-16 text-center rounded-3xl border border-slate-800 bg-slate-900/40 space-y-3">
-              <Inbox className="w-10 h-10 mx-auto text-slate-600" />
-              <p className="text-sm font-semibold text-slate-400">Belum ada pesanan masuk</p>
+          {(orders || []).length === 0 ? (
+            <div className="py-16 text-center rounded-3xl border border-slate-200/90 bg-white space-y-3 shadow-xs">
+              <Inbox className="w-10 h-10 mx-auto text-slate-400" />
+              <p className="text-sm font-semibold text-slate-700">Belum ada pesanan masuk</p>
               <p className="text-xs text-slate-500">
                 Formulir pesanan yang diisi klien akan otomatis muncul di sini.
               </p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {orders.map((order, idx) => {
+              {(orders || []).map((order, idx) => {
                 const orderKey = order.id || `${order.name}-${order.timestamp}`;
                 const isDeletingThis = deletingOrderId === orderKey;
 
                 return (
                   <div
                     key={orderKey || idx}
-                    className="p-5 rounded-3xl bg-slate-900/80 border border-slate-800 hover:border-slate-700 transition space-y-4 shadow-lg flex flex-col justify-between"
+                    className="p-5 rounded-3xl bg-white border border-slate-200/90 hover:border-slate-300 transition space-y-4 shadow-xs flex flex-col justify-between"
                   >
                     <div className="space-y-3">
-                      <div className="flex items-start justify-between gap-2 border-b border-slate-800/80 pb-3">
+                      <div className="flex items-start justify-between gap-2 border-b border-slate-100 pb-3">
                         <div>
-                          <span className="px-2.5 py-1 rounded-lg bg-[#00ffc8]/10 text-[#00ffc8] text-[10px] font-bold uppercase tracking-wider border border-[#00ffc8]/20">
+                          <span className="px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 text-[10px] font-bold uppercase tracking-wider border border-indigo-200">
                             {order.service}
                           </span>
-                          <h4 className="text-base font-bold text-white mt-2 flex items-center gap-2">
-                            <User className="w-4 h-4 text-slate-400" />
+                          <h4 className="text-base font-bold text-slate-900 mt-2 flex items-center gap-2">
+                            <User className="w-4 h-4 text-slate-500" />
                             <span>{order.name}</span>
                           </h4>
                         </div>
 
                         <div className="text-right shrink-0">
-                          <div className="text-[10px] text-slate-400 flex items-center gap-1">
+                          <div className="text-[10px] text-slate-500 flex items-center gap-1">
                             <Clock className="w-3 h-3" />
                             <span>{order.timestamp}</span>
                           </div>
-                          <span className="inline-block mt-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-semibold border border-emerald-500/20">
+                          <span className="inline-block mt-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-semibold border border-emerald-200">
                             {order.status || 'Baru Masuk'}
                           </span>
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-2 text-xs text-slate-300">
-                        <div className="flex items-center gap-1.5 text-slate-400">
-                          <Phone className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                          <span className="text-white font-mono">{order.phone}</span>
+                      <div className="grid grid-cols-2 gap-2 text-xs text-slate-700">
+                        <div className="flex items-center gap-1.5 text-slate-500">
+                          <Phone className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                          <span className="text-slate-900 font-mono font-semibold">{order.phone}</span>
                         </div>
                         {order.email && order.email !== '-' && (
-                          <div className="flex items-center gap-1.5 text-slate-400 truncate">
-                            <Mail className="w-3.5 h-3.5 text-sky-400 shrink-0" />
-                            <span className="truncate">{order.email}</span>
+                          <div className="flex items-center gap-1.5 text-slate-500 truncate">
+                            <Mail className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                            <span className="truncate text-slate-700">{order.email}</span>
                           </div>
                         )}
                         {order.genre && order.genre !== '-' && (
-                          <div className="flex items-center gap-1.5 text-slate-400">
-                            <Tag className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                            <span>{order.genre}</span>
+                          <div className="flex items-center gap-1.5 text-slate-500">
+                            <Tag className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                            <span className="text-slate-700">{order.genre}</span>
                           </div>
                         )}
                         {order.budget && order.budget !== '-' && (
-                          <div className="flex items-center gap-1.5 text-slate-400">
-                            <DollarSign className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                            <span>{order.budget}</span>
+                          <div className="flex items-center gap-1.5 text-slate-500">
+                            <DollarSign className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                            <span className="text-slate-700 font-semibold">{order.budget}</span>
                           </div>
                         )}
                       </div>
 
-                      <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800/60 text-xs text-slate-300 leading-relaxed">
+                      <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 text-xs text-slate-700 leading-relaxed">
                         <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1">
                           Pesan & Kebutuhan Proyek:
                         </div>
-                        <p className="italic">"{order.message}"</p>
+                        <p className="italic text-slate-800">"{order.message}"</p>
                       </div>
                     </div>
 
                     <div className="pt-2 flex items-center gap-2">
                       <button
                         onClick={() => handleReplyWhatsApp(order)}
-                        className="flex-1 py-2.5 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer"
+                        className="flex-1 py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer shadow-sm"
                       >
                         <MessageSquare className="w-4 h-4" />
                         <span>Balas via WA</span>
@@ -1327,7 +1326,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
                       <button
                         onClick={() => handleDeleteOrder(order)}
                         disabled={isDeletingThis}
-                        className="py-2.5 px-3 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 hover:text-rose-200 border border-rose-500/30 text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer disabled:opacity-50"
+                        className="py-2.5 px-3 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer disabled:opacity-50"
                         title="Hapus pesanan ini"
                       >
                         {isDeletingThis ? (
@@ -1719,49 +1718,49 @@ export const AdminView: React.FC<AdminViewProps> = ({
                   <th className="py-3.5 px-4 text-center min-w-[140px]">Aksi Edit & Hapus</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/60">
-                {downloadList.length === 0 ? (
+              <tbody className="divide-y divide-slate-100 text-slate-800">
+                {(downloadList || []).length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="py-8 text-center text-slate-400">
+                    <td colSpan={8} className="py-8 text-center text-slate-500">
                       Belum ada file di Akses Unduhan Terbuka. Klik "Tambah File Baru" di atas untuk menambahkan.
                     </td>
                   </tr>
                 ) : (
-                  downloadList.map((item, idx) => {
+                  (downloadList || []).map((item, idx) => {
                     const isDrive = Boolean(extractDriveId(item.fileUrl));
                     const isEditingThis = editingDownloadId === item.id;
                     return (
                       <tr
                         key={item.id}
-                        className={`transition ${isEditingThis ? 'bg-cyan-950/30 border-l-4 border-l-[#00ffc8]' : 'hover:bg-slate-800/40'}`}
+                        className={`transition ${isEditingThis ? 'bg-amber-50/80 border-l-4 border-l-amber-500' : 'hover:bg-slate-50/70'}`}
                       >
-                        <td className="py-3 px-4 text-center text-slate-400 font-mono">{idx + 1}</td>
+                        <td className="py-3 px-4 text-center text-slate-500 font-mono">{idx + 1}</td>
                         <td className="py-3 px-4 max-w-xs">
-                          <div className="font-bold text-white text-xs">{item.fileName}</div>
-                          <div className="text-[11px] text-slate-400 truncate mt-0.5">{item.description}</div>
+                          <div className="font-bold text-slate-900 text-xs">{item.fileName}</div>
+                          <div className="text-[11px] text-slate-500 truncate mt-0.5">{item.description}</div>
                         </td>
                         <td className="py-3 px-4 whitespace-nowrap">
-                          <span className="px-2 py-0.5 rounded-full bg-slate-800 text-[#00ffc8] text-[10px] font-bold">
+                          <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-[10px] font-bold">
                             {item.category}
                           </span>
-                          <div className="text-[10px] text-slate-400 mt-0.5 font-mono">{item.format}</div>
+                          <div className="text-[10px] text-slate-500 mt-0.5 font-mono">{item.format}</div>
                         </td>
-                        <td className="py-3 px-4 text-slate-300 font-mono text-[11px] whitespace-nowrap">
+                        <td className="py-3 px-4 text-slate-700 font-mono text-[11px] whitespace-nowrap">
                           {item.fileSize || '-'}
                         </td>
-                        <td className="py-3 px-4 text-center font-mono text-slate-300">
-                          <span className="px-2 py-0.5 rounded-md bg-slate-800 text-[10px]">
+                        <td className="py-3 px-4 text-center font-mono text-slate-700">
+                          <span className="px-2 py-0.5 rounded-md bg-slate-100 border border-slate-200 text-[10px] font-semibold">
                             {item.downloadCount || 0}x
                           </span>
                         </td>
                         <td className="py-3 px-4 whitespace-nowrap">
                           {isDrive ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-sky-500/10 border border-sky-500/30 text-sky-300 text-[10px] font-semibold">
-                              <HardDrive className="w-3 h-3 text-[#0099ff]" />
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-sky-50 border border-sky-200 text-sky-700 text-[10px] font-semibold">
+                              <HardDrive className="w-3 h-3 text-sky-600" />
                               Google Drive
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 text-[10px]">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200 text-[10px]">
                               <ExternalLink className="w-3 h-3" />
                               Direct URL
                             </span>
@@ -1772,8 +1771,8 @@ export const AdminView: React.FC<AdminViewProps> = ({
                             onClick={() => handleToggleDownloadStatus(item)}
                             className={`px-2 py-0.5 rounded-full text-[10px] font-bold cursor-pointer transition ${
                               item.status === 'active'
-                                ? 'bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30'
-                                : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100'
+                                : 'bg-slate-100 text-slate-500 border border-slate-200 hover:bg-slate-200'
                             }`}
                           >
                             {item.status === 'active' ? 'Aktif' : 'Disembunyikan'}
@@ -1784,7 +1783,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
                             {/* Tombol Edit */}
                             <button
                               onClick={() => handleEditDownload(item)}
-                              className="px-2.5 py-1.5 rounded-lg bg-cyan-500/15 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-sm"
+                              className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-amber-100 text-slate-700 hover:text-amber-800 border border-slate-200 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-xs"
                               title="Edit isi file ini"
                             >
                               <Edit2 className="w-3.5 h-3.5" />
@@ -1794,7 +1793,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
                             {/* Tombol Hapus */}
                             <button
                               onClick={() => setItemToDelete(item)}
-                              className="px-2.5 py-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-sm"
+                              className="px-2.5 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shadow-xs"
                               title="Hapus file ini dari Akses Unduhan Terbuka"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -1806,7 +1805,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
                               href={resolveDownloadUrl(item.fileUrl)}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition"
+                              className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 transition"
                               title="Uji buka link download"
                             >
                               <Download className="w-3.5 h-3.5" />

@@ -19,6 +19,7 @@ import { SongDetailModal } from './components/SongDetailModal';
 import { GoogleSheetConfigModal } from './components/GoogleSheetConfigModal';
 import { AdminLoginModal } from './components/AdminLoginModal';
 import { EditProfileModal } from './components/EditProfileModal';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 // Web App UI Components
 import { Sidebar, WebAppTab } from './components/webapp/Sidebar';
@@ -521,6 +522,7 @@ export default function App() {
                   onSelectSongDetails={(s) => setSelectedDetailSong(s)}
                   onToggleFavorite={toggleFavorite}
                   favorites={favorites}
+                  searchQuery={searchQuery}
                 />
               )}
 
@@ -576,15 +578,17 @@ export default function App() {
               )}
 
               {activeTab === 'admin' && (
-                <AdminView
-                  songs={songs}
-                  onUpdateSongs={handleAdminUpdateSongs}
-                  onLogout={handleAdminLogout}
-                  onResetToDefault={handleResetToDefaultSongs}
-                  isAdminLoggedIn={isAdminLoggedIn}
-                  onOpenLoginModal={() => setShowAdminLoginModal(true)}
-                  onOpenEditProfile={() => setShowEditProfileModal(true)}
-                />
+                <ErrorBoundary fallbackTitle="Kendala Memuat Dasbor Admin">
+                  <AdminView
+                    songs={songs}
+                    onUpdateSongs={handleAdminUpdateSongs}
+                    onLogout={handleAdminLogout}
+                    onResetToDefault={handleResetToDefaultSongs}
+                    isAdminLoggedIn={isAdminLoggedIn}
+                    onOpenLoginModal={() => setShowAdminLoginModal(true)}
+                    onOpenEditProfile={() => setShowEditProfileModal(true)}
+                  />
+                </ErrorBoundary>
               )}
 
             </div>

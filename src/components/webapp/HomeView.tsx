@@ -30,6 +30,7 @@ interface HomeViewProps {
   onSelectSongDetails: (song: Song) => void;
   onToggleFavorite: (songId: string) => void;
   favorites: string[];
+  searchQuery?: string;
 }
 
 const GENRE_COLORS: Record<string, { bg: string; text: string; border: string }> = {
@@ -38,7 +39,7 @@ const GENRE_COLORS: Record<string, { bg: string; text: string; border: string }>
   'Pop Melayu': { bg: 'bg-rose-100', text: 'text-rose-700', border: 'border-rose-200' },
   'Pop Akustik': { bg: 'bg-amber-100', text: 'text-amber-700', border: 'border-amber-200' },
   'Sinematik': { bg: 'bg-sky-100', text: 'text-sky-700', border: 'border-sky-200' },
-  'Instrumental': { bg: 'bg-purple-100', text: 'text-purple-700', border: 'border-purple-200' }
+  'Instrumental': { bg: 'purple-100', text: 'text-purple-700', border: 'border-purple-200' }
 };
 
 export const HomeView: React.FC<HomeViewProps> = ({
@@ -49,10 +50,10 @@ export const HomeView: React.FC<HomeViewProps> = ({
   onSelectTab,
   onSelectSongDetails,
   onToggleFavorite,
-  favorites
+  favorites,
+  searchQuery = ''
 }) => {
   const [selectedGenre, setSelectedGenre] = useState<string>('Semua');
-  const [searchFilter, setSearchFilter] = useState<string>('');
 
   // Featured song dynamically follows currently playing/active song, falling back to songs[0]
   const featuredSong = currentSong || songs[0] || null;
@@ -71,7 +72,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
   const displayedSongs = useMemo(() => {
     return songs.filter((s) => {
       const matchesGenre = selectedGenre === 'Semua' || s.genre === selectedGenre;
-      const q = searchFilter.toLowerCase().trim();
+      const q = searchQuery.toLowerCase().trim();
       const matchesSearch =
         q === '' ||
         s.title.toLowerCase().includes(q) ||
@@ -80,7 +81,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
         s.lyrics?.toLowerCase().includes(q);
       return matchesGenre && matchesSearch;
     });
-  }, [songs, selectedGenre, searchFilter]);
+  }, [songs, selectedGenre, searchQuery]);
 
   return (
     <div className="space-y-3.5 sm:space-y-4 pb-10 animate-in fade-in duration-300">
@@ -210,61 +211,39 @@ export const HomeView: React.FC<HomeViewProps> = ({
         </div>
       )}
 
-      {/* 2. Bar Pencarian & Filter Kategori (Presisi di Bawah Card Atas) */}
-      <div className="rounded-2xl bg-white border border-slate-200/90 shadow-[0_4px_20px_rgba(15,23,42,0.03)] p-3 sm:p-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      {/* 2. Filter Kategori Genre (Pencarian utama berada di Top Header) */}
+      <div className="rounded-2xl bg-white border border-slate-200/90 shadow-[0_4px_20px_rgba(15,23,42,0.03)] p-3 sm:p-3.5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           
-          {/* Left: Section title, badge & quick genre pills */}
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="flex items-center gap-2 mr-1">
-              <ListMusic className="w-4 h-4 text-indigo-600" />
-              <span className="font-serif font-extrabold text-sm sm:text-base text-slate-900">
-                Daftar Lagu
-              </span>
-              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200/80">
-                {displayedSongs.length}
-              </span>
-            </div>
-
-            {/* Genre Pills */}
-            <div className="flex items-center gap-1.5 overflow-x-auto py-0.5 scrollbar-none">
-              {allGenresList.map((g) => {
-                const isSelected = selectedGenre === g;
-                return (
-                  <button
-                    key={g}
-                    onClick={() => setSelectedGenre(g)}
-                    className={`px-3 py-1 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer shadow-xs ${
-                      isSelected
-                        ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-200'
-                        : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200/90'
-                    }`}
-                  >
-                    {g}
-                  </button>
-                );
-              })}
-            </div>
+          {/* Section title & count badge */}
+          <div className="flex items-center gap-2">
+            <ListMusic className="w-4 h-4 text-indigo-600" />
+            <span className="font-serif font-extrabold text-sm sm:text-base text-slate-900">
+              Daftar Lagu
+            </span>
+            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200/80">
+              {displayedSongs.length}
+            </span>
           </div>
 
-          {/* Right: Quick Search */}
-          <div className="relative w-full sm:w-72 shrink-0">
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={searchFilter}
-              onChange={(e) => setSearchFilter(e.target.value)}
-              placeholder="Cari lagu di playlist..."
-              className="w-full pl-9 pr-8 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-indigo-600 focus:bg-white shadow-xs"
-            />
-            {searchFilter && (
-              <button
-                onClick={() => setSearchFilter('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
-              >
-                ✕
-              </button>
-            )}
+          {/* Genre Filter Pills */}
+          <div className="flex items-center gap-1.5 overflow-x-auto py-0.5 scrollbar-none flex-wrap">
+            {allGenresList.map((g) => {
+              const isSelected = selectedGenre === g;
+              return (
+                <button
+                  key={g}
+                  onClick={() => setSelectedGenre(g)}
+                  className={`px-3 py-1 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer shadow-xs ${
+                    isSelected
+                      ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-200'
+                      : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200/90'
+                  }`}
+                >
+                  {g}
+                </button>
+              );
+            })}
           </div>
 
         </div>

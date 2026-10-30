@@ -208,7 +208,9 @@ export const LyricsView: React.FC<LyricsViewProps> = ({
                           {song.title}
                         </span>
                         {hasVideo && (
-                          <Youtube className="w-3.5 h-3.5 text-rose-500 shrink-0" title="Ada Video YouTube" />
+                          <span title="Ada Video YouTube">
+                            <Youtube className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                          </span>
                         )}
                       </div>
                       <div className="text-[11px] text-slate-500 truncate mt-0.5 flex items-center gap-1">

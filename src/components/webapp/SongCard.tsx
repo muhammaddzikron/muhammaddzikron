@@ -85,19 +85,19 @@ export const SongCard: React.FC<SongCardProps> = ({
   return (
     <div
       onClick={() => onPlaySong(song)}
-      className={`group relative rounded-3xl bg-white border p-5 sm:p-6 transition-all duration-300 flex flex-col justify-between space-y-4 shadow-[0_4px_25px_rgba(15,23,42,0.04)] hover:shadow-xl hover:-translate-y-1 cursor-pointer ${
+      className={`group relative rounded-2xl sm:rounded-3xl bg-white border p-3.5 sm:p-4 transition-all duration-300 flex flex-col justify-between space-y-3 shadow-[0_2px_18px_rgba(15,23,42,0.03)] hover:shadow-lg hover:-translate-y-0.5 cursor-pointer ${
         isCurrent
           ? 'border-indigo-500 ring-2 ring-indigo-200/80 shadow-md bg-indigo-50/15'
           : 'border-slate-200/90 hover:border-indigo-300'
       }`}
     >
-      <div className="space-y-3.5">
+      <div className="space-y-2.5">
         {/* Header row: Album Thumbnail + Genre & Meta + Track Number & Favorite */}
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-3">
+        <div className="flex items-start justify-between gap-2.5">
+          <div className="flex items-center gap-2.5">
             {/* Album Cover Thumbnail */}
             <div
-              className="relative w-12 h-12 rounded-2xl overflow-hidden border border-slate-200 shrink-0 shadow-xs group/thumb bg-slate-100"
+              className="relative w-11 h-11 rounded-xl overflow-hidden border border-slate-200 shrink-0 shadow-2xs group/thumb bg-slate-100"
               onClick={(e) => {
                 e.stopPropagation();
                 onPlaySong(song);
@@ -114,41 +114,41 @@ export const SongCard: React.FC<SongCardProps> = ({
                 }`}
               >
                 {isCurrentPlaying ? (
-                  <Pause className="w-5 h-5 text-white" />
+                  <Pause className="w-4 h-4 text-white" />
                 ) : (
-                  <Play className="w-5 h-5 text-white fill-current ml-0.5" />
+                  <Play className="w-4 h-4 text-white fill-current ml-0.5" />
                 )}
               </div>
             </div>
 
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 <span
-                  className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border ${getGenreColorBadge(
+                  className={`text-[9.5px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border ${getGenreColorBadge(
                     song.genre
                   )}`}
                 >
                   {song.genre}
                 </span>
                 {song.youtubeUrl && (
-                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded-md border border-rose-200">
-                    <Youtube className="w-3 h-3" /> Video
+                  <span className="inline-flex items-center gap-1 text-[9.5px] font-bold text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded-md border border-rose-200">
+                    <Youtube className="w-2.5 h-2.5" /> Video
                   </span>
                 )}
               </div>
-              <div className="text-[11px] text-slate-500 font-mono mt-1">
+              <div className="text-[10.5px] text-slate-500 font-mono mt-0.5">
                 Format: <span className="text-slate-800 font-semibold">Audio Master HQ</span> • {formatSongDuration(song.duration)}
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
-            <span className="text-[11px] font-mono text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-lg border border-slate-200 font-semibold">
+          <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+            <span className="text-[10px] font-mono text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200 font-semibold">
               #{String(song.order || index + 1).padStart(2, '0')}
             </span>
             <button
               onClick={() => onToggleFavorite(song.id)}
-              className={`p-2 rounded-xl transition cursor-pointer ${
+              className={`p-1.5 rounded-lg transition cursor-pointer ${
                 isFavorite
                   ? 'bg-rose-50 text-rose-600 border border-rose-200'
                   : 'bg-slate-50 text-slate-400 hover:text-slate-700 hover:bg-slate-100 border border-slate-200'
@@ -163,13 +163,13 @@ export const SongCard: React.FC<SongCardProps> = ({
         {/* Song Title & Creator */}
         <div>
           <h3
-            className={`text-base sm:text-lg font-bold leading-snug transition-colors line-clamp-1 ${
+            className={`text-sm sm:text-base font-bold leading-snug transition-colors line-clamp-1 ${
               isCurrent ? 'text-indigo-600 font-extrabold' : 'text-slate-900 group-hover:text-indigo-600'
             }`}
           >
             {song.title}
           </h3>
-          <p className="text-xs text-slate-500 mt-1 flex items-center gap-1.5">
+          <p className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-1.5">
             <span>Karya:</span>
             <strong className="text-slate-800 font-semibold">{song.singer}</strong>
             <span>•</span>
@@ -178,31 +178,31 @@ export const SongCard: React.FC<SongCardProps> = ({
         </div>
 
         {/* Lyrics Quote Preview (Character card like Download Area) */}
-        <div className="bg-slate-50/90 p-2.5 rounded-2xl border border-slate-100/90 text-xs text-slate-600 leading-relaxed italic line-clamp-2">
+        <div className="bg-slate-50/90 p-2 rounded-xl border border-slate-100/90 text-[11px] text-slate-600 leading-relaxed italic line-clamp-2">
           &ldquo;{lyricsSnippet}&rdquo;
         </div>
 
         {/* Google Drive Link Indicator */}
-        <div className="flex items-center gap-1.5 text-[10px] text-slate-600 bg-slate-50 p-2 rounded-xl border border-slate-200">
-          <HardDrive className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+        <div className="flex items-center gap-1.5 text-[9.5px] text-slate-600 bg-slate-50 px-2.5 py-1.5 rounded-xl border border-slate-200">
+          <HardDrive className="w-3 h-3 text-indigo-600 shrink-0" />
           <span className="truncate font-medium">Tersimpan di Google Drive Resmi • Kualitas Studio</span>
         </div>
       </div>
 
       {/* Action Buttons Section */}
-      <div className="space-y-2 pt-1">
+      <div className="space-y-1.5 pt-0.5">
         {/* Full-width Primary Play/Pause Button (matching Download Area card) */}
         <button
           onClick={(e) => {
             e.stopPropagation();
             onPlaySong(song);
           }}
-          className={`w-full py-3 px-4 rounded-2xl text-xs font-extrabold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+          className={`w-full py-2.5 px-3 rounded-xl text-xs font-extrabold flex items-center justify-center gap-2 transition-all cursor-pointer ${
             isCurrentPlaying
               ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-200 animate-pulse'
               : isCurrent
               ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200'
-              : 'bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white shadow-md shadow-indigo-200 hover:scale-[1.01] active:scale-[0.99]'
+              : 'bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white shadow-sm shadow-indigo-200 hover:scale-[1.01] active:scale-[0.99]'
           }`}
         >
           {isCurrentPlaying ? (

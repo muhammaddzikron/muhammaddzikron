@@ -509,7 +509,7 @@ export default function App() {
           />
 
           {/* Dynamic Content View with Smooth Scroll */}
-          <main className="flex-1 overflow-y-auto px-3 sm:px-5 lg:px-6 py-2.5 sm:py-3 pb-28 md:pb-24">
+          <main className="flex-1 overflow-y-auto px-3 sm:px-5 lg:px-6 pt-1.5 sm:pt-2 pb-24">
             <div className="w-full">
               
               {activeTab === 'home' && (
@@ -580,7 +580,7 @@ export default function App() {
               {activeTab === 'admin' && (
                 <ErrorBoundary fallbackTitle="Kendala Memuat Dasbor Admin">
                   <AdminView
-                    songs={songs}
+                    songs={songs || []}
                     onUpdateSongs={handleAdminUpdateSongs}
                     onLogout={handleAdminLogout}
                     onResetToDefault={handleResetToDefaultSongs}
@@ -589,6 +589,20 @@ export default function App() {
                     onOpenEditProfile={() => setShowEditProfileModal(true)}
                   />
                 </ErrorBoundary>
+              )}
+
+              {!['home', 'library', 'lyrics', 'download', 'about', 'contact', 'admin'].includes(activeTab) && (
+                <HomeView
+                  songs={songs || []}
+                  currentSong={currentSong}
+                  isPlaying={isPlaying}
+                  onPlaySong={handlePlaySong}
+                  onSelectTab={setActiveTab}
+                  onSelectSongDetails={(s) => setSelectedDetailSong(s)}
+                  onToggleFavorite={toggleFavorite}
+                  favorites={favorites}
+                  searchQuery={searchQuery}
+                />
               )}
 
             </div>

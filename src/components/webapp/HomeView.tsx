@@ -84,20 +84,20 @@ export const HomeView: React.FC<HomeViewProps> = ({
   }, [songs, selectedGenre, searchQuery]);
 
   return (
-    <div className="space-y-3.5 sm:space-y-4 pb-10 animate-in fade-in duration-300">
+    <div className="space-y-2 sm:space-y-2.5 pb-6 animate-in fade-in duration-300">
       
-      {/* 1. Hero Spotlight Release Banner (Centerpiece Luxury White Card) */}
+      {/* 1. Hero Spotlight Release Banner (Proportional, Compact Luxury Card) */}
       {featuredSong && (
-        <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-6 lg:p-7 shadow-[0_6px_25px_rgba(15,23,42,0.04)]">
+        <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-slate-200/90 bg-white p-3 sm:p-3.5 lg:p-4 shadow-[0_4px_20px_rgba(15,23,42,0.03)]">
           {/* Subtle Ambient Glows */}
-          <div className="absolute -top-24 -right-24 w-72 h-72 bg-amber-100/35 rounded-full blur-[80px] pointer-events-none" />
-          <div className="absolute -bottom-24 -left-24 w-72 h-72 bg-indigo-100/35 rounded-full blur-[80px] pointer-events-none" />
+          <div className="absolute -top-24 -right-24 w-48 h-48 bg-amber-100/25 rounded-full blur-[60px] pointer-events-none" />
+          <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-indigo-100/25 rounded-full blur-[60px] pointer-events-none" />
 
-          <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-center">
+          <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-3 lg:gap-4 items-center">
             
             {/* Left Info */}
-            <div className="lg:col-span-7 space-y-3">
-              <div className="inline-flex items-center gap-2 px-3 py-0.5 rounded-full bg-amber-50 border border-amber-300 text-amber-900 text-[11px] font-bold uppercase tracking-wider shadow-xs">
+            <div className="lg:col-span-8 space-y-1.5 sm:space-y-2">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-50 border border-amber-300 text-amber-900 text-[10px] font-bold uppercase tracking-wider shadow-2xs">
                 <Sparkles className="w-3 h-3 text-amber-600" />
                 <span>
                   {isPlaying && currentSong?.id === featuredSong.id
@@ -105,21 +105,21 @@ export const HomeView: React.FC<HomeViewProps> = ({
                     : 'Karya Pilihan • Rilisan Unggulan'}
                 </span>
                 {isPlaying && currentSong?.id === featuredSong.id && (
-                  <span className="flex h-2 w-2 relative">
+                  <span className="flex h-1.5 w-1.5 relative">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-500 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-600"></span>
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-600"></span>
                   </span>
                 )}
               </div>
 
-              <h1 className="text-2xl sm:text-4xl font-serif font-black text-slate-900 tracking-tight leading-tight">
+              <h1 className="text-lg sm:text-xl lg:text-2xl font-serif font-black text-slate-900 tracking-tight leading-snug">
                 {featuredSong.title}
               </h1>
 
-              <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 text-xs text-slate-600">
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs text-slate-600">
                 <span className="font-bold text-slate-800">{featuredSong.singer}</span>
                 <span className="text-slate-300">•</span>
-                <span className="px-2 py-0.5 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-700 font-bold text-xs">
+                <span className="px-1.5 py-0.5 rounded-md bg-indigo-50 border border-indigo-200 text-indigo-700 font-bold text-[10.5px]">
                   {featuredSong.genre}
                 </span>
                 <span className="text-slate-300">•</span>
@@ -128,15 +128,15 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 <span className="font-mono text-slate-500 font-semibold">{formatSongDuration(featuredSong.duration)}</span>
               </div>
 
-              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed max-w-xl line-clamp-2">
+              <p className="text-[11px] sm:text-xs text-slate-600 leading-relaxed max-w-xl line-clamp-1 sm:line-clamp-2">
                 {featuredSong.lyrics ? featuredSong.lyrics.split('\n').slice(0, 3).join(' ') + '...' : 'Karya cipta melodi orisinal ciptaan Muhammad Dzikron.'}
               </p>
 
               {/* Action Buttons */}
-              <div className="flex flex-wrap items-center gap-2.5 pt-1">
+              <div className="flex flex-wrap items-center gap-2 pt-0.5">
                 <button
                   onClick={() => onPlaySong(featuredSong)}
-                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-extrabold text-xs uppercase tracking-wider flex items-center gap-2 transition-all shadow-md shadow-amber-200 hover:scale-105 cursor-pointer active:scale-95"
+                  className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-extrabold text-[11px] uppercase tracking-wider flex items-center gap-1.5 transition-all shadow-sm shadow-amber-200 hover:scale-105 cursor-pointer active:scale-95"
                 >
                   {isPlaying && currentSong?.id === featuredSong.id ? (
                     <>
@@ -153,7 +153,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
 
                 <button
                   onClick={() => onSelectSongDetails(featuredSong)}
-                  className="px-4 py-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-800 border border-slate-200/90 hover:border-slate-300 text-xs font-bold flex items-center gap-2 transition cursor-pointer shadow-xs active:scale-95"
+                  className="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 text-slate-800 border border-slate-200 hover:border-slate-300 text-[11px] font-bold flex items-center gap-1.5 transition cursor-pointer shadow-2xs active:scale-95"
                 >
                   <FileText className="w-3.5 h-3.5 text-indigo-600" />
                   <span>Lihat Lirik & Info</span>
@@ -161,45 +161,45 @@ export const HomeView: React.FC<HomeViewProps> = ({
 
                 <button
                   onClick={() => onToggleFavorite(featuredSong.id)}
-                  className={`p-2.5 rounded-xl border transition cursor-pointer shadow-xs active:scale-95 ${
+                  className={`p-1.5 rounded-xl border transition cursor-pointer shadow-2xs active:scale-95 ${
                     favorites.includes(featuredSong.id)
                       ? 'bg-rose-50 text-rose-600 border-rose-300'
-                      : 'bg-white text-slate-600 hover:text-slate-900 border-slate-200/90 hover:bg-slate-50'
+                      : 'bg-white text-slate-600 hover:text-slate-900 border-slate-200 hover:bg-slate-50'
                   }`}
                   title={favorites.includes(featuredSong.id) ? 'Hapus dari Favorit' : 'Tambah ke Favorit'}
                 >
-                  <Heart className={`w-4 h-4 ${favorites.includes(featuredSong.id) ? 'fill-rose-500 text-rose-500' : ''}`} />
+                  <Heart className={`w-3.5 h-3.5 ${favorites.includes(featuredSong.id) ? 'fill-rose-500 text-rose-500' : ''}`} />
                 </button>
               </div>
             </div>
 
-            {/* Right: Vinyl / Cover Art Visual */}
-            <div className="lg:col-span-5 flex justify-center">
+            {/* Right: Vinyl / Cover Art Visual (Proportional & Compact) */}
+            <div className="lg:col-span-4 flex justify-center lg:justify-end">
               <div className="relative group cursor-pointer" onClick={() => onPlaySong(featuredSong)}>
                 {/* Vinyl Record Behind Cover */}
-                <div className={`absolute -right-5 top-1/2 -translate-y-1/2 w-36 h-36 sm:w-44 sm:h-44 rounded-full bg-slate-900 border-4 border-slate-200 shadow-xl flex items-center justify-center transition-transform duration-700 ${
+                <div className={`absolute -right-3 top-1/2 -translate-y-1/2 w-22 h-22 sm:w-26 sm:h-26 rounded-full bg-slate-900 border-2 border-slate-200 shadow-md flex items-center justify-center transition-transform duration-700 ${
                   isPlaying && currentSong?.id === featuredSong.id
-                    ? 'translate-x-6 sm:translate-x-10 animate-spin-slow'
-                    : 'group-hover:translate-x-5'
+                    ? 'translate-x-4 sm:translate-x-6 animate-spin-slow'
+                    : 'group-hover:translate-x-3'
                 }`}>
-                  <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full border-2 border-amber-300 flex items-center justify-center bg-amber-500 shadow-inner">
-                    <Disc3 className="w-6 h-6 text-slate-950" />
+                  <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full border border-amber-300 flex items-center justify-center bg-amber-500 shadow-inner">
+                    <Disc3 className="w-4 h-4 text-slate-950" />
                   </div>
                 </div>
 
                 {/* Album Cover Art */}
-                <div className="relative w-40 h-40 sm:w-48 sm:h-48 rounded-2xl overflow-hidden border-2 border-slate-200 shadow-xl z-10 bg-slate-100">
+                <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-xl overflow-hidden border-2 border-slate-200 shadow-md z-10 bg-slate-100">
                   <img
                     src={featuredSong.cover}
                     alt={featuredSong.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
-                  <div className="absolute inset-0 bg-slate-900/20 flex items-end p-3">
-                    <div className="w-9 h-9 rounded-full bg-amber-500 hover:bg-amber-600 text-white flex items-center justify-center shadow-lg group-hover:scale-110 transition">
+                  <div className="absolute inset-0 bg-slate-900/20 flex items-end p-2">
+                    <div className="w-7 h-7 rounded-full bg-amber-500 hover:bg-amber-600 text-white flex items-center justify-center shadow-md group-hover:scale-110 transition">
                       {isPlaying && currentSong?.id === featuredSong.id ? (
-                        <Pause className="w-4 h-4 fill-white" />
+                        <Pause className="w-3 h-3 fill-white" />
                       ) : (
-                        <Play className="w-4 h-4 fill-white ml-0.5" />
+                        <Play className="w-3 h-3 fill-white ml-0.5" />
                       )}
                     </div>
                   </div>
@@ -211,41 +211,36 @@ export const HomeView: React.FC<HomeViewProps> = ({
         </div>
       )}
 
-      {/* 2. Filter Kategori Genre (Pencarian utama berada di Top Header) */}
-      <div className="rounded-2xl bg-white border border-slate-200/90 shadow-[0_4px_20px_rgba(15,23,42,0.03)] p-3 sm:p-3.5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          
-          {/* Section title & count badge */}
-          <div className="flex items-center gap-2">
-            <ListMusic className="w-4 h-4 text-indigo-600" />
-            <span className="font-serif font-extrabold text-sm sm:text-base text-slate-900">
-              Daftar Lagu
-            </span>
-            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200/80">
-              {displayedSongs.length}
-            </span>
-          </div>
+      {/* 2. Header Playlist & Filter Kategori Genre (Sleek, Compact & Proporsional) */}
+      <div className="px-3 py-1.5 sm:py-2 rounded-xl bg-white border border-slate-200/90 shadow-2xs flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <ListMusic className="w-4 h-4 text-indigo-600" />
+          <span className="font-serif font-extrabold text-sm text-slate-900">
+            Daftar Lagu
+          </span>
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200/80 font-mono">
+            {displayedSongs.length}
+          </span>
+        </div>
 
-          {/* Genre Filter Pills */}
-          <div className="flex items-center gap-1.5 overflow-x-auto py-0.5 scrollbar-none flex-wrap">
-            {allGenresList.map((g) => {
-              const isSelected = selectedGenre === g;
-              return (
-                <button
-                  key={g}
-                  onClick={() => setSelectedGenre(g)}
-                  className={`px-3 py-1 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer shadow-xs ${
-                    isSelected
-                      ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-200'
-                      : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200/90'
-                  }`}
-                >
-                  {g}
-                </button>
-              );
-            })}
-          </div>
-
+        {/* Genre Filter Pills */}
+        <div className="flex items-center gap-1.5 overflow-x-auto py-0.5 scrollbar-none flex-wrap">
+          {allGenresList.map((g) => {
+            const isSelected = selectedGenre === g;
+            return (
+              <button
+                key={g}
+                onClick={() => setSelectedGenre(g)}
+                className={`px-2.5 py-1 rounded-xl text-xs font-semibold whitespace-nowrap transition cursor-pointer shadow-2xs ${
+                  isSelected
+                    ? 'bg-indigo-600 text-white font-bold shadow-xs shadow-indigo-200'
+                    : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200/90'
+                }`}
+              >
+                {g}
+              </button>
+            );
+          })}
         </div>
       </div>
 

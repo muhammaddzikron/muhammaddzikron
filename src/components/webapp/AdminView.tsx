@@ -521,7 +521,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
     setEditingSongId(null);
     setFormData({
       ...EMPTY_SONG_FORM,
-      order: songs.length + 1
+      order: (songs || []).length + 1
     });
   };
 
@@ -540,7 +540,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
     let targetSongToSync: Song;
 
     if (editingSongId) {
-      const updated = songs.map((s) => {
+      const updated = (songs || []).map((s) => {
         if (s.id === editingSongId) {
           const updatedSong: Song = {
             ...s,
@@ -569,7 +569,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
     } else {
       const newSong: Song = {
         id: `custom-${Date.now()}`,
-        no: songs.length + 1,
+        no: (songs || []).length + 1,
         title: formData.title.trim(),
         singer: formData.singer.trim(),
         genre: formData.genre.trim(),
@@ -580,12 +580,12 @@ export const AdminView: React.FC<AdminViewProps> = ({
         duration: formData.duration.trim(),
         lyrics: formData.lyrics.trim(),
         status: formData.status,
-        order: Number(formData.order) || songs.length + 1,
+        order: Number(formData.order) || (songs || []).length + 1,
         audioUrl: finalAudio
       };
 
       targetSongToSync = newSong;
-      const updated = [...songs, newSong];
+      const updated = [...(songs || []), newSong];
       updated.sort((a, b) => (b.order - a.order) || (b.no - a.no));
       onUpdateSongs(updated);
       showNotification(`Lagu "${formData.title}" ditambahkan & disimpan ke Spreadsheet!`);
@@ -600,7 +600,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
   };
 
   const handleToggleStatus = (songId: string) => {
-    const updated = songs.map((s) => {
+    const updated = (songs || []).map((s) => {
       if (s.id === songId) {
         const nextStatus = s.status === 'Publish' ? 'Draft' : 'Publish';
         const newS = { ...s, status: nextStatus };
@@ -615,7 +615,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
 
   const handleDeleteSong = (songId: string, title: string) => {
     if (window.confirm(`Hapus lagu "${title}" dari playlist website & Spreadsheet?`)) {
-      const updated = songs.filter((s) => s.id !== songId);
+      const updated = (songs || []).filter((s) => s.id !== songId);
       onUpdateSongs(updated);
       deleteSongFromGoogleSheet(title);
       showNotification(`Lagu "${title}" telah dihapus.`);
@@ -624,13 +624,13 @@ export const AdminView: React.FC<AdminViewProps> = ({
 
   const handleSyncAllToGoogleSheet = async () => {
     setIsSyncingGSheet(true);
-    const res = await syncAllSongsToGoogleSheet(songs);
+    const res = await syncAllSongsToGoogleSheet(songs || []);
     setIsSyncingGSheet(false);
     showNotification(res.message);
   };
 
   const getBackupJSONData = () => {
-    return JSON.stringify(songs, null, 2);
+    return JSON.stringify(songs || [], null, 2);
   };
 
   const handleCopyJSON = () => {
@@ -638,6 +638,30 @@ export const AdminView: React.FC<AdminViewProps> = ({
     setCopiedStatus('json');
     setTimeout(() => setCopiedStatus(null), 2000);
   };
+
+  if (!isAdminLoggedIn) {
+    return (
+      <div className="p-8 sm:p-12 my-8 max-w-lg mx-auto rounded-3xl bg-white border border-slate-200/90 shadow-xl text-center space-y-5 animate-in fade-in">
+        <div className="w-16 h-16 mx-auto rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600 shadow-sm">
+          <Lock className="w-8 h-8" />
+        </div>
+        <div className="space-y-2">
+          <h3 className="text-xl font-serif font-bold text-slate-900">
+            Akses Dasbor Admin Dibatasi
+          </h3>
+          <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">
+            Sesi administrator belum aktif atau telah berakhir. Silakan masuk untuk mengelola playlist dan data konten.
+          </p>
+        </div>
+        <button
+          onClick={onOpenLoginModal}
+          className="px-6 py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold text-xs uppercase tracking-wider transition cursor-pointer shadow-md shadow-amber-200"
+        >
+          Masuk ke Portal Admin
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 pb-16 animate-in fade-in duration-300">
@@ -700,7 +724,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
             }`}
           >
             <Music className="w-4 h-4" />
-            <span>Daftar Lagu ({songs.length})</span>
+            <span>Daftar Lagu ({(songs || []).length})</span>
           </button>
 
           <button
@@ -727,7 +751,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
             }`}
           >
             <Inbox className="w-4 h-4" />
-            <span>Pesanan Masuk ({orders.length})</span>
+            <span>Pesanan Masuk ({(orders || []).length})</span>
           </button>
 
           <button
@@ -739,7 +763,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
             }`}
           >
             <Unlock className="w-4 h-4 text-emerald-600" />
-            <span>Akses Unduhan Terbuka ({downloadList.length})</span>
+            <span>Akses Unduhan Terbuka ({(downloadList || []).length})</span>
           </button>
 
           <button
@@ -812,28 +836,28 @@ export const AdminView: React.FC<AdminViewProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-slate-800">
-                {(songs || []).map((song, index) => (
-                  <tr key={song.id} className="hover:bg-slate-50/70 transition">
+                {(songs || []).filter(Boolean).map((song, index) => (
+                  <tr key={song.id || `song-${index}`} className="hover:bg-slate-50/70 transition">
                     <td className="py-3.5 px-4 font-mono font-bold text-slate-500">
                       #{song.order || index + 1}
                     </td>
                     <td className="py-3.5 px-4">
                       <div className="flex items-center gap-3">
                         <img
-                          src={song.cover}
-                          alt={song.title}
+                          src={song.cover || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=600&q=80'}
+                          alt={song.title || 'Lagu'}
                           className="w-9 h-9 rounded-lg object-cover bg-slate-100 border border-slate-200"
                         />
                         <div>
                           <div className="font-bold text-slate-900 text-sm flex items-center gap-1.5">
-                            <span>{song.title}</span>
+                            <span>{song.title || 'Tanpa Judul'}</span>
                             {song.youtubeUrl && (
                               <span className="px-1.5 py-0.5 rounded bg-red-50 border border-red-200 text-red-600 text-[9px] font-bold flex items-center gap-0.5" title="Video YouTube Terhubung">
                                 <Youtube className="w-2.5 h-2.5" /> Video
                               </span>
                             )}
                           </div>
-                          <div className="text-[11px] text-slate-500">{song.singer}</div>
+                          <div className="text-[11px] text-slate-500">{song.singer || 'Muhammad Dzikron'}</div>
                         </div>
                       </div>
                     </td>
@@ -1226,8 +1250,8 @@ export const AdminView: React.FC<AdminViewProps> = ({
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {(orders || []).map((order, idx) => {
-                const orderKey = order.id || `${order.name}-${order.timestamp}`;
+              {(orders || []).filter(Boolean).map((order, idx) => {
+                const orderKey = order.id || `${order.name || 'order'}-${order.timestamp || idx}`;
                 const isDeletingThis = deletingOrderId === orderKey;
 
                 return (
@@ -1703,12 +1727,12 @@ export const AdminView: React.FC<AdminViewProps> = ({
                     </td>
                   </tr>
                 ) : (
-                  (downloadList || []).map((item, idx) => {
-                    const isDrive = Boolean(extractDriveId(item.fileUrl));
+                  (downloadList || []).filter(Boolean).map((item, idx) => {
+                    const isDrive = Boolean(extractDriveId(item.fileUrl || ''));
                     const isEditingThis = editingDownloadId === item.id;
                     return (
                       <tr
-                        key={item.id}
+                        key={item.id || `dl-${idx}`}
                         className={`transition ${isEditingThis ? 'bg-amber-50/80 border-l-4 border-l-amber-500' : 'hover:bg-slate-50/70'}`}
                       >
                         <td className="py-3 px-4 text-center text-slate-500 font-mono">{idx + 1}</td>

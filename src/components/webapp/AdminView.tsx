@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Song, Order, DownloadItem } from '../../types/song';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { Song, Order, DownloadItem, ComposerProfile } from '../../types/song';
+import { WebAppTab } from './Sidebar';
 import {
   ShieldCheck,
   Plus,
@@ -83,12 +84,14 @@ import { formatSongDuration, formatSecondsToMinutes } from '../../utils/duration
 
 interface AdminViewProps {
   songs: Song[];
+  profile?: ComposerProfile;
   onUpdateSongs: (newSongs: Song[]) => void;
   onLogout: () => void;
   onResetToDefault: () => void;
   isAdminLoggedIn: boolean;
   onOpenLoginModal: () => void;
   onOpenEditProfile?: () => void;
+  onSwitchTab?: (tab: WebAppTab) => void;
 }
 
 const EMPTY_SONG_FORM = {
@@ -107,14 +110,45 @@ const EMPTY_SONG_FORM = {
 };
 
 export const AdminView: React.FC<AdminViewProps> = ({
-  songs,
+  songs = [],
+  profile,
   onUpdateSongs,
   onLogout,
   onResetToDefault,
   isAdminLoggedIn,
   onOpenLoginModal,
-  onOpenEditProfile
+  onOpenEditProfile,
+  onSwitchTab
 }) => {
+  // Guarded and sanitized songs list
+  const safeSongs: Song[] = useMemo(() => {
+    try {
+      if (!Array.isArray(songs)) {
+        console.warn('[AdminView] songs prop is not an array, falling back to empty array:', songs);
+        return [];
+      }
+      return songs.filter(Boolean).map((s, idx) => ({
+        id: s?.id || `song-${idx + 1}`,
+        no: Number(s?.no) || idx + 1,
+        title: s?.title || 'Tanpa Judul',
+        singer: s?.singer || 'Muhammad Dzikron',
+        genre: s?.genre || 'Pop Religi',
+        year: String(s?.year || '2026'),
+        cover: s?.cover || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=600&q=80',
+        driveId: s?.driveId || '',
+        youtubeUrl: s?.youtubeUrl || '',
+        duration: s?.duration || '03:45',
+        lyrics: s?.lyrics || '',
+        status: s?.status === 'Draft' ? 'Draft' : 'Publish',
+        order: Number(s?.order) || idx + 1,
+        audioUrl: s?.audioUrl || ''
+      }));
+    } catch (err) {
+      console.error('[AdminView] Error sanitizing songs array:', err);
+      return [];
+    }
+  }, [songs]);
+
   const [activeSubTab, setActiveSubTab] = useState<'list' | 'add' | 'export' | 'orders' | 'downloads'>('list');
   const [editingSongId, setEditingSongId] = useState<string | null>(null);
   const [formData, setFormData] = useState(EMPTY_SONG_FORM);
@@ -125,11 +159,18 @@ export const AdminView: React.FC<AdminViewProps> = ({
 
   const showNotification = (msg: string) => {
     setSuccessToast(msg);
-    setTimeout(() => setSuccessToast(null), 3000);
+    setTimeout(() => setSuccessToast(null), 3500);
   };
 
-  // Download Management State
-  const [downloadList, setDownloadList] = useState<DownloadItem[]>([]);
+  // Download Management State with safe fallbacks
+  const [downloadList, setDownloadList] = useState<DownloadItem[]>(() => {
+    try {
+      return getDownloadItems() || [];
+    } catch (e) {
+      console.error('[AdminView] Failed to initialize downloadList:', e);
+      return [];
+    }
+  });
   const [editingDownloadId, setEditingDownloadId] = useState<string | null>(null);
   const [editingItemModal, setEditingItemModal] = useState<DownloadItem | null>(null);
   const [showDownloadForm, setShowDownloadForm] = useState(false);
@@ -139,8 +180,45 @@ export const AdminView: React.FC<AdminViewProps> = ({
   const [isSyncingDownloadsSheet, setIsSyncingDownloadsSheet] = useState(false);
   const [isLoadingDownloadsSheet, setIsLoadingDownloadsSheet] = useState(false);
   const [copiedDownloadsTSV, setCopiedDownloadsTSV] = useState(false);
-  const [bannerConfig, setBannerConfig] = useState<DownloadBannerConfig>(getDownloadBannerConfig());
-  const [bannerFormData, setBannerFormData] = useState<DownloadBannerConfig>(getDownloadBannerConfig());
+  
+  const [bannerConfig, setBannerConfig] = useState<DownloadBannerConfig>(() => {
+    try {
+      return getDownloadBannerConfig();
+    } catch (e) {
+      console.error('[AdminView] Failed to initialize bannerConfig:', e);
+      return {
+        badgeTitle: 'Akses Unduhan Terbuka',
+        verifiedBadge: 'Terverifikasi',
+        thankYouTitle: 'Terima kasih telah mengikuti Instagram @muhammaddzikron',
+        description: 'Semua tombol download file di bawah ini telah aktif dan dapat langsung Anda unduh secara gratis.',
+        instagramUsername: '@muhammaddzikron',
+        instagramUrl: 'https://www.instagram.com/muhammaddzikron',
+        pageHeaderBadge: 'Pusat Unduhan Resmi • Muhammad Dzikron',
+        pageHeaderTitle: 'Download Area',
+        pageHeaderDesc: 'Dapatkan master audio original kualitas studio...'
+      };
+    }
+  });
+
+  const [bannerFormData, setBannerFormData] = useState<DownloadBannerConfig>(() => {
+    try {
+      return getDownloadBannerConfig();
+    } catch (e) {
+      console.error('[AdminView] Failed to initialize bannerFormData:', e);
+      return {
+        badgeTitle: 'Akses Unduhan Terbuka',
+        verifiedBadge: 'Terverifikasi',
+        thankYouTitle: 'Terima kasih telah mengikuti Instagram @muhammaddzikron',
+        description: 'Semua tombol download file di bawah ini telah aktif dan dapat langsung Anda unduh secara gratis.',
+        instagramUsername: '@muhammaddzikron',
+        instagramUrl: 'https://www.instagram.com/muhammaddzikron',
+        pageHeaderBadge: 'Pusat Unduhan Resmi • Muhammad Dzikron',
+        pageHeaderTitle: 'Download Area',
+        pageHeaderDesc: 'Dapatkan master audio original kualitas studio...'
+      };
+    }
+  });
+
   const [editingModalOriginalName, setEditingModalOriginalName] = useState<string>('');
   const [editingFormOriginalName, setEditingFormOriginalName] = useState<string>('');
   const [copiedAppsScriptCode, setCopiedAppsScriptCode] = useState(false);
@@ -165,30 +243,58 @@ export const AdminView: React.FC<AdminViewProps> = ({
   const testAudioRef = useRef<HTMLAudioElement | null>(null);
 
   // Orders state
-  const [orders, setOrders] = useState<Order[]>(INITIAL_SAMPLE_ORDERS);
+  const [orders, setOrders] = useState<Order[]>(INITIAL_SAMPLE_ORDERS || []);
   const [isLoadingOrders, setIsLoadingOrders] = useState(false);
   const [ordersLive, setOrdersLive] = useState(false);
   const [deletingOrderId, setDeletingOrderId] = useState<string | null>(null);
 
+  // Log component lifecycle
+  useEffect(() => {
+    console.log('[AdminView] Component rendered successfully:', {
+      songsTotal: safeSongs.length,
+      isAdminLoggedIn,
+      activeSubTab,
+      composerName: profile?.name || 'Default Profile'
+    });
+  }, [safeSongs.length, isAdminLoggedIn, activeSubTab, profile?.name]);
+
   useEffect(() => {
     if (isAdminLoggedIn) {
       loadOrders();
-      setDownloadList(getDownloadItems());
-      setBannerConfig(getDownloadBannerConfig());
+      try {
+        setDownloadList(getDownloadItems() || []);
+      } catch (err) {
+        console.error('[AdminView] Error loading download items:', err);
+      }
+      try {
+        setBannerConfig(getDownloadBannerConfig());
+      } catch (err) {
+        console.error('[AdminView] Error loading banner config:', err);
+      }
       syncDownloadsFromServer().then((items) => {
         if (items && items.length > 0) {
           setDownloadList(items);
         }
+      }).catch((err) => {
+        console.error('[AdminView] Error in syncDownloadsFromServer:', err);
       });
     }
   }, [isAdminLoggedIn]);
 
   const loadOrders = async () => {
-    setIsLoadingOrders(true);
-    const res = await fetchOrdersFromGoogleSheet();
-    setOrders(res.orders);
-    setOrdersLive(res.isLive);
-    setIsLoadingOrders(false);
+    try {
+      setIsLoadingOrders(true);
+      console.log('[AdminView] Loading orders...');
+      const res = await fetchOrdersFromGoogleSheet();
+      setOrders(Array.isArray(res?.orders) ? res.orders : []);
+      setOrdersLive(Boolean(res?.isLive));
+      console.log('[AdminView] Orders loaded:', (res?.orders || []).length);
+    } catch (err) {
+      console.error('[AdminView] Failed to fetch orders:', err);
+      setOrders([]);
+    } finally {
+      setIsLoadingOrders(false);
+    }
   };
 
   const handleResetDownloadForm = () => {
@@ -521,116 +627,143 @@ export const AdminView: React.FC<AdminViewProps> = ({
     setEditingSongId(null);
     setFormData({
       ...EMPTY_SONG_FORM,
-      order: (songs || []).length + 1
+      order: safeSongs.length + 1
     });
   };
 
   const handleSaveSong = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.title.trim()) return;
+    try {
+      if (!formData.title.trim()) {
+        showNotification('Judul lagu tidak boleh kosong!');
+        return;
+      }
 
-    const finalCover = formData.cover.trim()
-      ? (formData.cover.includes('http') ? formData.cover : getGoogleDriveImageUrl(formData.cover))
-      : 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=600&q=80';
+      console.log('[AdminView] Saving song:', { editingSongId, title: formData.title });
 
-    const finalAudio = formData.driveId.trim()
-      ? getGoogleDriveAudioUrl(formData.driveId)
-      : 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
+      const finalCover = formData.cover.trim()
+        ? (formData.cover.includes('http') ? formData.cover : getGoogleDriveImageUrl(formData.cover))
+        : 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=600&q=80';
 
-    let targetSongToSync: Song;
+      const finalAudio = formData.driveId.trim()
+        ? getGoogleDriveAudioUrl(formData.driveId)
+        : 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
 
-    if (editingSongId) {
-      const updated = (songs || []).map((s) => {
-        if (s.id === editingSongId) {
-          const updatedSong: Song = {
-            ...s,
-            title: formData.title.trim(),
-            singer: formData.singer.trim(),
-            genre: formData.genre.trim(),
-            year: formData.year,
-            cover: finalCover,
-            driveId: formData.driveId.trim(),
-            youtubeUrl: formData.youtubeUrl.trim(),
-            duration: formData.duration.trim(),
-            lyrics: formData.lyrics.trim(),
-            status: formData.status,
-            order: Number(formData.order),
-            audioUrl: finalAudio
-          };
-          targetSongToSync = updatedSong;
-          return updatedSong;
-        }
-        return s;
-      });
+      let targetSongToSync: Song;
 
-      updated.sort((a, b) => (b.order - a.order) || (b.no - a.no));
-      onUpdateSongs(updated);
-      showNotification(`Lagu "${formData.title}" diperbarui & dikirim ke Spreadsheet!`);
-    } else {
-      const newSong: Song = {
-        id: `custom-${Date.now()}`,
-        no: (songs || []).length + 1,
-        title: formData.title.trim(),
-        singer: formData.singer.trim(),
-        genre: formData.genre.trim(),
-        year: formData.year,
-        cover: finalCover,
-        driveId: formData.driveId.trim(),
-        youtubeUrl: formData.youtubeUrl.trim(),
-        duration: formData.duration.trim(),
-        lyrics: formData.lyrics.trim(),
-        status: formData.status,
-        order: Number(formData.order) || (songs || []).length + 1,
-        audioUrl: finalAudio
-      };
+      if (editingSongId) {
+        const updated = safeSongs.map((s) => {
+          if (s.id === editingSongId) {
+            const updatedSong: Song = {
+              ...s,
+              title: formData.title.trim(),
+              singer: formData.singer.trim() || 'Muhammad Dzikron',
+              genre: formData.genre.trim() || 'Pop Religi',
+              year: formData.year.trim() || '2026',
+              cover: finalCover,
+              driveId: formData.driveId.trim(),
+              youtubeUrl: formData.youtubeUrl.trim(),
+              duration: formData.duration.trim() || '03:45',
+              lyrics: formData.lyrics.trim(),
+              status: formData.status,
+              order: Number(formData.order) || s.order,
+              audioUrl: finalAudio
+            };
+            targetSongToSync = updatedSong;
+            return updatedSong;
+          }
+          return s;
+        });
 
-      targetSongToSync = newSong;
-      const updated = [...(songs || []), newSong];
-      updated.sort((a, b) => (b.order - a.order) || (b.no - a.no));
-      onUpdateSongs(updated);
-      showNotification(`Lagu "${formData.title}" ditambahkan & disimpan ke Spreadsheet!`);
+        updated.sort((a, b) => (b.order - a.order) || (b.no - a.no));
+        onUpdateSongs(updated);
+        showNotification(`Lagu "${formData.title}" berhasil diperbarui!`);
+      } else {
+        const newSong: Song = {
+          id: `custom-${Date.now()}`,
+          no: safeSongs.length + 1,
+          title: formData.title.trim(),
+          singer: formData.singer.trim() || 'Muhammad Dzikron',
+          genre: formData.genre.trim() || 'Pop Religi',
+          year: formData.year.trim() || '2026',
+          cover: finalCover,
+          driveId: formData.driveId.trim(),
+          youtubeUrl: formData.youtubeUrl.trim(),
+          duration: formData.duration.trim() || '03:45',
+          lyrics: formData.lyrics.trim(),
+          status: formData.status,
+          order: Number(formData.order) || (safeSongs.length + 1),
+          audioUrl: finalAudio
+        };
+
+        targetSongToSync = newSong;
+        const updated = [...safeSongs, newSong];
+        updated.sort((a, b) => (b.order - a.order) || (b.no - a.no));
+        onUpdateSongs(updated);
+        showNotification(`Lagu baru "${formData.title}" berhasil ditambahkan ke Playlist!`);
+      }
+
+      if (targetSongToSync!) {
+        saveSongToGoogleSheet(targetSongToSync).catch((err) => {
+          console.warn('[AdminView] Background sheet sync notification:', err);
+        });
+      }
+
+      handleResetForm();
+      setActiveSubTab('list');
+    } catch (err) {
+      console.error('[AdminView] Error in handleSaveSong:', err);
+      showNotification('Terjadi kendala saat menyimpan lagu. Data tersimpan di memori lokal.');
     }
-
-    if (targetSongToSync!) {
-      saveSongToGoogleSheet(targetSongToSync);
-    }
-
-    handleResetForm();
-    setActiveSubTab('list');
   };
 
   const handleToggleStatus = (songId: string) => {
-    const updated = (songs || []).map((s) => {
-      if (s.id === songId) {
-        const nextStatus = s.status === 'Publish' ? 'Draft' : 'Publish';
-        const newS = { ...s, status: nextStatus };
-        saveSongToGoogleSheet(newS);
-        return newS;
-      }
-      return s;
-    });
-    onUpdateSongs(updated);
-    showNotification('Status visibilitas lagu diperbarui di Website & Spreadsheet.');
+    try {
+      const updated = safeSongs.map((s) => {
+        if (s.id === songId) {
+          const nextStatus = s.status === 'Publish' ? 'Draft' : 'Publish';
+          const newS = { ...s, status: nextStatus };
+          saveSongToGoogleSheet(newS).catch(() => {});
+          return newS;
+        }
+        return s;
+      });
+      onUpdateSongs(updated);
+      showNotification('Status visibilitas lagu diperbarui di Website & Spreadsheet.');
+    } catch (err) {
+      console.error('[AdminView] Error toggling status:', err);
+    }
   };
 
   const handleDeleteSong = (songId: string, title: string) => {
     if (window.confirm(`Hapus lagu "${title}" dari playlist website & Spreadsheet?`)) {
-      const updated = (songs || []).filter((s) => s.id !== songId);
-      onUpdateSongs(updated);
-      deleteSongFromGoogleSheet(title);
-      showNotification(`Lagu "${title}" telah dihapus.`);
+      try {
+        const updated = safeSongs.filter((s) => s.id !== songId);
+        onUpdateSongs(updated);
+        deleteSongFromGoogleSheet(title).catch(() => {});
+        showNotification(`Lagu "${title}" telah dihapus.`);
+      } catch (err) {
+        console.error('[AdminView] Error deleting song:', err);
+      }
     }
   };
 
   const handleSyncAllToGoogleSheet = async () => {
-    setIsSyncingGSheet(true);
-    const res = await syncAllSongsToGoogleSheet(songs || []);
-    setIsSyncingGSheet(false);
-    showNotification(res.message);
+    try {
+      setIsSyncingGSheet(true);
+      console.log('[AdminView] Syncing all songs to sheet:', safeSongs.length);
+      const res = await syncAllSongsToGoogleSheet(safeSongs);
+      setIsSyncingGSheet(false);
+      showNotification(res.message);
+    } catch (err) {
+      console.error('[AdminView] Sync error:', err);
+      setIsSyncingGSheet(false);
+      showNotification('Gagal menyinkronkan ke Spreadsheet.');
+    }
   };
 
   const getBackupJSONData = () => {
-    return JSON.stringify(songs || [], null, 2);
+    return JSON.stringify(safeSongs, null, 2);
   };
 
   const handleCopyJSON = () => {
@@ -815,138 +948,209 @@ export const AdminView: React.FC<AdminViewProps> = ({
       {activeSubTab === 'list' && (
         <div className="space-y-4">
           <div className="flex items-center justify-between text-xs text-slate-500">
-            <p>Klik tombol <strong>Edit</strong> untuk mengubah judul, penyanyi, audio link, atau lirik.</p>
-            <button
-              onClick={onResetToDefault}
-              className="text-slate-500 hover:text-amber-700 underline font-semibold"
-            >
-              Reset ke Data Bawaan
-            </button>
+            <p>
+              Klik tombol <strong>Edit</strong> untuk mengubah judul, audio link, atau lirik. Urutan lagu otomatis sinkron.
+            </p>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => {
+                  handleResetForm();
+                  setActiveSubTab('add');
+                }}
+                className="text-amber-600 hover:text-amber-700 font-bold flex items-center gap-1 cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Tambah Lagu Baru</span>
+              </button>
+              <span className="text-slate-300">•</span>
+              <button
+                onClick={onResetToDefault}
+                className="text-slate-500 hover:text-amber-700 underline font-semibold cursor-pointer"
+              >
+                Reset ke Data Bawaan
+              </button>
+            </div>
           </div>
 
-          <div className="rounded-3xl border border-slate-200/90 bg-white overflow-x-auto shadow-xs">
-            <table className="w-full text-left border-collapse text-xs">
-              <thead>
-                <tr className="border-b border-slate-200 bg-slate-50 text-slate-700 font-bold uppercase tracking-wider">
-                  <th className="py-3.5 px-4">Urutan</th>
-                  <th className="py-3.5 px-4">Lagu & Artis</th>
-                  <th className="py-3.5 px-4">Genre / Tahun</th>
-                  <th className="py-3.5 px-4">Status</th>
-                  <th className="py-3.5 px-4 text-right">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 text-slate-800">
-                {(songs || []).filter(Boolean).map((song, index) => (
-                  <tr key={song.id || `song-${index}`} className="hover:bg-slate-50/70 transition">
-                    <td className="py-3.5 px-4 font-mono font-bold text-slate-500">
-                      #{song.order || index + 1}
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <div className="flex items-center gap-3">
-                        <img
-                          src={song.cover || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=600&q=80'}
-                          alt={song.title || 'Lagu'}
-                          className="w-9 h-9 rounded-lg object-cover bg-slate-100 border border-slate-200"
-                        />
-                        <div>
-                          <div className="font-bold text-slate-900 text-sm flex items-center gap-1.5">
-                            <span>{song.title || 'Tanpa Judul'}</span>
-                            {song.youtubeUrl && (
-                              <span className="px-1.5 py-0.5 rounded bg-red-50 border border-red-200 text-red-600 text-[9px] font-bold flex items-center gap-0.5" title="Video YouTube Terhubung">
-                                <Youtube className="w-2.5 h-2.5" /> Video
-                              </span>
-                            )}
-                          </div>
-                          <div className="text-[11px] text-slate-500">{song.singer || 'Muhammad Dzikron'}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        <span className="inline-block px-2.5 py-0.5 rounded-md bg-slate-100 border border-slate-200 text-slate-700 text-[11px]">
-                          {song.genre} ({song.year})
-                        </span>
-                        <span className="inline-block px-2 py-0.5 rounded-md bg-emerald-50 border border-emerald-200 font-mono text-emerald-700 text-[10px] font-bold">
-                          {formatSongDuration(song.duration)}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <button
-                        onClick={() => handleToggleStatus(song.id)}
-                        className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 transition cursor-pointer ${
-                          song.status === 'Draft'
-                            ? 'bg-slate-100 text-slate-600 border border-slate-200'
-                            : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                        }`}
-                      >
-                        {song.status === 'Draft' ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-                        <span>{song.status === 'Draft' ? 'Draft' : 'Publish'}</span>
-                      </button>
-                    </td>
-                    <td className="py-3.5 px-4 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <button
-                          onClick={() => handleEditClick(song)}
-                          className="p-1.5 rounded-lg bg-slate-100 hover:bg-amber-100 text-slate-600 hover:text-amber-800 transition cursor-pointer"
-                          title="Edit Lagu"
-                        >
-                          <Edit2 className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteSong(song.id, song.title)}
-                          className="p-1.5 rounded-lg bg-slate-100 hover:bg-rose-100 text-slate-600 hover:text-rose-700 transition cursor-pointer"
-                          title="Hapus Lagu"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </td>
+          {safeSongs.length === 0 ? (
+            <div className="p-8 sm:p-12 text-center rounded-3xl bg-white border border-slate-200/90 shadow-sm space-y-4">
+              <div className="w-16 h-16 mx-auto rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600 shadow-xs">
+                <Music className="w-8 h-8" />
+              </div>
+              <div className="space-y-1">
+                <h4 className="text-base font-bold text-slate-900">Belum Ada Lagu di Playlist</h4>
+                <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
+                  Daftar lagu kosong atau belum terisi. Klik tombol di bawah untuk menambahkan karya lagu baru ke katalog.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center justify-center gap-2.5 pt-2">
+                <button
+                  onClick={() => {
+                    handleResetForm();
+                    setActiveSubTab('add');
+                  }}
+                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold text-xs uppercase tracking-wider flex items-center gap-2 shadow-sm shadow-amber-200 cursor-pointer active:scale-95"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Tambah Lagu Baru Sekarang</span>
+                </button>
+                <button
+                  onClick={onResetToDefault}
+                  className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold cursor-pointer"
+                >
+                  Reset ke Lagu Default
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-3xl border border-slate-200/90 bg-white overflow-x-auto shadow-xs">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="border-b border-slate-200 bg-slate-50 text-slate-700 font-bold uppercase tracking-wider">
+                    <th className="py-3.5 px-4">Urutan</th>
+                    <th className="py-3.5 px-4">Lagu & Artis</th>
+                    <th className="py-3.5 px-4">Genre / Tahun</th>
+                    <th className="py-3.5 px-4">Status</th>
+                    <th className="py-3.5 px-4 text-right">Aksi</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-slate-800">
+                  {safeSongs.map((song, index) => (
+                    <tr key={song.id || `song-${index}`} className="hover:bg-slate-50/70 transition">
+                      <td className="py-3.5 px-4 font-mono font-bold text-slate-500">
+                        #{song.order || index + 1}
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={song.cover || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=600&q=80'}
+                            alt={song.title || 'Lagu'}
+                            className="w-10 h-10 rounded-xl object-cover bg-slate-100 border border-slate-200 shrink-0"
+                          />
+                          <div>
+                            <div className="font-bold text-slate-900 text-sm flex items-center gap-1.5">
+                              <span>{song.title || 'Tanpa Judul'}</span>
+                              {song.youtubeUrl && (
+                                <span className="px-1.5 py-0.5 rounded bg-red-50 border border-red-200 text-red-600 text-[9px] font-bold flex items-center gap-0.5" title="Video YouTube Terhubung">
+                                  <Youtube className="w-2.5 h-2.5" /> Video
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[11px] text-slate-500">{song.singer || 'Muhammad Dzikron'}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className="inline-block px-2.5 py-0.5 rounded-md bg-slate-100 border border-slate-200 text-slate-700 text-[11px] font-medium">
+                            {song.genre} ({song.year})
+                          </span>
+                          <span className="inline-block px-2 py-0.5 rounded-md bg-emerald-50 border border-emerald-200 font-mono text-emerald-700 text-[10px] font-bold">
+                            {formatSongDuration(song.duration)}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <button
+                          onClick={() => handleToggleStatus(song.id)}
+                          className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 transition cursor-pointer ${
+                            song.status === 'Draft'
+                              ? 'bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-200'
+                              : 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100'
+                          }`}
+                        >
+                          {song.status === 'Draft' ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                          <span>{song.status === 'Draft' ? 'Draft' : 'Publish'}</span>
+                        </button>
+                      </td>
+                      <td className="py-3.5 px-4 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            onClick={() => handleEditClick(song)}
+                            className="p-2 rounded-lg bg-slate-100 hover:bg-amber-100 text-slate-600 hover:text-amber-800 transition cursor-pointer"
+                            title="Edit Lagu"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteSong(song.id, song.title)}
+                            className="p-2 rounded-lg bg-slate-100 hover:bg-rose-100 text-slate-600 hover:text-rose-700 transition cursor-pointer"
+                            title="Hapus Lagu"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 
-      {/* Sub Tab 2: Add / Edit Form */}
+      {/* Sub Tab 2: Add / Edit Form (Light Luxury Theme, Responsive & Crash-Proof) */}
       {activeSubTab === 'add' && (
-        <form onSubmit={handleSaveSong} className="p-6 sm:p-8 rounded-3xl bg-slate-900/80 border border-slate-800 space-y-6 shadow-xl">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-            <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-[#00ffc8]" />
-              <span>{editingSongId ? `Edit Lagu: ${formData.title}` : 'Input Lagu Playlist Baru'}</span>
-            </h3>
-            {editingSongId && (
+        <form onSubmit={handleSaveSong} className="p-6 sm:p-8 rounded-3xl bg-white border border-slate-200/90 shadow-[0_4px_25px_rgba(15,23,42,0.04)] space-y-6 animate-in fade-in">
+          <div className="flex items-center justify-between pb-3.5 border-b border-slate-200">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2.5 rounded-xl bg-amber-50 text-amber-700 border border-amber-200 shadow-2xs">
+                {editingSongId ? <Edit2 className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900">
+                  {editingSongId ? `Edit Lagu: ${formData.title}` : 'Input & Tambahkan Lagu Baru'}
+                </h3>
+                <p className="text-xs text-slate-500">
+                  {editingSongId ? 'Perbarui informasi melodi, lirik, atau tautan audio lagu terpilih' : 'Tambahkan karya lagu baru ke katalog resmi Muhammad Dzikron'}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={handleResetForm}
-                className="text-xs text-amber-300 hover:underline"
+                onClick={() => {
+                  handleResetForm();
+                  setActiveSubTab('list');
+                }}
+                className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold cursor-pointer"
               >
-                Batal Edit
+                Kembali ke Daftar
               </button>
-            )}
+              {editingSongId && (
+                <button
+                  type="button"
+                  onClick={handleResetForm}
+                  className="px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-semibold cursor-pointer border border-amber-200"
+                >
+                  Batal Edit
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+            {/* Judul Lagu */}
             <div>
-              <label className="block font-semibold text-slate-300 mb-1">
-                Judul Lagu *
+              <label className="block font-bold text-slate-700 mb-1.5">
+                Judul Lagu <span className="text-rose-500">*</span>
               </label>
               <input
                 type="text"
                 required
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                placeholder="Contoh: Cinta Dalam Doa"
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-[#00ffc8]"
+                placeholder="Contoh: The Miracle of the Sky"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:bg-white focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100 transition shadow-inner font-medium"
               />
             </div>
 
+            {/* Penyanyi / Komposer */}
             <div>
-              <label className="block font-semibold text-slate-300 mb-1">
-                Penyanyi / Komposer
+              <label className="block font-bold text-slate-700 mb-1.5">
+                Penyanyi / Komposer <span className="text-rose-500">*</span>
               </label>
               <input
                 type="text"
@@ -954,25 +1158,27 @@ export const AdminView: React.FC<AdminViewProps> = ({
                 value={formData.singer}
                 onChange={(e) => setFormData({ ...formData, singer: e.target.value })}
                 placeholder="Muhammad Dzikron"
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-[#00ffc8]"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:bg-white focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100 transition shadow-inner font-medium"
               />
             </div>
 
+            {/* Genre Lagu */}
             <div>
-              <label className="block font-semibold text-slate-300 mb-1">
+              <label className="block font-bold text-slate-700 mb-1.5">
                 Genre Lagu
               </label>
               <input
                 type="text"
                 value={formData.genre}
                 onChange={(e) => setFormData({ ...formData, genre: e.target.value })}
-                placeholder="Pop Religi, Acoustic Ballad, etc."
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-[#00ffc8]"
+                placeholder="Pop Indie, Pop Religi, Pop Melayu, etc."
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:bg-white focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100 transition shadow-inner font-medium"
               />
             </div>
 
+            {/* Tahun Rilis */}
             <div>
-              <label className="block font-semibold text-slate-300 mb-1">
+              <label className="block font-bold text-slate-700 mb-1.5">
                 Tahun Rilis
               </label>
               <input
@@ -980,18 +1186,19 @@ export const AdminView: React.FC<AdminViewProps> = ({
                 value={formData.year}
                 onChange={(e) => setFormData({ ...formData, year: e.target.value })}
                 placeholder="2026"
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-[#00ffc8]"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:bg-white focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100 transition shadow-inner font-medium"
               />
             </div>
 
-            <div className="space-y-2">
+            {/* Link Google Drive / Audio File */}
+            <div className="sm:col-span-2 space-y-2">
               <div className="flex items-center justify-between">
-                <label className="block font-semibold text-slate-300 text-xs">
-                  Link Google Drive / ID File Audio *
+                <label className="block font-bold text-slate-700 text-xs">
+                  Link Google Drive / ID File Audio <span className="text-rose-500">*</span>
                 </label>
                 {formData.driveId.trim() && (
-                  <span className="text-[11px] font-mono text-[#00ffc8]">
-                    ID: {extractDriveId(formData.driveId) || 'URL Standar'}
+                  <span className="text-[11px] font-mono text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-200 font-semibold">
+                    ID Drive: {extractDriveId(formData.driveId) || 'Format Link Web'}
                   </span>
                 )}
               </div>
@@ -1010,20 +1217,20 @@ export const AdminView: React.FC<AdminViewProps> = ({
                       setIsPlayingTest(false);
                     }
                   }}
-                  placeholder="https://drive.google.com/file/d/1A2B3C... atau 1A2B3C..."
-                  className="flex-1 px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white font-mono text-xs focus:outline-none focus:border-[#00ffc8]"
+                  placeholder="https://drive.google.com/file/d/1A2B3C... atau ID file"
+                  className="flex-1 px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-mono text-xs focus:bg-white focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100 transition shadow-inner font-medium"
                 />
 
                 <button
                   type="button"
                   onClick={handleTestDriveAudio}
                   disabled={!formData.driveId.trim() || isTestingAudio}
-                  className={`px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shrink-0 ${
+                  className={`px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shrink-0 ${
                     isPlayingTest
-                      ? 'bg-rose-500 text-slate-950 shadow-[0_0_12px_rgba(244,63,94,0.4)]'
+                      ? 'bg-rose-500 text-white shadow-sm shadow-rose-200'
                       : testAudioSuccess
-                      ? 'bg-emerald-500 text-slate-950'
-                      : 'bg-slate-800 hover:bg-[#00ffc8] text-slate-200 hover:text-slate-950 border border-slate-700'
+                      ? 'bg-emerald-500 text-white'
+                      : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200'
                   }`}
                   title="Tes Putar Audio dari Google Drive"
                 >
@@ -1038,7 +1245,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
                 </button>
               </div>
 
-              {/* Hidden audio element for testing */}
+              {/* Hidden audio element for duration detector & tester */}
               <audio
                 ref={testAudioRef}
                 onLoadedMetadata={() => {
@@ -1061,46 +1268,42 @@ export const AdminView: React.FC<AdminViewProps> = ({
                   setIsPlayingTest(false);
                   setIsTestingAudio(false);
                   setTestAudioError(
-                    'Audio tidak dapat diputar. Pastikan link Google Drive diset "Siapa saja yang memiliki link" dan dapat diakses publik.'
+                    'Audio tidak dapat diputar. Pastikan file Google Drive diset izin: "Siapa saja yang memiliki link" (Anyone with the link).'
                   );
                 }}
               />
 
-              {/* Status feedback */}
               {testAudioSuccess && (
-                <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-[11px] flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>Audio berhasil dimuat dari Google Drive dan dapat diputar!</span>
+                <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>Audio berhasil dimuat dari Google Drive dan siap diputar!</span>
                 </div>
               )}
 
               {testAudioError && (
-                <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[11px] space-y-1">
-                  <div className="flex items-center gap-1.5 font-semibold">
-                    <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+                <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-[11px] space-y-1">
+                  <div className="flex items-center gap-1.5 font-bold">
+                    <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
                     <span>Petunjuk Izin Google Drive:</span>
                   </div>
-                  <p className="text-[10px] text-amber-200/90 leading-relaxed pl-5">
+                  <p className="text-[10px] text-amber-800 leading-relaxed pl-5">
                     1. Buka Google Drive &gt; Klik kanan file MP3 &gt; <strong>Bagikan (Share)</strong>.<br />
-                    2. Ubah Akses Umum menjadi: <strong>"Siapa saja yang memiliki link" (Anyone with the link)</strong>.<br />
-                    3. Salin link dan tempelkan kembali di kolom ini.
+                    2. Ubah Akses Umum menjadi: <strong>"Siapa saja yang memiliki link"</strong>.<br />
+                    3. Salin tautan dan tempelkan kembali ke kolom di atas.
                   </p>
                 </div>
               )}
-
-              <p className="text-[10px] text-slate-400">
-                Mendukung URL penuh Google Drive, file ID drive, atau direct MP3 URL.
-              </p>
             </div>
 
+            {/* Link Video YouTube */}
             <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="block font-semibold text-slate-300 flex items-center gap-1.5">
-                  <Youtube className="w-3.5 h-3.5 text-red-500" />
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block font-bold text-slate-700 flex items-center gap-1.5">
+                  <Youtube className="w-3.5 h-3.5 text-red-600" />
                   <span>Link Video YouTube (Opsional)</span>
                 </label>
                 {formData.youtubeUrl.trim() && extractYouTubeId(formData.youtubeUrl) && (
-                  <span className="text-[10px] font-mono text-emerald-400 flex items-center gap-1">
+                  <span className="text-[10px] font-mono text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded flex items-center gap-1">
                     <CheckCircle2 className="w-3 h-3" /> ID: {extractYouTubeId(formData.youtubeUrl)}
                   </span>
                 )}
@@ -1110,94 +1313,95 @@ export const AdminView: React.FC<AdminViewProps> = ({
                 value={formData.youtubeUrl}
                 onChange={(e) => setFormData({ ...formData, youtubeUrl: e.target.value })}
                 placeholder="https://www.youtube.com/watch?v=... atau https://youtu.be/..."
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-[#00ffc8]"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:bg-white focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100 transition shadow-inner font-medium"
               />
-              <p className="text-[10px] text-slate-400 mt-1">
-                Jika diisi, video musik siap putar otomatis tampil di detail lagu. Kosongkan jika belum memiliki link video.
-              </p>
             </div>
 
+            {/* Cover Album */}
             <div>
-              <label className="block font-semibold text-slate-300 mb-1">
+              <label className="block font-bold text-slate-700 mb-1.5">
                 Cover Album (URL Gambar)
               </label>
               <input
                 type="text"
                 value={formData.cover}
                 onChange={(e) => setFormData({ ...formData, cover: e.target.value })}
-                placeholder="https://images.unsplash.com/..."
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-[#00ffc8]"
+                placeholder="https://images.unsplash.com/... atau link Drive"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:bg-white focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100 transition shadow-inner font-medium"
               />
             </div>
 
+            {/* Durasi Lagu */}
             <div>
-              <label className="block font-semibold text-slate-300 mb-1">
+              <label className="block font-bold text-slate-700 mb-1.5">
                 Durasi Lagu (MM:SS)
               </label>
               <input
                 type="text"
                 value={formData.duration}
                 onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
-                placeholder="04:12"
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-[#00ffc8]"
+                placeholder="03:45"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:bg-white focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100 transition shadow-inner font-mono font-medium"
               />
             </div>
 
+            {/* Urutan & Status */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block font-semibold text-slate-300 mb-1">
+                <label className="block font-bold text-slate-700 mb-1.5">
                   Urutan Putar
                 </label>
                 <input
                   type="number"
                   value={formData.order}
                   onChange={(e) => setFormData({ ...formData, order: Number(e.target.value) })}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-[#00ffc8]"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:bg-white focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100 transition shadow-inner font-mono font-medium"
                 />
               </div>
               <div>
-                <label className="block font-semibold text-slate-300 mb-1">
+                <label className="block font-bold text-slate-700 mb-1.5">
                   Status Publikasi
                 </label>
                 <select
                   value={formData.status}
                   onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-[#00ffc8]"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:bg-white focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100 transition shadow-inner font-medium"
                 >
-                  <option value="Publish">Publish</option>
-                  <option value="Draft">Draft</option>
+                  <option value="Publish">Publish (Tampil)</option>
+                  <option value="Draft">Draft (Disembunyikan)</option>
                 </select>
               </div>
             </div>
+
+            {/* Lirik Lagu Lengkap */}
+            <div className="sm:col-span-2">
+              <label className="block font-bold text-slate-700 mb-1.5 text-xs">
+                Lirik Lagu Lengkap
+              </label>
+              <textarea
+                rows={6}
+                value={formData.lyrics}
+                onChange={(e) => setFormData({ ...formData, lyrics: e.target.value })}
+                placeholder="Tuliskan bait lirik lagu lengkap di sini..."
+                className="w-full px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-slate-900 text-xs leading-relaxed focus:bg-white focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100 transition shadow-inner font-sans"
+              />
+            </div>
           </div>
 
-          <div>
-            <label className="block font-semibold text-slate-300 mb-1 text-xs">
-              Lirik Lagu Lengkap
-            </label>
-            <textarea
-              rows={6}
-              value={formData.lyrics}
-              onChange={(e) => setFormData({ ...formData, lyrics: e.target.value })}
-              placeholder="Tuliskan lirik lagu lengkap di sini..."
-              className="w-full px-4 py-3 rounded-2xl bg-slate-950 border border-slate-800 text-white text-xs leading-relaxed focus:outline-none focus:border-[#00ffc8]"
-            />
-          </div>
-
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-800">
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200">
             <button
               type="button"
               onClick={handleResetForm}
-              className="px-5 py-2.5 rounded-xl bg-slate-800 text-slate-300 hover:text-white text-xs font-semibold"
+              className="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition cursor-pointer"
             >
-              Reset
+              Reset Formulir
             </button>
             <button
               type="submit"
-              className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#0099ff] to-[#00ffc8] text-slate-950 font-bold text-xs flex items-center gap-2 hover:scale-105 transition cursor-pointer shadow-[0_0_15px_rgba(0,255,200,0.4)]"
+              className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-extrabold text-xs uppercase tracking-wider flex items-center gap-2 shadow-sm shadow-amber-200 hover:scale-105 active:scale-95 transition cursor-pointer"
             >
               <Save className="w-4 h-4" />
-              <span>{editingSongId ? 'Simpan Perubahan' : 'Tambahkan Lagu Baru'}</span>
+              <span>{editingSongId ? 'Simpan Perubahan Lagu' : 'Tambahkan Lagu ke Playlist'}</span>
             </button>
           </div>
         </form>

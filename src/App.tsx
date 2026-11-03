@@ -578,15 +578,17 @@ export default function App() {
               )}
 
               {activeTab === 'admin' && (
-                <ErrorBoundary fallbackTitle="Kendala Memuat Dasbor Admin">
+                <ErrorBoundary fallbackTitle="Kendala Memuat Dasbor Admin" onReset={() => setActiveTab('home')}>
                   <AdminView
                     songs={songs || []}
+                    profile={profile}
                     onUpdateSongs={handleAdminUpdateSongs}
                     onLogout={handleAdminLogout}
                     onResetToDefault={handleResetToDefaultSongs}
                     isAdminLoggedIn={isAdminLoggedIn}
                     onOpenLoginModal={() => setShowAdminLoginModal(true)}
                     onOpenEditProfile={() => setShowEditProfileModal(true)}
+                    onSwitchTab={setActiveTab}
                   />
                 </ErrorBoundary>
               )}
